@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# set -e
+
+# Update pip
+python -m pip install --upgrade pip
+python -m pip install --upgrade setuptools
+pip install wheel
+
+# Install pre-commit
+pip install pre-commit
+pre-commit install --install-hooks
+
+# Install pylint
+pip install pylint
+pylint --generate-rcfile > ~/.pylintrc
+
+# Install bushfire_drone_simulation
+pip install -e bushfire_drone_simulation
