@@ -1,0 +1,27 @@
+# This workflow will install the program and run the pre-commit linting/testing with python 3.8
+
+name: Run pre-commit on all main branch pushes/pull_requests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        source tools/install-dev-env
+    - name: Run pre-commit
+      run: |
+        pre-commit run --all-files --hook-stage push
