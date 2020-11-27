@@ -2,8 +2,8 @@
 
 from enum import Enum
 
-from fire_utils import Location
-from units import Distance, Duration, Speed, Volume
+from bushfire_drone_simulation.fire_utils import Location
+from bushfire_drone_simulation.units import Distance, Duration, Speed, Volume
 
 
 class UAVStatus(Enum):

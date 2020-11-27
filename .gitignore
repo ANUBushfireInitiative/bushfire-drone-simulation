@@ -130,3 +130,6 @@ dmypy.json
 
 .vscode
 .setupmeta.version
+
+# Documentation from sphinx
+docs/source/_*

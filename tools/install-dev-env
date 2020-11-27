@@ -15,5 +15,9 @@ pre-commit install --install-hooks
 pip install pylint
 pylint --generate-rcfile > ~/.pylintrc
 
+# Install sphinx for documentation
+pip install sphinx
+pip install sphinx-rtd-theme
+
 # Install bushfire_drone_simulation
 pip install -e bushfire_drone_simulation

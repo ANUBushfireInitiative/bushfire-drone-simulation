@@ -2,4 +2,5 @@
 
 from setuptools import setup
 
-setup(name="bushfire_drone_simulation", setup_requires="setupmeta")
+if __name__ == "__main__":
+    setup(name="bushfire_drone_simulation", setup_requires="setupmeta")
