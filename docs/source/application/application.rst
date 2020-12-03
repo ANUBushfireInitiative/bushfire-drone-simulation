@@ -4,4 +4,4 @@ Application
 .. toctree::
    :maxdepth: 4
 
-   bushfire_drone_simulation
+   ../auto_generated/application/bushfire_drone_simulation/modules.rst

@@ -18,6 +18,8 @@ pylint --generate-rcfile > ~/.pylintrc
 # Install sphinx for documentation
 pip install sphinx
 pip install sphinx-rtd-theme
+pip install sphinx-autobuild
+pip install sphinx-autodoc-typehints
 
 # Install bushfire_drone_simulation
 pip install -e bushfire_drone_simulation

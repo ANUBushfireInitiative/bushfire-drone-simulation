@@ -15,6 +15,9 @@ import sys
 
 sys.path.insert(0, os.path.abspath("../../bushfire_drone_simulation/"))
 sys.path.insert(0, os.path.abspath("../../bushfire_drone_simulation/src/"))
+sys.path.insert(0, os.path.abspath("../../bushfire_drone_simulation/src/bushfire_drone_simulation"))
+sys.path.insert(0, os.path.abspath("../../tools/"))
+sys.path.insert(0, os.path.abspath(".."))
 
 
 # -- Project information -----------------------------------------------------
@@ -41,6 +44,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.graphviz",
     "sphinx.ext.napoleon",
+    "sphinx_autodoc_typehints",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -51,6 +55,8 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
+napoleon_google_docstring = True
+napoleon_use_param = True
 
 # -- Options for HTML output -------------------------------------------------
 
