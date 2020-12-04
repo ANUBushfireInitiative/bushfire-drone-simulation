@@ -5,11 +5,10 @@ from sys import stderr
 
 import typer
 
-import bushfire_drone_simulation.read_csv as read_csv
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.coordinator import Coordinator
 from bushfire_drone_simulation.lightning import reduce_lightning_to_ignitions
-from bushfire_drone_simulation.read_csv import read_lightning, read_locations
+from bushfire_drone_simulation.read_csv import CSVParameters, read_lightning, read_locations
 from bushfire_drone_simulation.units import Distance, Duration, Speed, Volume
 
 _LOG = logging.getLogger(__name__)
@@ -41,7 +40,7 @@ def run_simulation():
     """Run bushfire drone simulation."""
     # Read parameters
     filename = "csv_data/parameters.csv"
-    params = read_csv.Parameters(filename)
+    params = CSVParameters(filename)
 
     # Read and initalize data
     uav_bases = read_locations(params.get_uav_bases_filename())

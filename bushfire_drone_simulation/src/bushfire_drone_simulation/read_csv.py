@@ -33,7 +33,7 @@ def read_lightning(filename: str, ignition_probability: float, offset: int = 0):
     return lightning
 
 
-class Parameters:
+class CSVParameters:
     """Class for reading parameters from a csv file."""
 
     parameters = None

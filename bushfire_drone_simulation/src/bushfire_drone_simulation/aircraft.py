@@ -3,8 +3,7 @@
 # import logging
 from enum import Enum
 
-import bushfire_drone_simulation.fire_utils as fire_utils
-from bushfire_drone_simulation.fire_utils import Location, Time
+from bushfire_drone_simulation.fire_utils import Location, Time, minimum_distance
 from bushfire_drone_simulation.units import Distance, Duration, Speed, Volume
 
 # _LOG = logging.getLogger(__name__)
@@ -137,7 +136,7 @@ class UAV(Aircraft):  # pylint: disable=too-few-public-methods
         if it takes more than 1/3 of its fuel tank to return to the nearest base
         """
         if self.status == UAVStatus.WAITING:
-            index, value = fire_utils.minimum_distance(bases, self)
+            index, value = minimum_distance(bases, self)
             self.update_position(self.position, departure_time, UAVStatus.WAITING)
             if value.get() * fraction > self.current_fuel_capacity * self.uav_range.get():
                 self.update_position(bases[index], departure_time, UAVStatus.WAITING_AT_BASE)

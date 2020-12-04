@@ -20,6 +20,7 @@ pip install sphinx
 pip install sphinx-rtd-theme
 pip install sphinx-autobuild
 pip install sphinx-autodoc-typehints
+mkdir docs/source/_static
 
 # Install bushfire_drone_simulation
 pip install -e bushfire_drone_simulation

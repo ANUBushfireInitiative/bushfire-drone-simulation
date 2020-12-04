@@ -59,10 +59,12 @@ def make_documentation() -> None:
             with open(f"{application}/README.rst") as readme:
                 application_rst.write(readme.read())
 
-            application_rst.write("\n")
+            application_rst.write("\n\n")
+
+            application_rst.write(previous_text)
 
             # Generate class inheritance trees
-            application_rst.write("\nClasses\n-------\n")
+            application_rst.write("\n\nClasses\n-------\n")
             display_files = []
             for module_file in files:
                 module_file = (
@@ -72,8 +74,6 @@ def make_documentation() -> None:
                     display_files.append(module_file)
             application_rst.write(f".. inheritance-diagram:: {' '.join(display_files)}\n")
             application_rst.write("  :parts: 1\n\n")
-
-            application_rst.write(previous_text)
 
     os.chdir(os.getcwd() + "/docs/")
     subprocess.run(["make", "clean"], check=True)
