@@ -7,6 +7,19 @@ from bushfire_drone_simulation.fire_utils import Time, minimum_distance
 from bushfire_drone_simulation.lightning import Lightning
 
 
+class CoordinatorParamaters:  # pylint: disable=too-few-public-methods
+    """Parameters for Coordinator.
+
+    TODO: Actually use in Coordinator below
+    """
+
+    uav_bases = None
+    uavs = None
+    water_bombers = None
+    water_bomber_bases = None
+    water_tanks = None
+
+
 class Coordinator:
     """Class for centrally coordinating UAVs and water bombers."""
 

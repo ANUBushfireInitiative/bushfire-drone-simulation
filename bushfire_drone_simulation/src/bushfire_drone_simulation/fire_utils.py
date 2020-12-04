@@ -49,7 +49,13 @@ def month_to_days(month: int, leap_year: bool = False):
 
 
 def days_to_month(days: int, leap_year: bool = False):
-    """Convert number of days to a date since the beginning of the year."""
+    """Convert number of days to a date since the beginning of the year.
+
+    Usage:
+        >>> from bushfire_drone_simulation.fire_utils import days_to_month
+        >>> days_to_month(365)
+        (12, 31)
+    """
     month = 1
     for i in range(1, 12):
         sub = 31

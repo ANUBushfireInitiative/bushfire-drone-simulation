@@ -134,3 +134,4 @@ dmypy.json
 # Documentation from sphinx
 docs/source/_*
 docs/source/auto_generated
+sphinx

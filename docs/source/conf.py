@@ -44,6 +44,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.graphviz",
     "sphinx.ext.napoleon",
+    "sphinx.ext.doctest",
     "sphinx_autodoc_typehints",
 ]
 
