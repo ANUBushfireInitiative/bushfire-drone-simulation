@@ -30,6 +30,10 @@ class Distance:  # pylint: disable=too-few-public-methods
         """
         return self.value / DISTANCE_FACTORS[units]
 
+    def __le__(self, other):
+        """Less than operator of Distance."""
+        return self.get() < other.get()
+
 
 class Duration:  # pylint: disable=too-few-public-methods
     """Duration class for easy unit conversion. Duration stored internally as seconds."""
@@ -47,6 +51,10 @@ class Duration:  # pylint: disable=too-few-public-methods
         Defaults to DEFAULT_DURATION_UNITS if units not specified.
         """
         return self.value / DURATION_FACTORS[units]
+
+    def __add__(self, other):
+        """Addition operator of Duration."""
+        return Duration(self.get() + other.get())
 
 
 class Speed:  # pylint: disable=too-few-public-methods
