@@ -68,7 +68,10 @@ def make_documentation() -> None:
             display_files = []
             for module_file in files:
                 module_file = (
-                    module_file.strip(".py").replace(f"{application}/src/", "").replace("/", ".")
+                    module_file.strip(".py")
+                    .replace(f"{application}/src/", "")
+                    .replace("/", ".")
+                    .replace("\\", ".")
                 )
                 if not module_file.endswith("_"):
                     display_files.append(module_file)
