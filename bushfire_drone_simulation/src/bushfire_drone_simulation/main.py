@@ -7,6 +7,7 @@ import typer
 
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.coordinator import Coordinator
+from bushfire_drone_simulation.gui.gui import start_gui
 from bushfire_drone_simulation.lightning import reduce_lightning_to_ignitions
 from bushfire_drone_simulation.read_csv import CSVParameters, read_lightning, read_locations
 from bushfire_drone_simulation.units import Distance, Duration, Speed, Volume
@@ -33,6 +34,12 @@ def func1(x: int = typer.Argument(..., help="Help stuff"), y: int = typer.Option
 def func2():
     """Test function 2."""
     _LOG.info("Hello world from func2")
+
+
+@app.command()
+def gui():
+    """Start a GUI version of the drone simulation."""
+    start_gui()
 
 
 @app.command()

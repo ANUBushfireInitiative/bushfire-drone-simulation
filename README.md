@@ -4,7 +4,7 @@ This is a python application that allows the simulation of drones for fast light
 
 ## Installation
 
-This application requires a unix style operating system or terminal. On windows systems, this can be achieved using the windows subsystem for linux (WSL). The windows subsystem for linux can be installed by following the steps detailed [here](https://docs.microsoft.com/en-us/windows/wsl/install-win10).
+This application requires a unix style operating system or terminal. On windows systems, this can be achieved using the windows subsystem for linux (WSL). The windows subsystem for linux can be installed by following the steps detailed [here](https://docs.microsoft.com/en-us/windows/wsl/install-win10). We recommend installing one of the Ubuntu versions.
 
 ### Setting up Python Environment
 
@@ -23,7 +23,7 @@ WARNING: seems you still have not added 'pyenv' to the load path.
 To add this text to ~./bashrc, first copy the text, then run the command
 
 ```bash
-echo '<copied_text>' >> ~./bashrc
+echo '<copied_text>' >> ~/.bashrc
 ```
 
 To create a pyenv environment for this application, run the commands
@@ -80,7 +80,7 @@ sudo apt-get install graphviz
 After installing the development environment above, you can start a local documentation server by running the command
 
 ```bash
-python tools/doc_server start_server
+python tools/doc_server.py start-server
 ```
 
 from within the root folder of the project. By default, this will host the documentation at http://localhost:8000. For more information about the application, contributing, or testing, please see this documentation.

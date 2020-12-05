@@ -83,15 +83,7 @@ def make_documentation() -> None:
 
 @app.command()
 def start_server(host="localhost", port="8000", live: bool = False):
-    """Start server for documentation.
-
-    :param host: [description], defaults to "localhost"
-    :type host: str, optional
-    :param port: [description], defaults to "8000"
-    :type port: str, optional
-    :param live: [description], defaults to False
-    :type live: bool, optional
-    """
+    """Start server for documentation."""
     make_documentation()
     server = Server()
     if live:
@@ -107,6 +99,24 @@ def start_server(host="localhost", port="8000", live: bool = False):
         )
         server.watch(os.getcwd() + "/tools", shell("python tools/doc_server.py make-documentation"))
     server.serve(root="docs/build/html", host=host, port=port)
+
+
+@app.command()
+def make_pdf():
+    """Make a pdf version of the documentation."""
+    script_location = os.path.dirname(os.path.abspath(__file__))
+    make_documentation()
+    os.chdir(os.getcwd() + "/docs/")
+    subprocess.run(["make", "latexpdf"], check=True)
+    subprocess.run(
+        [
+            "cp",
+            "build/latex/anubushfireinitiativedronesimulation.pdf",
+            "ANU Bushfire Initiative Drone Simulation Documentation.pdf",
+        ],
+        check=True,
+    )
+    os.chdir(script_location + "/../")
 
 
 if __name__ == "__main__":

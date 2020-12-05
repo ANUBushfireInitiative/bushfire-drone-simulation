@@ -67,6 +67,7 @@ napoleon_use_param = True
 html_theme = "sphinx_rtd_theme"
 
 html_logo = "drone_simulation_logo.png"
+html_favicon = "drone_simulation_logo.png"
 
 html_theme_options = {"logo_only": False}
 
