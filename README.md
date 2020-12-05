@@ -26,16 +26,16 @@ To add this text to ~./bashrc, first copy the text, then run the command
 echo '<copied_text>' >> ~/.bashrc
 ```
 
-To create a pyenv environment for this application, run the commands
+To create a pyenv environment called bushfires for this application, run the commands
 
 ```bash
 pyenv install 3.8.5
-pyenv virtualenv 3.8.5 <environment_name>
+pyenv virtualenv 3.8.5 bushfires
 ```
 
-replacing ```[environment_name]``` with a name for the python environment (e.g. ```bushfires```). Then, prior to following the installation steps below and before each time using the ```bushfire_drone_simulation``` application, you will need to enter the python environment using the command
+Then, prior to following the installation steps below and before each time using the ```bushfire_drone_simulation``` application, you will need to enter the bushfires python environment using the command
 
-```pyenv activate <environment_name>```
+```pyenv activate bushfires```
 
 You can now skip the section on *Installing with python directly* if you have successfully set up a pyenv environment.
 
