@@ -1,6 +1,6 @@
-# ANU Bushfire Initiative - Drone Simulation
+[![ANU Bushfire Initiative Drone Logo](docs/source/drone_simulation_logo_with_title.png)](https://github.com/ryanstocks00/anu-bushfire-initiative-simulation)
 
-This is a python application that allows the simulation of Drones for fast lightning strike investigation and potential suppression by a fleet of water bombers.
+This is a python application that allows the simulation of drones for fast lightning strike investigation and potential suppression by a fleet of water bombers.
 
 ## Installation
 
@@ -24,6 +24,7 @@ To add this text to ~./bashrc, first copy the text, then run the command
 
 ```bash
 echo '<copied_text>' >> ~./bashrc
+```
 
 To create a pyenv environment for this application, run the commands
 

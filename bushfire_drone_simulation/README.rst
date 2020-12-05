@@ -1,25 +1,20 @@
-This is a Title
-===============
-That has a paragraph about a main subject and is set when the '='
-is at least the same length of the title itself.
+Bushfire Drone Simulation
+=========================
 
-Subject Subtitle
-----------------
-Subtitles are set with '-' and are required to have the same length
-of the subtitle itself, just like titles.
+This is a python application that allows the simulation of drones for fast lightning strike investigation and potential suppression by a fleet of water bombers.
+The main application can be run using the command ``bushfire_drone_simulation run-simulation``:
 
-Lists can be unnumbered like:
+.. code-block:: bash
 
- * Item Foo
- * Item Bar
+    Usage: bushfire_drone_simulation run-simulation [OPTIONS]
 
-Or automatically numbered:
+        Run bushfire drone simulation.
 
- #. Item 1
- #. Item 2
+    Options:
+        --help  Show this message and exit.
 
-Inline Markup
--------------
-Words can have *emphasis in italics* or be **bold** and you can define
-code samples with back quotes, like when you talk about a command: ``sudo``
-gives you super user powers!
+
+Required Input
+--------------
+
+ * Input 1
