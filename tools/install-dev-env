@@ -20,3 +20,5 @@ mkdir docs/source/_static
 
 # Install bushfire_drone_simulation
 pip install -e bushfire_drone_simulation
+
+echo "Congratulations! The ANU Bushfire Initiative Drone Simulation is now installed."
