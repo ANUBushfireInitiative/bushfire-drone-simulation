@@ -4,11 +4,11 @@ This is a python application that allows the simulation of drones for fast light
 
 # Installation
 
-This application has been designed to run on either a windows or a unix style operating system or terminal, however active development will likely be much easier on a unix style system. On windows systems, this can be achieved using the windows subsystem for linux (WSL). The windows subsystem for linux can be installed by following the steps detailed [here](https://docs.microsoft.com/en-us/windows/wsl/install-win10).
+This application has been designed to run on either a windows or a unix style operating system or terminal. The windows installation will be sufficient if active development is not required, however active development will be much easier on a unix style system. On windows systems, this can be achieved using the windows subsystem for linux (WSL). The windows subsystem for linux can be installed by following the steps detailed [here](https://docs.microsoft.com/en-us/windows/wsl/install-win10).
 
 ## Windows Installation Instructions
 
-On a windows system, we will install the drone simulation application in Windows PowerShell. You can open Windows PowerShell by opening File Explorer, navigating to the folder in which you want to start PowerShell, then typing powershell into the address bar and hitting enter. Alternately, you can start WindowsPowershell as an administrator by right-clicking the windows start button and selecting ```Windows PowerShell (Admin)``` and then navigating to the target folder using ```cd``` (change directory).
+On a windows system, we will install the drone simulation application in Windows PowerShell. To open Windows PowerShell as an administrator, right-click the windows start button and select ```Windows PowerShell (Admin)``` and then select "Yes" when prompted.
 
 ### Installing Chocolatey
 
@@ -20,6 +20,8 @@ Set-ExecutionPolicy Bypass -Scope Process -Force;
 iwr https://chocolatey.org/install.ps1 -UseBasicParsing | iex
 ```
 
+You may need to reopen PowerShell before using choco (Chocolatey) in the next step.
+
 ### Installing Python
 
 As this is a python application, we first need to install python. We will use Chocolatey to install version 3.8.5. Open Windows PowerShell as an administrator and run the command:
@@ -28,25 +30,33 @@ As this is a python application, we first need to install python. We will use Ch
 choco install -y python3 --version=3.8.5 --force
 ```
 
-To support the pre-commit program, you may also need python 3.6 which can be installed with the command
+To support the pre-commit program (useful for active development), you may also need python 3.6 which can be installed with the command
 
 ```powershell
 choco install -y python3 --version=3.6.5 --force
 ```
 
-If the installation is successful, python 3.8 can then be accessed using the command ```py -3.8```.
+If the installation is successful, python 3.8 can then be accessed using the command ```py -3.8``` (and exited using the command ```exit()```).
 
 ### Installing Git
 
-By default, Windows PowerShell does not come with the useful version control system git. Hence if git is not installed on your system (this can be checked using the command ```git --version``` in PowerShell), please install it using the following command:
+By default, Windows PowerShell does not come with the useful version control system git. Hence if git is not installed on your system (this can be checked using the command ```git --version``` in PowerShell, if PowerShell displays a version of git this indicates git is already installed), please install it using the following command:
 
 ```powershell
 choco install -y git.install --params "/GitAndUnixToolsOnPath /SChannel /NoAutoCrlf"
 ```
 
+### Setting the Execution Policy
+
+We also need to change the PowerShell execution policy to allow us to run external scripts by running the following command in PowerShell (with admin):
+
+```powershell
+set-executionpolicy remotesigned
+```
+
 ### Downloading and Installing the Bushfire Simulation
 
-Now that we have python and git installed, open a PowerShell window in the folder that you would like to download the bushfire simulation application and run the following commands to download and install the application:
+Now that we have python and git installed, open a PowerShell window in the folder that you would like to download the bushfire simulation application. This can be done by opening File Explorer, navigating to the folder in which you want to start PowerShell, then typing powershell into the address bar and hitting enter. Alternately, you can start WindowsPowershell as before and then navigating to the target folder using ```cd``` (change directory). You can now run the following commands to download and install the application:
 
 1. ```git clone https://github.com/ryanstocks00/anu-bushfire-initiative-simulation```
 2. ```cd anu-bushfire-initiative-simulation```
@@ -107,14 +117,20 @@ bushfire_drone_simulation --help
 
 ## Documentation
 
-The documentation for this application is a combination of manual and automatically generated components, primarily contained within the [docs/source](docs/source) directory. This consists of some graphical components which rely on the graphviz application which on a unix system may need to be installed using the command
+The documentation for this application is a combination of manual and automatically generated components, primarily contained within the [docs/source](docs/source) directory. This consists of some graphical components which rely on the graphviz application. This is often preinstalled but on a unix system it may need to be installed using the command
 
 ```bash
 sudo apt-get install graphviz
 ```
 
-After installing the development environment above, you can start a local documentation server by running the command
+You can now start a local documentation server by running the command
 
+**Windows:**
+```bash
+py -3.8 tools/doc_server.py start-server
+```
+
+**Unix:**
 ```bash
 python tools/doc_server.py start-server
 ```
