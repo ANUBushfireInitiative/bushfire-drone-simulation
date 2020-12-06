@@ -3,11 +3,10 @@ py -3.8 -m pip install --upgrade pip setuptools wheel
 
 # Install pre-commit
 py -3.8 -m pip install pre-commit
-# pre-commit install --install-hooks
+pre-commit install --install-hooks
 
 # Install pylint
 py -3.8 -m pip install pylint
-# pylint --generate-rcfile > ~/.pylintrc
 
 # Install sphinx for documentation
 py -3.8 -m pip install sphinx
