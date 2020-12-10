@@ -6,19 +6,23 @@ import pandas
 
 from bushfire_drone_simulation.fire_utils import Location, Time
 from bushfire_drone_simulation.lightning import Lightning
+from bushfire_drone_simulation.units import Volume
 
 _LOG = logging.getLogger(__name__)
 
 
-def read_locations(filename: str, offset: int = 0):
+def read_locations(filename: str, constructor=Location, capacity: Volume = None, offset: int = 0):
     """Return a list of Locations contained in the first two columns of a given a csv file."""
     data = pandas.read_csv(filename)
     x = data[data.columns[0 + offset]].values.tolist()
     y = data[data.columns[1 + offset]].values.tolist()
-    locations = []
+    ret = []
     for i, _ in enumerate(x):
-        locations.append(Location(x[i], y[i]))
-    return locations
+        if capacity is not None:
+            ret.append(constructor(x[i], y[i], capacity))
+        else:
+            ret.append(constructor(x[i], y[i]))
+    return ret
 
 
 def read_lightning(filename: str, ignition_probability: float, offset: int = 0):

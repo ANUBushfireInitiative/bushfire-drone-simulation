@@ -2,7 +2,7 @@
 
 import math
 
-from bushfire_drone_simulation.units import Distance, Duration
+from bushfire_drone_simulation.units import Distance, Duration, Volume
 
 # class Point:  # pylint: disable=too-few-public-methods
 #     """Point class holding a pair of x-y coordinates."""
@@ -32,6 +32,32 @@ class Location:  # pylint: disable=too-few-public-methods
         """Find Euclidian distance."""
         # FIXME(units not correct)  # pylint: disable=fixme
         return Distance(math.sqrt((self.lat - other.lat) ** 2 + (self.lon - other.lon) ** 2), units)
+
+    def copy_loc(self):
+        """Create a new instance of Location."""
+        return Location(self.lat, self.lon)
+
+
+class WaterTank(Location):
+    """Class containing a water tank's location and capacity."""
+
+    def __init__(self, latitude: float, longitude: float, capacity: Volume):
+        """Initialise watertank from location and capacity."""
+        super().__init__(latitude, longitude)
+        self.capacity = capacity
+
+    def empty(self, volume: Volume):
+        """Remove a given volume from the water tank."""
+        self.capacity -= volume
+
+
+class Base(Location):
+    """Class containing a base's location and fuel capacity."""
+
+    def __init__(self, latitude: float, longitude: float, capacity: Volume = None):
+        """Initialise aircraft base from location and fuel capacity."""
+        super().__init__(latitude, longitude)
+        self.capacity = capacity
 
 
 def month_to_days(month: int, leap_year: bool = False):
@@ -81,8 +107,8 @@ class Time:  # pylint: disable=too-few-public-methods
         "*" represents any character, e.g. 2033-11/03D12*00?12 would be accepted
         """
         self.time = (
-            Duration(int(time_in[:4]), "year")
-            + Duration(month_to_days(int(time_in[5:7])) + int(time_in[8:10]) - 1, "day")
+            # Duration(int(time_in[:4]), "year")
+            Duration(month_to_days(int(time_in[5:7])) + int(time_in[8:10]) - 1, "day")
             + Duration(int(time_in[11:13]), "hr")
             + Duration(int(time_in[14:16]), "min")
             + Duration(int(time_in[17:19]), "s")
@@ -111,22 +137,11 @@ class Time:  # pylint: disable=too-few-public-methods
         self.time += duration
 
 
-def minimum(array, max_value, operator=id):
+def minimum(array, min_value, operator=id):
     """Return the minimum value of a list and the index of that value."""
     index = None
     for (i, val) in enumerate(array):
-        if operator(val) < max_value:
+        if operator(val) < min_value:
             index = i
-            max_value = operator(val)
-    return index, max_value
-
-
-def minimum_distance(array, location):
-    """Return the minimum value of a list and the index of that value."""
-    max_value = Distance(10000000000)
-    index = None
-    for (i, val) in enumerate(array):
-        if location.position.distance(val).get() < max_value.get():
-            index = i
-            max_value = location.position.distance(val)
-    return index, max_value
+            min_value = operator(val)
+    return index, min_value

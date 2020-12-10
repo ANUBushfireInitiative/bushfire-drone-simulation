@@ -1,10 +1,14 @@
 """Module for the centralized coordinator/HQ controlling the UAVs and aircraft."""
 
+import logging
 import queue
 
-from bushfire_drone_simulation.aircraft import UAV, UAVStatus
-from bushfire_drone_simulation.fire_utils import Time, minimum_distance
+from bushfire_drone_simulation.aircraft import UAV, WaterBomber
+from bushfire_drone_simulation.fire_utils import Time, minimum
 from bushfire_drone_simulation.lightning import Lightning
+from bushfire_drone_simulation.units import Distance
+
+_LOG = logging.getLogger(__name__)
 
 
 class CoordinatorParamaters:  # pylint: disable=too-few-public-methods
@@ -53,9 +57,10 @@ class Coordinator:
             self.events.get().get_uav.complete_update()
         else:
             # Determine nearest base to lightning strike
-            base_index, _ = minimum_distance(self.uav_bases, lightning)
+            base_index, _ = minimum(self.uav_bases, Distance(1000000), lightning.position.distance)
             min_arrival_time = Time("9999/99/99/99/99/99")
             best_uav = None
+            via_base = None
             for uav in self.uavs:
                 # Check whether the UAV has enough fuel to
                 # go to the lightning strike and then to the nearest base
@@ -65,82 +70,250 @@ class Coordinator:
                     [lightning.position, self.uav_bases[base_index]], lightning.spawn_time
                 ):
                     temp_arr_time = uav.arrival_time([lightning.position], lightning.spawn_time)
-                    # print("lightning spawn time is ", lightning.spawn_time.time.get())
-                    if temp_arr_time.time.get() < min_arrival_time.time.get():
+                    if temp_arr_time < min_arrival_time:
                         min_arrival_time = temp_arr_time
                         best_uav = uav
+                # Via a base to refuel
+                for uav_base in self.uav_bases:
+                    if uav.enough_fuel(
+                        [uav_base, lightning.position, self.uav_bases[base_index]],
+                        lightning.spawn_time,
+                    ):
+                        temp_arr_time = uav.arrival_time(
+                            [uav_base, lightning.position], lightning.spawn_time
+                        )
+                        if temp_arr_time < min_arrival_time:
+                            min_arrival_time = temp_arr_time
+                            best_uav = uav
+                            via_base = uav_base
             if best_uav is not None:
-                # There exists a UAV that has enough fuel,
-                # send it to the lightning strike and then to refuel
-                best_uav.update_position(
-                    lightning.position, lightning.spawn_time, UAVStatus.WAITING
+                _LOG.info("Best UAV is: %s", best_uav.id_no)
+                _LOG.info(
+                    "Which took %s mins to respond",
+                    (min_arrival_time - lightning.spawn_time).get("min"),
                 )
-                print(best_uav.id_no)
-                print(lightning.spawn_time.time.get() - min_arrival_time.time.get())
-                lightning.inspected(best_uav, min_arrival_time)  # change location of this in future
-
+                if via_base is not None:
+                    # The minimum arrival time was achieved by travelling via a base
+                    # Update UAV position accordingly
+                    best_uav.go_to_base(via_base, lightning.spawn_time)
+                # There exists a UAV that has enough fuel, send it to the lightning strike
+                best_uav.go_to_strike(lightning, lightning.spawn_time, min_arrival_time)
             else:
                 # There are no UVAs that can reach the lighnting strike without refuling
                 # Try going via a base to refuel
-                self.via_base(lightning, base_index)
+                _LOG.error("No UAVs were available")
 
         for uav in self.uavs:
             uav.consider_going_to_base(self.uav_bases, lightning.spawn_time)
 
-    def via_base(self, lightning: Lightning, base_index: int):
-        """Via base."""
-        min_arrival_time = Time("9999/99/99/99/99/99")
-        best_uav = None
-        via_base = None
-        for uav in self.uavs:
-            for uav_base in self.uav_bases:
-                if uav.enough_fuel(
-                    [uav_base, lightning.position, self.uav_bases[base_index]],
-                    lightning.spawn_time,
-                ):
-                    temp_arr_time = uav.arrival_time(
-                        self, [uav_base, lightning.position], lightning.spawn_time
-                    )
-                    if temp_arr_time < min_arrival_time:
-                        min_arrival_time = temp_arr_time
-                        best_uav = uav
-                        via_base = uav_base
-        if best_uav is not None:
-            best_uav.update_position(via_base.position, lightning.spawn_time, UAVStatus.WAITING)
-            best_uav.update_position(lightning.position, lightning.spawn_time, UAVStatus.WAITING)
-            lightning.inspected(best_uav, min_arrival_time)  # change location of this in future
-        else:
-            print("no uavs")
-
-    def ignition_update(self, ignition: Lightning = None):
+    def ignition_update(
+        self, ignition: Lightning = None
+    ):  # pylint: disable=too-many-branches, too-many-statements
         """Coordinator receives ignition strike that just occured."""
         # If lightning None then process next update, otherwise process lightning strike
-        if ignition is None:
+        if ignition is None:  # pylint: disable=too-many-nested-blocks
             self.events.get().get_uav.complete_update()
         else:
-            base_index, _ = minimum_distance(self.water_bomber_bases, ignition)
+            base_index, _ = minimum(
+                self.water_bomber_bases, Distance(1000000), ignition.position.distance
+            )
             min_arrival_time = Time("9999/99/99/99/99/99")
-            best_water_bomber = None
+            best_water_bomber: WaterBomber = None
+            via_water: int = None
+            via_base: int = None
+            fuel_first: bool = None
             for water_bomber in self.water_bombers:
                 if water_bomber.enough_water():
                     if water_bomber.enough_fuel(
-                        [ignition.location, self.water_bomber_bases[base_index]],
+                        [ignition.position, self.water_bomber_bases[base_index]],
                         ignition.spawn_time,
                     ):
                         temp_arr_time = water_bomber.arrival_time(
-                            [ignition.location], ignition.spawn_time
+                            [ignition.position], ignition.spawn_time
                         )
-                    if temp_arr_time < min_arrival_time:
-                        min_arrival_time = temp_arr_time
-                        best_water_bomber = water_bomber
+                        if temp_arr_time < min_arrival_time:
+                            min_arrival_time = temp_arr_time
+                            best_water_bomber = water_bomber
+                    else:  # Need to refuel
+                        for base in self.water_bomber_bases:
+                            if water_bomber.enough_fuel(
+                                [base, ignition.position, self.water_bomber_bases[base_index]]
+                            ):
+                                temp_arr_time = water_bomber.arrival_time(
+                                    [base, ignition.position], ignition.spawn_time
+                                )
+                                if temp_arr_time < min_arrival_time:
+                                    min_arrival_time = temp_arr_time
+                                    best_water_bomber = water_bomber
+                                    via_base = base
+
+                else:
+                    # self.not_enough_water(
+                    #     water_bomber,
+                    #     best_water_bomber,
+                    #     min_arrival_time,
+                    #     via_base,
+                    #     ignition,
+                    #     base_index,
+                    # )
+                    # Need to go via a water tank
+                    # (assuming if we go via a water tank we have enough water)
+                    _LOG.info("Water bomber %s needs to go via a water tank", water_bomber.id_no)
+                    for water_tank in self.water_tanks:
+                        if water_bomber.enough_fuel(
+                            [water_tank, ignition.position, self.water_bomber_bases[base_index]],
+                            ignition.spawn_time,
+                        ):
+                            temp_arr_time = water_bomber.arrival_time(
+                                [water_tank, ignition.position], ignition.spawn_time
+                            )
+                            if temp_arr_time < min_arrival_time:
+                                min_arrival_time = temp_arr_time
+                                best_water_bomber = water_bomber
+                                via_water = water_tank
+                    if via_water is None:
+                        # Need to also refuel
+                        for water_tank in self.water_tanks:
+                            for base in self.water_bomber_bases:
+                                if water_bomber.enough_fuel(
+                                    [
+                                        water_tank,
+                                        base,
+                                        ignition.position,
+                                        self.water_bomber_bases[base_index],
+                                    ],
+                                    ignition.spawn_time,
+                                ):
+                                    temp_arr_time = water_bomber.arrival_time(
+                                        [water_tank, base, ignition.position], ignition.spawn_time
+                                    )
+                                    if temp_arr_time < min_arrival_time:
+                                        min_arrival_time = temp_arr_time
+                                        best_water_bomber = water_bomber
+                                        via_water = water_tank
+                                        via_base = base
+                                        fuel_first = False
+                                if water_bomber.enough_fuel(
+                                    [
+                                        base,
+                                        water_tank,
+                                        ignition.position,
+                                        self.water_bomber_bases[base_index],
+                                    ],
+                                    ignition.spawn_time,
+                                ):
+                                    temp_arr_time = water_bomber.arrival_time(
+                                        [base, water_tank, ignition.position], ignition.spawn_time
+                                    )
+                                    if temp_arr_time < min_arrival_time:
+                                        min_arrival_time = temp_arr_time
+                                        best_water_bomber = water_bomber
+                                        via_water = water_tank
+                                        via_base = base
+                                        fuel_first = True
 
             if best_water_bomber is not None:
-                # Want to go to base then lightning
-                best_water_bomber.update_position(
-                    ignition.position, ignition.spawn_time, UAVStatus.WAITING
+                _LOG.info("Best water bomber is: %s", best_water_bomber.id_no)
+                _LOG.info(
+                    "Which took %s mins to respond",
+                    (min_arrival_time - ignition.spawn_time).get("min"),
                 )
-                ignition.inspected_by(best_water_bomber)
-                ignition.inspected_time(min_arrival_time)
+                if fuel_first is not None:
+                    if fuel_first:
+                        best_water_bomber.go_to_base(via_base, ignition.spawn_time)
+                        best_water_bomber.go_to_water(via_water, ignition.spawn_time)
+                    else:
+                        best_water_bomber.go_to_water(via_water, ignition.spawn_time)
+                        best_water_bomber.go_to_base(via_base, ignition.spawn_time)
+                elif via_water is not None:
+                    best_water_bomber.go_to_water(via_water, ignition.spawn_time)
+                elif via_base is not None:
+                    best_water_bomber.go_to_base(via_base, ignition.spawn_time)
+                best_water_bomber.go_to_strike(ignition, ignition.spawn_time, min_arrival_time)
+            else:
+                _LOG.error("No water bomber were available")
+        for water_bomber in self.water_bombers:
+            water_bomber.consider_going_to_base(self.water_bomber_bases, ignition.spawn_time)
+
+    def go_via_base(
+        self, water_bomber, ignition, base_index, best_water_bomber, via_base, min_arrival_time
+    ):  # pylint: disable=too-many-arguments
+        """Via base."""
+        for base in self.water_bomber_bases:
+            if water_bomber.enough_fuel(
+                [base, ignition.position, self.water_bomber_bases[base_index]], ignition.spawn_time
+            ):
+                temp_arr_time = water_bomber.arrival_time(
+                    [base, ignition.position], ignition.spawn_time
+                )
+                if temp_arr_time < min_arrival_time:
+                    min_arrival_time = temp_arr_time
+                    best_water_bomber = water_bomber
+                    via_base = base
+        return min_arrival_time, best_water_bomber, via_base
+
+    def not_enough_water(
+        self, water_bomber, best_water_bomber, min_arrival_time, via_base, ignition, base_index
+    ):  # pylint: disable=too-many-arguments
+        """Return optimal path to ignition site given a water bomber who needs to refill water."""
+        via_water: int = None
+        fuel_first: bool = None
+        # Need to go via a water tank
+        # (assuming if we go via a water tank we have enough water)
+        _LOG.info("Water bomber %s needs to go via a water tank", water_bomber.id_no)
+        for water_tank in self.water_tanks:
+            if water_bomber.enough_fuel(
+                [water_tank, ignition.position, self.water_bomber_bases[base_index]],
+                ignition.spawn_time,
+            ):
+                temp_arr_time = water_bomber.arrival_time(
+                    [water_tank, ignition.position], ignition.spawn_time
+                )
+                if temp_arr_time < min_arrival_time:
+                    min_arrival_time = temp_arr_time
+                    best_water_bomber = water_bomber
+                    via_water = water_tank
+        if via_water is None:
+            # Need to also refuel
+            for water_tank in self.water_tanks:
+                for base in self.water_bomber_bases:
+                    if water_bomber.enough_fuel(
+                        [
+                            water_tank,
+                            base,
+                            ignition.position,
+                            self.water_bomber_bases[base_index],
+                        ],
+                        ignition.spawn_time,
+                    ):
+                        temp_arr_time = water_bomber.arrival_time(
+                            [water_tank, base, ignition.position], ignition.spawn_time
+                        )
+                        if temp_arr_time < min_arrival_time:
+                            min_arrival_time = temp_arr_time
+                            best_water_bomber = water_bomber
+                            via_water = water_tank
+                            via_base = base
+                            fuel_first = False
+                    if water_bomber.enough_fuel(
+                        [
+                            base,
+                            water_tank,
+                            ignition.position,
+                            self.water_bomber_bases[base_index],
+                        ],
+                        ignition.spawn_time,
+                    ):
+                        temp_arr_time = water_bomber.arrival_time(
+                            [base, water_tank, ignition.position], ignition.spawn_time
+                        )
+                        if temp_arr_time < min_arrival_time:
+                            min_arrival_time = temp_arr_time
+                            best_water_bomber = water_bomber
+                            via_water = water_tank
+                            via_base = base
+                            fuel_first = True
+        return min_arrival_time, best_water_bomber, via_water, via_base, fuel_first
 
 
 class Event:

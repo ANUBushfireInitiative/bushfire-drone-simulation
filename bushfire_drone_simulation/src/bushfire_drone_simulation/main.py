@@ -7,6 +7,7 @@ import typer
 
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.coordinator import Coordinator
+from bushfire_drone_simulation.fire_utils import Base, WaterTank
 from bushfire_drone_simulation.gui.gui import start_gui
 from bushfire_drone_simulation.lightning import reduce_lightning_to_ignitions
 from bushfire_drone_simulation.read_csv import CSVParameters, read_lightning, read_locations
@@ -33,6 +34,9 @@ def func1(x: int = typer.Argument(..., help="Help stuff"), y: int = typer.Option
 @app.command()
 def func2():
     """Test function 2."""
+    loc = WaterTank(3, 2, 3)
+    print(loc.lat)
+    print(isinstance(loc, WaterBomber))
     _LOG.info("Hello world from func2")
 
 
@@ -50,9 +54,10 @@ def run_simulation():
     params = CSVParameters(filename)
 
     # Read and initalize data
-    uav_bases = read_locations(params.get_uav_bases_filename())
-    water_bomber_bases = read_locations(params.get_water_bomber_bases_filename())
-    water_tanks = read_locations(params.get_water_tanks_filename())
+    uav_bases = read_locations(params.get_uav_bases_filename(), Base, 0)
+    water_bomber_bases = read_locations(params.get_water_bomber_bases_filename(), Base, 0)
+    water_tanks = read_locations(params.get_water_tanks_filename(), WaterTank, 1)
+    # FIXME(water tank capacity) # pylint: disable=fixme
     uav_spawn_locs = read_locations(params.get_uav_spawn_locations_filename())
     wb_spawn_locs = read_locations(params.get_water_bomber_spawn_locations_filename())
     uavs = []
@@ -95,6 +100,18 @@ def run_simulation():
     lightning_strikes.sort()  # By strike time
     coordinator = Coordinator(uavs, uav_bases, water_bombers, water_bomber_bases, water_tanks)
 
+    process_lightning(lightning_strikes, coordinator)
+    _LOG.info("Completed processing lightning strikes")
+
+    ignitions = reduce_lightning_to_ignitions(lightning_strikes)
+    ignitions.sort()  # By time of inspection
+
+    process_ignitions(ignitions, coordinator)
+    _LOG.info("Completed processing ignitions")
+
+
+def process_lightning(lightning_strikes, coordinator):
+    """Process lightning strikes by feeding to coordinator."""
     for lightning in lightning_strikes:
         while can_proceed(coordinator, lightning):
             #     coordinator.get_next_event_time() is not None
@@ -102,9 +119,17 @@ def run_simulation():
             # ):
             coordinator.lightning_update()
         coordinator.lightning_update(lightning)
-    _LOG.info("Completed processing lightning strikes")
 
-    reduce_lightning_to_ignitions(lightning_strikes)
+
+def process_ignitions(ignitions, coordinator):
+    """Process ignitions by feeding to coordinator."""
+    for ignition in ignitions:
+        while can_proceed(coordinator, ignition):
+            #     coordinator.get_next_event_time() is not None
+            #     or coordinator.get_next_event_time() < lightning.spawn_time
+            # ):
+            coordinator.ignition_update()
+        coordinator.ignition_update(ignition)
 
 
 def can_proceed(coordinator, lightning):

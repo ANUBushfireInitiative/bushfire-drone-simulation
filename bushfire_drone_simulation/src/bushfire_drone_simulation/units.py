@@ -30,7 +30,7 @@ class Distance:  # pylint: disable=too-few-public-methods
         """
         return self.value / DISTANCE_FACTORS[units]
 
-    def __le__(self, other):
+    def __lt__(self, other):
         """Less than operator of Distance."""
         return self.get() < other.get()
 
@@ -102,3 +102,7 @@ class Volume:  # pylint: disable=too-few-public-methods
         Defaults to DEFAULT_VOLUME_UNITS if units not specified.
         """
         return self.value / VOLUME_FACTORS[units]
+
+    def __sub__(self, other):
+        """Subtraction operator for Volume."""
+        return Volume(self.get() - other.get)

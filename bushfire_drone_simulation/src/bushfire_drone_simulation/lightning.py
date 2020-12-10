@@ -32,7 +32,7 @@ class Lightning:
         self.supressed_by = water_bomber
         self.supressed_time = time
 
-    def __le__(self, other):
+    def __lt__(self, other):
         """Less than operator for Lightning."""
         return self.spawn_time < other.spawn_time
 
@@ -42,4 +42,6 @@ def reduce_lightning_to_ignitions(lightning_strikes):
     ignitions = []
     for strike in lightning_strikes:
         if strike.ignition:
+            strike.spawn_time = strike.inspected_time
             ignitions.append(strike)
+    return ignitions
