@@ -169,8 +169,20 @@ class Aircraft:  # pylint: disable=too-few-public-methods
 
     def go_to_base(self, base, time):
         """Go to and refill Aircraft at base."""
-        self.update_position(base.position, time, Status.WAITING_AT_BASE)
+        self.update_position(base, time, Status.WAITING_AT_BASE)
         self.fuel_refill()
+
+    def print_past_locations(self):
+        """Print the past locations of the aircraft."""
+        _LOG.debug("Locations of aircraft %s:", self.id_no)
+        for update in self.past_locations:
+            _LOG.debug(
+                "position: %s, %s, time: %s, status: %s",
+                update.position.lat,
+                update.position.lon,
+                update.time.get(),
+                update.status,
+            )
 
 
 class UAV(Aircraft):  # pylint: disable=too-few-public-methods
@@ -241,13 +253,13 @@ class WaterBomber(Aircraft):
 
     def go_to_water(self, water_tank, departure_time):
         """UAV go to and inspect strike."""
-        self.update_position(water_tank.position, departure_time, Status.WAITING_AT_WATER)
+        self.update_position(water_tank, departure_time, Status.WAITING_AT_WATER)
         self.water_refill(water_tank)
 
     def water_refill(self, water_tank: WaterTank):
         """Update time and range of water bomber after water refill."""
         water_tank.empty(self.water_capacity - self.water_on_board)
-        if water_tank.capacity < 0:
+        if water_tank.capacity.get() < 0:
             _LOG.error("Water tank ran out of water")
         self.water_on_board = self.water_capacity
         self.time.add_duration(self.water_refill_time)

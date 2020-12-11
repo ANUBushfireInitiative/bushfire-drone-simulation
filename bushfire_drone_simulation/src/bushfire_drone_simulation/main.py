@@ -56,7 +56,7 @@ def run_simulation():
     # Read and initalize data
     uav_bases = read_locations(params.get_uav_bases_filename(), Base, 0)
     water_bomber_bases = read_locations(params.get_water_bomber_bases_filename(), Base, 0)
-    water_tanks = read_locations(params.get_water_tanks_filename(), WaterTank, 1)
+    water_tanks = read_locations(params.get_water_tanks_filename(), WaterTank, Volume(1000000))
     # FIXME(water tank capacity) # pylint: disable=fixme
     uav_spawn_locs = read_locations(params.get_uav_spawn_locations_filename())
     wb_spawn_locs = read_locations(params.get_water_bomber_spawn_locations_filename())

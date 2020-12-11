@@ -1,8 +1,8 @@
 """Various classes and functions useful to the bushfire_drone_simulation application."""
 
-import math
+from math import atan2, cos, radians, sin, sqrt
 
-from bushfire_drone_simulation.units import Distance, Duration, Volume
+from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Distance, Duration, Volume
 
 # class Point:  # pylint: disable=too-few-public-methods
 #     """Point class holding a pair of x-y coordinates."""
@@ -28,10 +28,20 @@ class Location:  # pylint: disable=too-few-public-methods
         # FIXME(not converting coordinates to lat lon)  # pylint: disable=fixme
         return location
 
+    def to_coordinates(self):
+        """Return pixel coordinates of location."""
+        # FIXME(not converting lat lon to coordinates)  # pylint: disable=fixme
+        return self.lat, self.lon
+
     def distance(self, other, units: str = "km"):
         """Find Euclidian distance."""
-        # FIXME(units not correct)  # pylint: disable=fixme
-        return Distance(math.sqrt((self.lat - other.lat) ** 2 + (self.lon - other.lon) ** 2), units)
+        temp = (
+            sin(radians(other.lat - self.lat) / 2) ** 2
+            + cos(radians(self.lat))
+            * cos(radians(other.lat))
+            * sin(radians(other.lon - self.lon) / 2) ** 2
+        )
+        return Distance(6371 * 2 * atan2(sqrt(temp), sqrt(1 - temp)), units)
 
     def copy_loc(self):
         """Create a new instance of Location."""
@@ -120,17 +130,21 @@ class Time:  # pylint: disable=too-few-public-methods
         copy.time = self.time
         return copy
 
+    def get(self, units: str = DEFAULT_DURATION_UNITS):
+        """Return time."""
+        return self.time.get(units)
+
     def __eq__(self, other):
         """Equality for Time."""
-        return self.time.get() == other.time.get()
+        return self.get() == other.get()
 
     def __lt__(self, other):
         """Less than operator for Time."""
-        return self.time.get() < other.time.get()
+        return self.get() < other.get()
 
     def __sub__(self, other):
         """Subtraction operator for Time, returns a Duration."""
-        return Duration(self.time.get() - other.time.get())
+        return Duration(self.get() - other.get())
 
     def add_duration(self, duration: Duration):
         """Add a given duration to time."""
