@@ -6,22 +6,30 @@ import pandas
 
 from bushfire_drone_simulation.fire_utils import Location, Time
 from bushfire_drone_simulation.lightning import Lightning
-from bushfire_drone_simulation.units import Volume
 
 _LOG = logging.getLogger(__name__)
 
 
-def read_locations(filename: str, constructor=Location, capacity: Volume = None, offset: int = 0):
+def read_locations(filename: str, offset: int = 0):
     """Return a list of Locations contained in the first two columns of a given a csv file."""
     data = pandas.read_csv(filename)
     x = data[data.columns[0 + offset]].values.tolist()
     y = data[data.columns[1 + offset]].values.tolist()
+    locations = []
+    for i, _ in enumerate(x):
+        locations.append(Location(x[i], y[i]))
+    return locations
+
+
+def read_locations_with_capacity(filename: str, constructor, offset: int = 0):
+    """Return a list of Locations contained in the first two columns of a given a csv file."""
+    data = pandas.read_csv(filename)
+    x = data[data.columns[0 + offset]].values.tolist()
+    y = data[data.columns[1 + offset]].values.tolist()
+    capacity = data[data.columns[1 + offset]].values.tolist()
     ret = []
     for i, _ in enumerate(x):
-        if capacity is not None:
-            ret.append(constructor(x[i], y[i], capacity))
-        else:
-            ret.append(constructor(x[i], y[i]))
+        ret.append(constructor(x[i], y[i], capacity[i]))
     return ret
 
 
@@ -42,10 +50,10 @@ class CSVParameters:
 
     parameters = None
 
-    def __init__(self, filename: str):
+    def __init__(self, filename: str, scenario: int = 1):
         """Read collection of variables stored in filename."""
         data = pandas.read_csv(filename)
-        self.parameters = data[data.columns[2]].values.tolist()
+        self.parameters = data[data.columns[1 + scenario]].values.tolist()
 
     def get_uav_bases_filename(self):
         """Return uav bases filename."""
