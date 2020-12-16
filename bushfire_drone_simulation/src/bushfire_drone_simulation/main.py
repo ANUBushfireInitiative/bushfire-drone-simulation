@@ -6,18 +6,15 @@ from typing import List
 
 import typer
 
-from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.coordinator import Coordinator
 from bushfire_drone_simulation.fire_utils import Base, WaterTank
 from bushfire_drone_simulation.gui.gui import start_gui
 from bushfire_drone_simulation.lightning import Lightning, reduce_lightning_to_ignitions
 from bushfire_drone_simulation.read_csv import (
-    CSVParameters,
+    JSONParameters,
     read_lightning,
-    read_locations,
     read_locations_with_capacity,
 )
-from bushfire_drone_simulation.units import Distance, Duration, Speed, Volume
 
 _LOG = logging.getLogger(__name__)
 app = typer.Typer()
@@ -36,65 +33,37 @@ def gui():
 
 
 PARAMETERS_FILENAME_ARGUMENT = typer.Option(
-    "csv_data/parameters.csv", help="Path to parameters file."
+    "csv_data/parameters.json", help="Path to parameters file."
 )
 
-SCENARIO_NUM_ARGUMENT = typer.Option(1, help="Scenario number to run.")
+# SCENARIO_NUM_ARGUMENT = typer.Option(1, help="Scenario number to run.")
 
 
 @app.command()
-def run_simulation(
-    parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT, scenario: int = SCENARIO_NUM_ARGUMENT
-):
+def run_simulation(parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT):
     """Run bushfire drone simulation."""
     # Read parameters
-    params = CSVParameters(parameters_filename, scenario)
+    # params = CSVParameters(parameters_filename, scenario)
+    params = JSONParameters(parameters_filename)
 
     # Read and initialise data
-    uav_bases = read_locations_with_capacity(params.get_uav_bases_filename(), Base)
+    uav_bases = read_locations_with_capacity(params.get_attribute("uav_bases_filename"), Base)
     water_bomber_bases = read_locations_with_capacity(
-        params.get_water_bomber_bases_filename(), Base
+        params.get_attribute("water_bomber_bases_filename"), Base
     )
-    water_tanks = read_locations_with_capacity(params.get_water_tanks_filename(), WaterTank)
+    water_tanks = read_locations_with_capacity(
+        params.get_attribute("water_tanks_filename"), WaterTank
+    )
     # FIXME(water tank capacity) # pylint: disable=fixme
-    uav_spawn_locs = read_locations(params.get_uav_spawn_locations_filename())
-    wb_spawn_locs = read_locations(params.get_water_bomber_spawn_locations_filename())
 
-    uavs = []
-    for idx, base_location in enumerate(uav_spawn_locs):
-        uavs.append(
-            UAV(
-                id_no=idx,
-                position=base_location,
-                max_velocity=Speed(int(params.get_max_velocity("UAV")), "km", "hr"),
-                fuel_refill_time=Duration(int(params.get_fuel_refill_time("UAV")), "min"),
-                total_range=Distance(int(params.get_range("UAV")), "km"),
-                # TODO(Inspection time) Incorporate inspection time
-            )
-        )
-
-    water_bombers = []
-    for idx, base in wb_spawn_locs:
-        water_bombers.append(
-            WaterBomber(
-                id_no=idx,
-                position=base,
-                max_velocity=Speed(int(params.get_max_velocity("WB")), "km", "hr"),
-                range_under_load=Distance(int(params.get_range("WB")), "km"),
-                range_empty=Distance(int(params.get_range("WBE")), "km"),
-                water_refill_time=Duration(int(params.get_water_refill_time()), "min"),
-                fuel_refill_time=Duration(int(params.get_fuel_refill_time("WB")), "min"),
-                bombing_time=Duration(int(params.get_bombing_time()), "min"),
-                water_capacity=Volume(int(params.get_water_capacity()), "L"),
-                water_per_delivery=Volume(int(params.get_water_per_delivery()), "L"),
-            )
-        )
+    uavs = params.process_uavs()
+    water_bombers, water_bomber_bases = params.process_water_bombers(water_bomber_bases)
 
     # lightning_strikes = read_lightning(
-    #     params.get_lightning_filename(), float(params.get_ignition_probability())
+    #     params.get_attribute("lightning_filename"), params.get_attribute("ignition_probability")
     # )
     lightning_strikes = read_lightning(
-        "csv_data/lightning.csv", float(params.get_ignition_probability())
+        "csv_data/lightning.csv", params.get_attribute("ignition_probability")
     )
     lightning_strikes.sort()  # By strike time
 

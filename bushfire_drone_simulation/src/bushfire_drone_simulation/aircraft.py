@@ -31,7 +31,7 @@ class Updates:  # pylint: disable=too-few-public-methods
         self.status = status
 
 
-class Aircraft:  # pylint: disable=too-few-public-methods
+class Aircraft:
     """Generic aircraft class for flying vehicles."""
 
     current_fuel_capacity: float = 1.0
@@ -61,9 +61,9 @@ class Aircraft:  # pylint: disable=too-few-public-methods
     def get_range(self):
         """Return total range of Aircraft."""
 
-    def get_water_refil_time(self):
+    def get_water_refil_time(self):  # pylint: disable=no-self-use
         """Return water refil time of Aircraft."""
-        return self.get_range - self.get_range
+        return 0
 
     def update_position(self, position: Location, departure_time: Time, final_status: Status):
         """Update position, range and time of Water bomber."""
@@ -92,11 +92,8 @@ class Aircraft:  # pylint: disable=too-few-public-methods
             )
         self.time.add_duration(
             Duration(
-                self.position.distance(position, "km").get("km")
-                / self.max_velocity.get("km", "hr"),
-                "hr",
+                self.position.distance(position).get("km") / self.max_velocity.get("km", "hr"), "hr"
             )
-            # FIXME(units not right, swap km for lat) # pylint: disable=fixme
         )
         if self.current_fuel_capacity < 0:
             _LOG.error("Aircraft ran out of fuel")

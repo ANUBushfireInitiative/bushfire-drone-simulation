@@ -1,11 +1,15 @@
 """Functions for reading and writing data to a csv."""
 
+import json
 import logging
+import math
 
 import pandas
 
+from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.fire_utils import Location, Time
 from bushfire_drone_simulation.lightning import Lightning
+from bushfire_drone_simulation.units import Distance, Duration, Speed, Volume
 
 _LOG = logging.getLogger(__name__)
 
@@ -26,10 +30,12 @@ def read_locations_with_capacity(filename: str, constructor, offset: int = 0):
     data = pandas.read_csv(filename)
     x = data[data.columns[0 + offset]].values.tolist()
     y = data[data.columns[1 + offset]].values.tolist()
-    capacity = data[data.columns[1 + offset]].values.tolist()
+    capacity = data[data.columns[2 + offset]].values.tolist()
     ret = []
     for i, _ in enumerate(x):
-        ret.append(constructor(x[i], y[i], capacity[i]))
+        if str(capacity[i]) == "inf":
+            capacity[i] = math.inf
+        ret.append(constructor(x[i], y[i], Volume(capacity[i])))
     return ret
 
 
@@ -45,85 +51,68 @@ def read_lightning(filename: str, ignition_probability: float, offset: int = 0):
     return lightning
 
 
-class CSVParameters:
+class JSONParameters:
     """Class for reading parameters from a csv file."""
 
-    parameters = None
-
-    def __init__(self, filename: str, scenario: int = 1):
+    def __init__(self, filename: str):
         """Read collection of variables stored in filename."""
-        data = pandas.read_csv(filename)
-        self.parameters = data[data.columns[1 + scenario]].values.tolist()
+        with open(filename) as file:
+            self.data = json.load(file)
 
-    def get_uav_bases_filename(self):
-        """Return uav bases filename."""
-        return self.parameters[47]
+    def process_water_bombers(self, bases):
+        """Create water bombers from json file."""
+        water_bombers_dict = {}
+        water_bombers_bases_dict = {}
+        for water_bomber in self.data["water_bombers"]:
+            wb_spawn_locs = read_locations(water_bomber["spawn_loc_file"])
+            water_bombers = []
+            attributes = water_bomber["attributes"]
+            for idx, base in enumerate(wb_spawn_locs):
+                water_bombers.append(
+                    WaterBomber(
+                        id_no=idx,
+                        position=base,
+                        max_velocity=Speed(int(attributes["flight_speed"]), "km", "hr"),
+                        range_under_load=Distance(int(attributes["range_under_load"]), "km"),
+                        range_empty=Distance(int(attributes["range_empty"]), "km"),
+                        water_refill_time=Duration(int(attributes["water_refill_time"]), "min"),
+                        fuel_refill_time=Duration(int(attributes["fuel_refill_time"]), "min"),
+                        bombing_time=Duration(int(attributes["bombing_time"]), "min"),
+                        water_capacity=Volume(int(attributes["water_capacity"]), "L"),
+                        water_per_delivery=Volume(int(attributes["water_per_delivery"]), "L"),
+                    )
+                )
+            water_bombers_dict[water_bomber["name"]] = water_bombers
+            base_data = pandas.read_csv(self.data["water_bomber_bases_filename"])
+            bases_specific = base_data[water_bomber["name"]]
+            bases_all = base_data["all"]
+            current_bases = []
+            for (idx, base) in enumerate(bases):
+                if bases_all[idx] == 1 or bases_specific[idx] == 1:
+                    current_bases.append(base)
+            water_bombers_bases_dict[water_bomber["name"]] = current_bases
 
-    def get_uav_spawn_locations_filename(self):
-        """Return uav spawn locations filename."""
-        return self.parameters[44]
+        return water_bombers_dict, water_bombers_bases_dict
 
-    def get_water_bomber_bases_filename(self):
-        """Return water bomber bases filename."""
-        return self.parameters[43]
+    def process_uavs(self):
+        """Create uavs from json file."""
+        uav_data = self.data["uavs"]
+        uav_spawn_locs = read_locations(uav_data["spawn_loc_file"])
+        uavs = []
+        attributes = uav_data["attributes"]
+        for idx, base in enumerate(uav_spawn_locs):
+            uavs.append(
+                UAV(
+                    id_no=idx,
+                    position=base,
+                    max_velocity=Speed(int(attributes["flight_speed"]), "km", "hr"),
+                    total_range=Distance(int(attributes["range"]), "km"),
+                    fuel_refill_time=Duration(int(attributes["fuel_refill_time"]), "min"),
+                    # TODO(Inspection time) Incorporate inspection time #pylint: disable=fixme
+                )
+            )
+        return uavs
 
-    def get_water_bomber_spawn_locations_filename(self):
-        """Return water bomber spawn locations filename."""
-        return self.parameters[46]
-
-    def get_water_tanks_filename(self):
-        """Return water tanks filename."""
-        return self.parameters[45]
-
-    def get_lightning_filename(self):
-        """Return lightning filename."""
-        return self.parameters[0]
-
-    def get_max_velocity(self, aircraft: str):
-        """Return the maximum velocity of a given aircraft."""
-        if aircraft == "UAV":
-            return self.parameters[10]
-        if aircraft == "WB":
-            return self.parameters[16]
-        _LOG.error("Incorrent aircraft input for get_max_velocity")
-        return None
-
-    def get_fuel_refill_time(self, aircraft: str):
-        """Return the fuel refill time of a given aircraft."""
-        if aircraft == "UAV":
-            return self.parameters[11]
-        if aircraft == "WB":
-            return self.parameters[16]
-        _LOG.error("Incorrent aircraft input for get_fuel_refill_time")
-        return None
-
-    def get_range(self, aircraft: str):
-        """Return the range of a given aircraft."""
-        if aircraft == "UAV":
-            return self.parameters[12]
-        if aircraft == "WB":
-            return self.parameters[22]
-        if aircraft == "WBE":
-            return self.parameters[21]
-        _LOG.error("Incorrent aircraft input for get_range")
-        return None
-
-    def get_water_refill_time(self):
-        """Return the range of an aircraft."""
-        return self.parameters[18]
-
-    def get_bombing_time(self):
-        """Return the bombing time of an aircraft."""
-        return self.parameters[17]
-
-    def get_water_capacity(self):
-        """Return the water capacity of an aircraft."""
-        return self.parameters[23]
-
-    def get_water_per_delivery(self):
-        """Return the water required for each delivery."""
-        return self.parameters[20]
-
-    def get_ignition_probability(self):
-        """Return the ignition probability of an lightning strike."""
-        return self.parameters[35]
+    def get_attribute(self, attribute: str):
+        """Return attribute of JSON file."""
+        return self.data[attribute]
