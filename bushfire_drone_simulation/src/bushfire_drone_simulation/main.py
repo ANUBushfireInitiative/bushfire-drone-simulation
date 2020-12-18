@@ -10,11 +10,7 @@ from bushfire_drone_simulation.coordinator import Coordinator
 from bushfire_drone_simulation.fire_utils import Base, WaterTank
 from bushfire_drone_simulation.gui.gui import start_gui
 from bushfire_drone_simulation.lightning import Lightning, reduce_lightning_to_ignitions
-from bushfire_drone_simulation.read_csv import (
-    JSONParameters,
-    read_lightning,
-    read_locations_with_capacity,
-)
+from bushfire_drone_simulation.read_csv import JSONParameters, read_lightning, read_locations
 
 _LOG = logging.getLogger(__name__)
 app = typer.Typer()
@@ -29,7 +25,8 @@ def main():
 @app.command()
 def gui():
     """Start a GUI version of the drone simulation."""
-    start_gui()
+    coordinator, lightning_strikes = run_simulation("csv_data/parameters.json")
+    start_gui(coordinator, lightning_strikes)
 
 
 PARAMETERS_FILENAME_ARGUMENT = typer.Option(
@@ -47,13 +44,9 @@ def run_simulation(parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT):
     params = JSONParameters(parameters_filename)
 
     # Read and initialise data
-    uav_bases = read_locations_with_capacity(params.get_attribute("uav_bases_filename"), Base)
-    water_bomber_bases = read_locations_with_capacity(
-        params.get_attribute("water_bomber_bases_filename"), Base
-    )
-    water_tanks = read_locations_with_capacity(
-        params.get_attribute("water_tanks_filename"), WaterTank
-    )
+    uav_bases = read_locations(params.get_attribute("uav_bases_filename"), Base)
+    water_bomber_bases = read_locations(params.get_attribute("water_bomber_bases_filename"), Base)
+    water_tanks = read_locations(params.get_attribute("water_tanks_filename"), WaterTank)
     # FIXME(water tank capacity) # pylint: disable=fixme
 
     uavs = params.process_uavs()
@@ -77,6 +70,8 @@ def run_simulation(parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT):
 
     process_ignitions(ignitions, coordinator)
     _LOG.info("Completed processing ignitions")
+
+    return coordinator, lightning_strikes
 
 
 def process_lightning(lightning_strikes: List[Lightning], coordinator: Coordinator):

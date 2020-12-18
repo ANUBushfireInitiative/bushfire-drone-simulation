@@ -136,3 +136,34 @@ python tools/doc_server.py start-server
 ```
 
 from within the root folder of the project. By default, this will host the documentation at http://localhost:8000. For more information about the application, contributing, or testing, please see this documentation.
+
+
+
+# Input Files Format
+Follows is a overview of how inputs to the program should be structred.
+## Parameters File
+The parameters file is a JSON file containing the following information (note that the ordering of these parameters does not matter however the nesting does):
+The paths to the following files (the formatting of which is outlined below) named as indicated:
+```json
+    {"water_bomber_bases_filename": "path_to_file",
+    "uav_bases_filename": "path_to_file",
+    "water_tanks_filename": "path_to_file",
+    }
+    ```
+The following generic variables:
+```json
+    {"ignition_probability": 0.072,
+    }
+    ```
+A dictionary containing the following information about UAVs
+```json
+    {"uavs":
+        {"spawn_loc_file": "csv_data/uav_spawn_locations.csv",
+        "attributes": {
+            "flight_speed": 235,
+            "fuel_refill_time": 30,
+            "range": 650
+        }
+    }
+    }
+```

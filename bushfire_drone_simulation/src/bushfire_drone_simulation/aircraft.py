@@ -21,17 +21,25 @@ class Status(Enum):
     GOING_TO_WATER = 5
 
 
-class Updates:  # pylint: disable=too-few-public-methods
+class Updates(Location):  # pylint: disable=too-few-public-methods
     """Class keeping track of all updates to an Aircrafts position."""
 
-    def __init__(self, position: Location, time: Time, status: Status):
+    def __init__(self, latitude: float, longitude: float, time: Time, status: Status):
         """Initialize Updates class."""
-        self.position = position
         self.time = time
         self.status = status
+        super().__init__(latitude, longitude)
+
+    @classmethod
+    def from_pos(cls, position: Location, time: Time, status: Status):
+        """Initialize Updates class with position."""
+        cls.latitude = position.lat
+        cls.longitude = position.lon
+        cls.time = time
+        cls.status = status
 
 
-class Aircraft:
+class Aircraft(Location):
     """Generic aircraft class for flying vehicles."""
 
     current_fuel_capacity: float = 1.0
@@ -39,23 +47,29 @@ class Aircraft:
 
     def __init__(
         self,
-        position: Location,
+        latitude: float,
+        longitude: float,
         max_velocity: Speed,
         fuel_refill_time: Duration,
         id_no: int,
     ):  # pylint: disable=too-many-arguments
         """Initialize aircraft."""
-        self.position = position
         self.max_velocity = max_velocity
         self.fuel_refill_time = fuel_refill_time
         self.time = Time("0000/00/00/00/00/00")
         self.id_no = id_no
-        self.past_locations = [Updates(position, self.time, self.status)]
+        super().__init__(latitude, longitude)
+        self.past_locations = [Updates(latitude, longitude, self.time, self.status)]
 
     def fuel_refill(self):
         """Update time and range of aircraft after fuel refill."""
         self.current_fuel_capacity = 1.0
         self.time.add_duration(self.fuel_refill_time)
+
+    def update_location(self, position):
+        """Hopefully not necessary."""
+        self.lat = position.lat
+        self.lon = position.lon
 
     @abstractmethod
     def get_range(self):
@@ -73,33 +87,31 @@ class Aircraft:
                 * self.max_velocity.get("km", "hr")
                 / self.get_range().get("km")
             )
-        self.current_fuel_capacity -= (
-            self.position.distance(position).get() / self.get_range().get()
-        )
+        self.current_fuel_capacity -= super().distance(position).get() / self.get_range().get()
         if self.time < departure_time:
             self.time = departure_time.copy_time()
         if final_status == Status.WAITING_AT_BASE:
             self.past_locations.append(
-                Updates(position.copy_loc(), self.time.copy_time(), Status.GOING_TO_BASE)
+                Updates(position.lat, position.lon, self.time.copy_time(), Status.GOING_TO_BASE)
             )
         elif final_status == Status.HOVERING:
             self.past_locations.append(
-                Updates(position.copy_loc(), self.time.copy_time(), Status.GOING_TO_STRIKE)
+                Updates(position.lat, position.lon, self.time.copy_time(), Status.GOING_TO_STRIKE)
             )
         else:
             self.past_locations.append(
-                Updates(position.copy_loc(), self.time.copy_time(), Status.GOING_TO_WATER)
+                Updates(position.lat, position.lon, self.time.copy_time(), Status.GOING_TO_WATER)
             )
         self.time.add_duration(
-            Duration(
-                self.position.distance(position).get("km") / self.max_velocity.get("km", "hr"), "hr"
-            )
+            Duration(super().distance(position).get("km") / self.max_velocity.get("km", "hr"), "hr")
         )
         if self.current_fuel_capacity < 0:
             _LOG.error("Aircraft ran out of fuel")
         self.status = final_status
-        self.position = position
-        self.past_locations.append(Updates(position.copy_loc(), self.time.copy_time(), self.status))
+        self.update_location(position)
+        self.past_locations.append(
+            Updates(position.lat, position.lon, self.time.copy_time(), self.status)
+        )
 
     def consider_going_to_base(self, bases, departure_time: Time, fraction: int = 3):
         """Aircraft will return to base.
@@ -107,8 +119,7 @@ class Aircraft:
         if it takes more than 1/fraction of its fuel tank to return to the nearest base
         """
         if self.status == Status.HOVERING:
-            index, value = minimum(bases, Distance(1000000), self.position.distance)
-            # self.update_position(self.position, departure_time, Status.HOVERING)
+            index, value = minimum(bases, Distance(1000000), super().distance)
             if value.get() * fraction > self.current_fuel_capacity * self.get_range().get():
                 self.update_position(bases[index], departure_time, Status.WAITING_AT_BASE)
                 self.fuel_refill()
@@ -120,7 +131,7 @@ class Aircraft:
             if index == 0:
                 current_time.add_duration(
                     Duration(
-                        self.position.distance(position, "km").get("km")
+                        super().distance(position, "km").get("km")
                         / self.max_velocity.get("km", "hr"),
                         "hr",
                     )
@@ -153,7 +164,7 @@ class Aircraft:
             )
         for index, position in enumerate(positions):
             if index == 0:
-                current_fuel -= self.position.distance(position).get() / self.get_range().get()
+                current_fuel -= super().distance(position).get() / self.get_range().get()
             else:
                 current_fuel -= (
                     positions[index - 1].distance(position).get() / self.get_range().get()
@@ -175,8 +186,8 @@ class Aircraft:
         for update in self.past_locations:
             _LOG.debug(
                 "position: %s, %s, time: %s, status: %s",
-                update.position.lat,
-                update.position.lon,
+                update.lat,
+                update.lon,
                 update.time.get(),
                 update.status,
             )
@@ -188,18 +199,19 @@ class UAV(Aircraft):  # pylint: disable=too-few-public-methods
     def __init__(
         self,
         id_no: int,
-        position: Location,
+        latitude: float,
+        longitude: float,
         max_velocity: Speed,
         fuel_refill_time: Duration,
         total_range: Distance,
     ):  # pylint: disable=too-many-arguments
         """Initialize UAV."""
-        super().__init__(position, max_velocity, fuel_refill_time, id_no)
+        super().__init__(latitude, longitude, max_velocity, fuel_refill_time, id_no)
         self.total_range = total_range
 
     def go_to_strike(self, lightning, departure_time, arrival_time):
         """UAV go to and inspect strike."""
-        self.update_position(lightning.position, departure_time, Status.HOVERING)
+        self.update_position(lightning, departure_time, Status.HOVERING)
         lightning.inspected(self, arrival_time)  # change location of this in future
 
     def complete_update(self):
@@ -218,7 +230,8 @@ class WaterBomber(Aircraft):
     def __init__(
         self,
         id_no: int,
-        position: Location,
+        latitude: float,
+        longitude: float,
         max_velocity: Speed,
         range_under_load: Distance,
         range_empty: Distance,
@@ -229,7 +242,7 @@ class WaterBomber(Aircraft):
         water_per_delivery: Volume,
     ):  # pylint: disable=too-many-arguments
         """Initialize water bombing aircraft."""
-        super().__init__(position, max_velocity, fuel_refill_time, id_no)
+        super().__init__(latitude, longitude, max_velocity, fuel_refill_time, id_no)
         self.range_empty = range_empty
         self.range_under_load = range_under_load
         self.water_refill_time = water_refill_time
@@ -245,7 +258,7 @@ class WaterBomber(Aircraft):
 
     def go_to_strike(self, ignition, departure_time, arrival_time):
         """UAV go to and inspect strike."""
-        self.update_position(ignition.position, departure_time, Status.HOVERING)
+        self.update_position(ignition, departure_time, Status.HOVERING)
         ignition.supressed(self, arrival_time)  # change location of this in future
 
     def go_to_water(self, water_tank, departure_time):

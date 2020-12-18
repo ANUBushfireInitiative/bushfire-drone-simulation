@@ -6,21 +6,22 @@ from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.fire_utils import Location, Time
 
 
-class Lightning:
+class Lightning(Location):
     """Class for individual lightning strikes."""
 
-    ignition: bool
     inspected_time: Time = None
     supressed_time: Time = None
     inspected_by: UAV = None
     supressed_by: WaterBomber = None
     nearest_base: int = None
 
-    def __init__(self, position: Location, spawn_time: Time, ignition_probability: float):
+    def __init__(
+        self, latitude: float, longitude: float, spawn_time: Time, ignition_probability: float
+    ):
         """Initialize lightning."""
-        self.position = position
         self.spawn_time = spawn_time
         self.ignition = random.random() < ignition_probability
+        super().__init__(latitude, longitude)
 
     def inspected(self, uav: UAV, time: Time):
         """Lightning strike is updated when inspected."""

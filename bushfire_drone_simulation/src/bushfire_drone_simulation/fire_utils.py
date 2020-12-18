@@ -1,6 +1,6 @@
 """Various classes and functions useful to the bushfire_drone_simulation application."""
 
-from math import atan2, cos, radians, sin, sqrt
+from math import atan2, cos, inf, radians, sin, sqrt
 
 from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Distance, Duration, Volume
 
@@ -31,7 +31,7 @@ class Location:  # pylint: disable=too-few-public-methods
     def to_coordinates(self):
         """Return pixel coordinates of location."""
         # FIXME(not converting lat lon to coordinates)  # pylint: disable=fixme
-        return self.lat, self.lon
+        return (self.lat + 39) * 130, (self.lon - 142) * 60
 
     def distance(self, other, units: str = "km"):
         """Find Euclidian distance."""
@@ -115,14 +115,18 @@ class Time:  # pylint: disable=too-few-public-methods
         """Initialise time from string in the form YYYY*MM*DD*HH*MM*SS.
 
         "*" represents any character, e.g. 2033-11/03D12*00?12 would be accepted
+        Alternatively enter "inf" for an 'infnite time' (i.e. all times occur before it)
         """
-        self.time = (
-            # Duration(int(time_in[:4]), "year")
-            Duration(month_to_days(int(time_in[5:7])) + int(time_in[8:10]) - 1, "day")
-            + Duration(int(time_in[11:13]), "hr")
-            + Duration(int(time_in[14:16]), "min")
-            + Duration(int(time_in[17:19]), "s")
-        )
+        if time_in == "inf":
+            self.time = Duration(inf)
+        else:
+            self.time = (
+                # Duration(int(time_in[:4]), "year")
+                Duration(month_to_days(int(time_in[5:7])) + int(time_in[8:10]) - 1, "day")
+                + Duration(int(time_in[11:13]), "hr")
+                + Duration(int(time_in[14:16]), "min")
+                + Duration(int(time_in[17:19]), "s")
+            )
 
     def copy_time(self):
         """Create new Time."""
