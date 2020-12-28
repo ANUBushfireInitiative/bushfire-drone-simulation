@@ -3,6 +3,7 @@
 import json
 import logging
 import math
+import os
 
 import pandas
 
@@ -45,6 +46,7 @@ class JSONParameters:
 
     def __init__(self, filename: str):
         """Read collection of variables stored in filename."""
+        self.folder = os.path.dirname(filename)
         with open(filename) as file:
             self.data = json.load(file)
 
@@ -53,9 +55,11 @@ class JSONParameters:
         water_bombers_dict = {}
         water_bombers_bases_dict = {}
         for water_bomber in self.data["water_bombers"]:
-            data = pandas.read_csv(water_bomber["spawn_loc_file"])
-            x = data[data.columns[0]].values.tolist()
-            y = data[data.columns[1]].values.tolist()
+            water_bomber_spawn_locs = pandas.read_csv(
+                os.path.join(self.folder, water_bomber["spawn_loc_file"])
+            )
+            x = water_bomber_spawn_locs[water_bomber_spawn_locs.columns[0]].values.tolist()
+            y = water_bomber_spawn_locs[water_bomber_spawn_locs.columns[1]].values.tolist()
             water_bombers = []
             attributes = water_bomber["attributes"]
             for idx, _ in enumerate(x):
@@ -75,7 +79,9 @@ class JSONParameters:
                     )
                 )
             water_bombers_dict[water_bomber["name"]] = water_bombers
-            base_data = pandas.read_csv(self.data["water_bomber_bases_filename"])
+            base_data = pandas.read_csv(
+                os.path.join(self.folder, self.data["water_bomber_bases_filename"])
+            )
             bases_specific = base_data[water_bomber["name"]]
             bases_all = base_data["all"]
             current_bases = []
@@ -89,9 +95,9 @@ class JSONParameters:
     def process_uavs(self):
         """Create uavs from json file."""
         uav_data = self.data["uavs"]
-        data = pandas.read_csv(uav_data["spawn_loc_file"])
-        x = data[data.columns[0]].values.tolist()
-        y = data[data.columns[1]].values.tolist()
+        uav_spawn_locs = pandas.read_csv(os.path.join(self.folder, uav_data["spawn_loc_file"]))
+        x = uav_spawn_locs[uav_spawn_locs.columns[0]].values.tolist()
+        y = uav_spawn_locs[uav_spawn_locs.columns[1]].values.tolist()
         uavs = []
         attributes = uav_data["attributes"]
         for idx, _ in enumerate(x):
@@ -111,3 +117,7 @@ class JSONParameters:
     def get_attribute(self, attribute: str):
         """Return attribute of JSON file."""
         return self.data[attribute]
+
+    def get_relative_filepath(self, key: str):
+        """Return realtive file path to given key."""
+        return os.path.join(self.folder, self.data[key])

@@ -15,6 +15,12 @@ from bushfire_drone_simulation.read_csv import JSONParameters, read_lightning, r
 _LOG = logging.getLogger(__name__)
 app = typer.Typer()
 
+PARAMETERS_FILENAME_ARGUMENT = typer.Option(
+    "csv_data/parameters.json", help="Path to parameters file."
+)
+
+LIGHTNING_FILENAME_ARGUMENT = typer.Option("csv_data/lightning.csv", help="Path to lightning file.")
+
 
 def main():
     """Entry point for bushfire_drone_simulation."""
@@ -23,30 +29,34 @@ def main():
 
 
 @app.command()
-def gui():
+def gui(
+    parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT,
+    lightning_filename: str = LIGHTNING_FILENAME_ARGUMENT,
+):
     """Start a GUI version of the drone simulation."""
-    coordinator, lightning_strikes = run_simulation("csv_data/parameters.json")
+    coordinator, lightning_strikes = run_simulation(parameters_filename, lightning_filename)
     start_gui(coordinator, lightning_strikes)
 
-
-PARAMETERS_FILENAME_ARGUMENT = typer.Option(
-    "csv_data/parameters.json", help="Path to parameters file."
-)
 
 # SCENARIO_NUM_ARGUMENT = typer.Option(1, help="Scenario number to run.")
 
 
 @app.command()
-def run_simulation(parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT):
+def run_simulation(
+    parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT,
+    lightning_filename: str = LIGHTNING_FILENAME_ARGUMENT,
+):
     """Run bushfire drone simulation."""
     # Read parameters
     # params = CSVParameters(parameters_filename, scenario)
     params = JSONParameters(parameters_filename)
 
     # Read and initialise data
-    uav_bases = read_locations(params.get_attribute("uav_bases_filename"), Base)
-    water_bomber_bases = read_locations(params.get_attribute("water_bomber_bases_filename"), Base)
-    water_tanks = read_locations(params.get_attribute("water_tanks_filename"), WaterTank)
+    uav_bases = read_locations(params.get_relative_filepath("uav_bases_filename"), Base)
+    water_bomber_bases = read_locations(
+        params.get_relative_filepath("water_bomber_bases_filename"), Base
+    )
+    water_tanks = read_locations(params.get_relative_filepath("water_tanks_filename"), WaterTank)
     # FIXME(water tank capacity) # pylint: disable=fixme
 
     uavs = params.process_uavs()
@@ -56,7 +66,7 @@ def run_simulation(parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT):
     #     params.get_attribute("lightning_filename"), params.get_attribute("ignition_probability")
     # )
     lightning_strikes = read_lightning(
-        "csv_data/lightning.csv", params.get_attribute("ignition_probability")
+        lightning_filename, params.get_attribute("ignition_probability")
     )
     lightning_strikes.sort()  # By strike time
 

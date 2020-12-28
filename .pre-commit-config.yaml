@@ -19,7 +19,6 @@ repos:
     - id: check-symlinks
     - id: check-yaml
     - id: end-of-file-fixer
-    - id: pretty-format-json
     - id: check-added-large-files
     - id: trailing-whitespace
     # - id: double-quote-string-fixer
@@ -60,6 +59,7 @@ repos:
         entry: pytest -v
         language: system
         pass_filenames: false
+        always_run: true
         types: [python]
         stages: [push]
     -   id: sphinx-doctest
