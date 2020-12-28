@@ -2,6 +2,9 @@
 
 import tkinter
 
+import geotiler
+from PIL import ImageTk
+
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.fire_utils import Location, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
@@ -104,5 +107,27 @@ def start_gui(coordinator, lightning):  # pylint: disable = too-many-locals
 
     title = tkinter.Label(window, text="ANU Bushfire Initiative Drone Simulation")
     title.pack()
+
+    window.mainloop()
+
+
+def start_map_gui():
+    """Start a basic GUI version of the drone simulation."""
+    window = tkinter.Tk()
+
+    window.title("ANU Bushfire Initiative Drone Simulation")
+    canvas = tkinter.Canvas(window, width=800, height=800)
+    canvas.pack()
+
+    title = tkinter.Label(window, text="ANU Bushfire Initiative Drone Simulation")
+    title.pack()
+
+    print(window.winfo_screenwidth(), title.winfo_width(), "!!!!!!!!!!!!!!!!!!!")
+    map_object = geotiler.Map(extent=(149, -35, 150, -36), size=(800, 800))
+    print(map_object.extent)
+    image = geotiler.render_map(map_object)
+    image.save("map.png")
+    map_image = ImageTk.PhotoImage(image)
+    canvas.create_image(0, 0, anchor="nw", image=map_image)
 
     window.mainloop()
