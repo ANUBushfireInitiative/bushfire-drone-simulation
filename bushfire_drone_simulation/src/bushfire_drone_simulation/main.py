@@ -8,7 +8,7 @@ import typer
 
 from bushfire_drone_simulation.coordinator import Coordinator
 from bushfire_drone_simulation.fire_utils import Base, WaterTank
-from bushfire_drone_simulation.gui.gui import start_gui
+from bushfire_drone_simulation.gui.gui import start_gui, start_map_gui
 from bushfire_drone_simulation.lightning import Lightning, reduce_lightning_to_ignitions
 from bushfire_drone_simulation.read_csv import JSONParameters, read_lightning, read_locations
 
@@ -27,6 +27,12 @@ def gui():
     """Start a GUI version of the drone simulation."""
     coordinator, lightning_strikes = run_simulation("csv_data/parameters.json")
     start_gui(coordinator, lightning_strikes)
+
+
+@app.command()
+def map_gui():
+    """Start a GUI version of the drone simulation."""
+    start_map_gui()
 
 
 PARAMETERS_FILENAME_ARGUMENT = typer.Option(
