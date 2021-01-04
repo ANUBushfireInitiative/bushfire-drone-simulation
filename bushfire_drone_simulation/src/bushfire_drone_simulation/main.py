@@ -19,8 +19,6 @@ PARAMETERS_FILENAME_ARGUMENT = typer.Option(
     "csv_data/parameters.json", help="Path to parameters file."
 )
 
-LIGHTNING_FILENAME_ARGUMENT = typer.Option("csv_data/lightning.csv", help="Path to lightning file.")
-
 
 def main():
     """Entry point for bushfire_drone_simulation."""
@@ -31,10 +29,9 @@ def main():
 @app.command()
 def gui(
     parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT,
-    lightning_filename: str = LIGHTNING_FILENAME_ARGUMENT,
 ):
     """Start a GUI version of the drone simulation."""
-    coordinator, lightning_strikes = run_simulation(parameters_filename, lightning_filename)
+    coordinator, lightning_strikes = run_simulation(parameters_filename)
     start_gui(coordinator, lightning_strikes)
 
 
@@ -50,7 +47,6 @@ def map_gui():
 @app.command()
 def run_simulation(
     parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT,
-    lightning_filename: str = LIGHTNING_FILENAME_ARGUMENT,
 ):
     """Run bushfire drone simulation."""
     # Read parameters
@@ -68,12 +64,13 @@ def run_simulation(
     uavs = params.process_uavs()
     water_bombers, water_bomber_bases = params.process_water_bombers(water_bomber_bases)
 
-    # lightning_strikes = read_lightning(
-    #     params.get_attribute("lightning_filename"), params.get_attribute("ignition_probability")
-    # )
     lightning_strikes = read_lightning(
-        lightning_filename, params.get_attribute("ignition_probability")
+        params.get_relative_filepath("lightning_filename"),
+        params.get_attribute("ignition_probability"),
     )
+    # lightning_strikes = read_lightning(
+    # lightning_filename, params.get_attribute("ignition_probability")
+    # )
     lightning_strikes.sort()  # By strike time
 
     coordinator = Coordinator(uavs, uav_bases, water_bombers, water_bomber_bases, water_tanks)

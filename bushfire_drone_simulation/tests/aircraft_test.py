@@ -7,12 +7,11 @@ from bushfire_drone_simulation.main import run_simulation
 
 FILE_LOC = os.path.realpath(__file__)
 PARAMS_LOC = os.path.join(os.path.dirname(FILE_LOC), "input_data/parameters.json")
-LIGHTNING_LOC = os.path.join(os.path.dirname(FILE_LOC), "input_data/lightning.csv")
 
 
 def test_times_chronological():
     """Are the Aircrafts movements chronological."""
-    coordinator, _ = run_simulation(PARAMS_LOC, LIGHTNING_LOC)
+    coordinator, _ = run_simulation(PARAMS_LOC)
     for uav in coordinator.uavs:
         for idx, update in enumerate(uav.past_locations):
             if idx != 0:
@@ -28,7 +27,7 @@ def test_times_chronological():
 
 def test_reasonable_fuel_refill():
     """Does the Aircraft refill often enough."""
-    coordinator, _ = run_simulation(PARAMS_LOC, LIGHTNING_LOC)
+    coordinator, _ = run_simulation(PARAMS_LOC)
     for uav in coordinator.uavs:
         time_full = uav.past_locations[0].time
         for update in uav.past_locations:
@@ -54,7 +53,7 @@ def test_reasonable_fuel_refill():
 
 def test_aricraft_status():
     """Does the aircraft staus alter reasonably."""
-    coordinator, _ = run_simulation(PARAMS_LOC, LIGHTNING_LOC)
+    coordinator, _ = run_simulation(PARAMS_LOC)
     for uav in coordinator.uavs:
         for idx, update in enumerate(uav.past_locations):
             if idx != 0:

@@ -30,12 +30,6 @@ As this is a python application, we first need to install python. We will use Ch
 choco install -y python3 --version=3.8.5 --force
 ```
 
-To support the pre-commit program (useful for active development), you may also need python 3.6 which can be installed with the command
-
-```powershell
-choco install -y python3 --version=3.6.5 --force
-```
-
 If the installation is successful, python 3.8 can then be accessed using the command ```py -3.8``` (and exited using the command ```exit()```).
 
 ### Installing Git
