@@ -64,7 +64,6 @@ class JSONParameters:
 
     def __init__(self, filename: str):
         """Read collection of variables stored in filename."""
-        self.scenario_idx = 0  # FIXME(BLA) pylint: disable=w0511
         self.folder = os.path.dirname(filename)
         with open(filename) as file:
             self.parameters = json.load(file)
@@ -75,7 +74,7 @@ class JSONParameters:
             and self.parameters["scenario_parameters_filename"] != "?"
         ):
             self.csv_scenarios = pd.read_csv(
-                self.get_relative_filepath("scenario_parameters_filename")
+                self.get_relative_filepath("scenario_parameters_filename", 0)
             )
 
             self.scenarios = [
@@ -123,10 +122,8 @@ class JSONParameters:
             print("creating output folder")
             os.mkdir(self.output_folder)
 
-    def process_water_bombers(self, bases, scenario_idx=None):
+    def process_water_bombers(self, bases, scenario_idx):
         """Create water bombers from json file."""
-        if scenario_idx is None:
-            scenario_idx = self.scenario_idx
         water_bombers = []
         water_bombers_bases_dict = {}
         for water_bomber_type in self.scenarios[scenario_idx]["water_bombers"]:
@@ -170,16 +167,15 @@ class JSONParameters:
 
         return water_bombers, water_bombers_bases_dict
 
-    def process_uavs(self, scenario_idx=None):
+    def process_uavs(self, scenario_idx):
         """Create uavs from json file."""
-        if scenario_idx is None:
-            scenario_idx = self.scenario_idx
         uav_data = self.scenarios[scenario_idx]["uavs"]
         uav_spawn_locs = pd.read_csv(os.path.join(self.folder, uav_data["spawn_loc_file"]))
         x = uav_spawn_locs[uav_spawn_locs.columns[0]].values.tolist()
         y = uav_spawn_locs[uav_spawn_locs.columns[1]].values.tolist()
         uavs = []
         attributes = uav_data["attributes"]
+        print("flight_speed " + str(attributes["flight_speed"]))
         for idx, _ in enumerate(x):
             uavs.append(
                 UAV(
@@ -194,16 +190,12 @@ class JSONParameters:
             )
         return uavs
 
-    def get_attribute(self, attribute: str, scenario_idx=None):
+    def get_attribute(self, attribute: str, scenario_idx):
         """Return attribute of JSON file."""
-        if scenario_idx is None:
-            scenario_idx = self.scenario_idx
         return self.scenarios[scenario_idx][attribute]
 
-    def get_relative_filepath(self, key: str, scenario_idx=None):
+    def get_relative_filepath(self, key: str, scenario_idx):
         """Return realtive file path to given key."""
-        if scenario_idx is None:
-            scenario_idx = self.scenario_idx
         return os.path.join(self.folder, self.scenarios[scenario_idx][key])
 
     def write_to_output_folder(
@@ -211,7 +203,7 @@ class JSONParameters:
         lightning_strikes: List[Lightning],
         water_bombers: List[WaterBomber],
         water_tanks: List[WaterTank],
-        scenario_idx=None,
+        scenario_idx,
     ):
         """Write results of simulation to output folder."""
         with open(

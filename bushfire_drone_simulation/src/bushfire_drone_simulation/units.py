@@ -106,3 +106,7 @@ class Volume:  # pylint: disable=too-few-public-methods
     def __sub__(self, other):
         """Subtraction operator for Volume."""
         return Volume(self.get() - other.get())
+
+    def __ge__(self, other):
+        """Greater than or equal to operator for Volume."""
+        return self.get() >= other.get()

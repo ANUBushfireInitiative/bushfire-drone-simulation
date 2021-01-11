@@ -71,7 +71,7 @@ def run_simulation(
         )
         # FIXME(water tank capacity) # pylint: disable=fixme
 
-        uavs = params.process_uavs()
+        uavs = params.process_uavs(scenario_idx)
         water_bombers, water_bomber_bases = params.process_water_bombers(
             water_bomber_bases, scenario_idx
         )

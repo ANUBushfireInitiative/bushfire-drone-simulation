@@ -276,6 +276,12 @@ class WaterBomber(Aircraft):
         self.update_position(water_tank, departure_time, Status.WAITING_AT_WATER)
         self.water_refill(water_tank)
 
+    def check_water_tank(self, water_tank: WaterTank):
+        """Return whether a given water tank has enough capacity to refill the water bomber."""
+        # Returns false if water tank has enough to extinguish a single fire
+        # but not completely refill
+        return water_tank.capacity >= self.water_capacity - self.water_on_board
+
     def water_refill(self, water_tank: WaterTank):
         """Update time and range of water bomber after water refill."""
         water_tank.empty(self.water_capacity - self.water_on_board)

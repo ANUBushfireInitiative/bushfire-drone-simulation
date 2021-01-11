@@ -17,7 +17,7 @@
 
     "water_bombers": {
 
-	"helicopter": {
+	    "helicopter": {
             "spawn_loc_file": "helicopter_spawn_locations.csv",
             "attributes": {
                 "flight_speed": 235,
