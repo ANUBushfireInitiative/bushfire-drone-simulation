@@ -15,9 +15,9 @@
         }
     },
 
-    "water_bombers": [
+    "water_bombers": {
 
-        {"name": "helicopter",
+	"helicopter": {
             "spawn_loc_file": "helicopter_spawn_locations.csv",
             "attributes": {
                 "flight_speed": 235,
@@ -31,7 +31,7 @@
             }
         },
 
-        {"name": "c130",
+        "c130": {
             "spawn_loc_file": "helicopter_spawn_locations.csv",
             "attributes": {
                 "flight_speed": 235,
@@ -44,5 +44,5 @@
                 "water_capacity": 11500
             }
         }
-    ]
+    }
 }

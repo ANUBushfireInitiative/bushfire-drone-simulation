@@ -17,13 +17,12 @@ def test_times_chronological(monkeypatch):
             for idx, update in enumerate(uav.past_locations):
                 if idx != 0:
                     assert update.time > uav.past_locations[idx - 1].time, "uav.id was not chrono"
-        for water_bomber_type in coordinator.water_bombers_dict:
-            for water_bomber in coordinator.water_bombers_dict[water_bomber_type]:
-                for idx, update in enumerate(water_bomber.past_locations):
-                    if idx != 0:
-                        assert (
-                            update.time > water_bomber.past_locations[idx - 1].time
-                        ), "water_bomber.id was not chrono"
+        for water_bomber in coordinator.water_bombers:
+            for idx, update in enumerate(water_bomber.past_locations):
+                if idx != 0:
+                    assert (
+                        update.time > water_bomber.past_locations[idx - 1].time
+                    ), "water_bomber.id was not chrono"
 
 
 def test_reasonable_fuel_refill(monkeypatch):
@@ -40,18 +39,17 @@ def test_reasonable_fuel_refill(monkeypatch):
                         "The UAV (uav.id) should have run out of fuel"
                     )
                     time_full = update.time
-        for water_bomber_type in coordinator.water_bombers_dict:
-            for water_bomber in coordinator.water_bombers_dict[water_bomber_type]:
-                time_full = water_bomber.past_locations[0].time
-                for update in water_bomber.past_locations:
-                    if update.status == Status.WAITING_AT_BASE:
-                        has_adequate_fuel = (
-                            update.time - time_full
-                        ).get() < water_bomber.get_range().get() / water_bomber.max_velocity.get()
-                        assert (
-                            has_adequate_fuel
-                        ), "The Water Bomber (water_bomber.id) should have run out of fuel"
-                        time_full = update.time
+        for water_bomber in coordinator.water_bombers:
+            time_full = water_bomber.past_locations[0].time
+            for update in water_bomber.past_locations:
+                if update.status == Status.WAITING_AT_BASE:
+                    has_adequate_fuel = (
+                        update.time - time_full
+                    ).get() < water_bomber.get_range().get() / water_bomber.max_velocity.get()
+                    assert (
+                        has_adequate_fuel
+                    ), "The Water Bomber (water_bomber.id) should have run out of fuel"
+                    time_full = update.time
 
 
 def test_aricraft_status(monkeypatch):  # pylint: disable=too-many-branches
@@ -69,20 +67,18 @@ def test_aricraft_status(monkeypatch):  # pylint: disable=too-many-branches
                         assert (
                             uav.past_locations[idx - 1].status == Status.GOING_TO_STRIKE
                         ), "UAV should have previously been going to strike"
-        for water_bomber_type in coordinator.water_bombers_dict:
-            for water_bomber in coordinator.water_bombers_dict[water_bomber_type]:
-                for idx, update in enumerate(water_bomber.past_locations):
-                    if idx != 0:
-                        if update.status == Status.WAITING_AT_BASE:
-                            assert (
-                                water_bomber.past_locations[idx - 1].status == Status.GOING_TO_BASE
-                            ), "Water Bomber should have previously been going to base"
-                        if update.status == Status.HOVERING:
-                            assert (
-                                water_bomber.past_locations[idx - 1].status
-                                == Status.GOING_TO_STRIKE
-                            ), "Water Bomber should have previously been going to strike"
-                        if update.status == Status.WAITING_AT_WATER:
-                            assert (
-                                water_bomber.past_locations[idx - 1].status == Status.GOING_TO_WATER
-                            ), "Water Bomber should have previously been going to water"
+        for water_bomber in coordinator.water_bombers:
+            for idx, update in enumerate(water_bomber.past_locations):
+                if idx != 0:
+                    if update.status == Status.WAITING_AT_BASE:
+                        assert (
+                            water_bomber.past_locations[idx - 1].status == Status.GOING_TO_BASE
+                        ), "Water Bomber should have previously been going to base"
+                    if update.status == Status.HOVERING:
+                        assert (
+                            water_bomber.past_locations[idx - 1].status == Status.GOING_TO_STRIKE
+                        ), "Water Bomber should have previously been going to strike"
+                    if update.status == Status.WAITING_AT_WATER:
+                        assert (
+                            water_bomber.past_locations[idx - 1].status == Status.GOING_TO_WATER
+                        ), "Water Bomber should have previously been going to water"
