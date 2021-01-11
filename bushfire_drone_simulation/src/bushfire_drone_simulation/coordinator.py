@@ -123,10 +123,10 @@ class Coordinator:
                     if water_bomber.enough_water():
                         if water_bomber.enough_fuel(
                             [ignition, water_bomber_bases[base_index]],
-                            ignition.spawn_time,
+                            ignition.inspected_time,
                         ):
                             temp_arr_time = water_bomber.arrival_time(
-                                [ignition], ignition.spawn_time
+                                [ignition], ignition.inspected_time
                             )
                             if temp_arr_time < min_arrival_time:
                                 min_arrival_time = temp_arr_time
@@ -136,10 +136,10 @@ class Coordinator:
                             for base in water_bomber_bases:
                                 if water_bomber.enough_fuel(
                                     [base, ignition, water_bomber_bases[base_index]],
-                                    ignition.spawn_time,
+                                    ignition.inspected_time,
                                 ):
                                     temp_arr_time = water_bomber.arrival_time(
-                                        [base, ignition], ignition.spawn_time
+                                        [base, ignition], ignition.inspected_time
                                     )
                                     if temp_arr_time < min_arrival_time:
                                         min_arrival_time = temp_arr_time
@@ -155,10 +155,10 @@ class Coordinator:
                         for water_tank in self.water_tanks:
                             if water_bomber.enough_fuel(
                                 [water_tank, ignition, water_bomber_bases[base_index]],
-                                ignition.spawn_time,
+                                ignition.inspected_time,
                             ):
                                 temp_arr_time = water_bomber.arrival_time(
-                                    [water_tank, ignition], ignition.spawn_time
+                                    [water_tank, ignition], ignition.inspected_time
                                 )
                                 if temp_arr_time < min_arrival_time:
                                     min_arrival_time = temp_arr_time
@@ -175,11 +175,11 @@ class Coordinator:
                                             ignition,
                                             water_bomber_bases[base_index],
                                         ],
-                                        ignition.spawn_time,
+                                        ignition.inspected_time,
                                     ):
                                         temp_arr_time = water_bomber.arrival_time(
                                             [water_tank, base, ignition],
-                                            ignition.spawn_time,
+                                            ignition.inspected_time,
                                         )
                                         if temp_arr_time < min_arrival_time:
                                             min_arrival_time = temp_arr_time
@@ -194,11 +194,11 @@ class Coordinator:
                                             ignition,
                                             water_bomber_bases[base_index],
                                         ],
-                                        ignition.spawn_time,
+                                        ignition.inspected_time,
                                     ):
                                         temp_arr_time = water_bomber.arrival_time(
                                             [base, water_tank, ignition],
-                                            ignition.spawn_time,
+                                            ignition.inspected_time,
                                         )
                                         if temp_arr_time < min_arrival_time:
                                             min_arrival_time = temp_arr_time
@@ -211,27 +211,27 @@ class Coordinator:
                 _LOG.info("Best water bomber is: %s", best_water_bomber.id_no)
                 _LOG.info(
                     "Which took %s mins to respond",
-                    (min_arrival_time - ignition.spawn_time).get("min"),
+                    (min_arrival_time - ignition.inspected_time).get("min"),
                 )
                 if fuel_first is not None:
                     if fuel_first:
-                        best_water_bomber.go_to_base(via_base, ignition.spawn_time)
-                        best_water_bomber.go_to_water(via_water, ignition.spawn_time)
+                        best_water_bomber.go_to_base(via_base, ignition.inspected_time)
+                        best_water_bomber.go_to_water(via_water, ignition.inspected_time)
                     else:
-                        best_water_bomber.go_to_water(via_water, ignition.spawn_time)
-                        best_water_bomber.go_to_base(via_base, ignition.spawn_time)
+                        best_water_bomber.go_to_water(via_water, ignition.inspected_time)
+                        best_water_bomber.go_to_base(via_base, ignition.inspected_time)
                 elif via_water is not None:
-                    best_water_bomber.go_to_water(via_water, ignition.spawn_time)
+                    best_water_bomber.go_to_water(via_water, ignition.inspected_time)
                 elif via_base is not None:
-                    best_water_bomber.go_to_base(via_base, ignition.spawn_time)
-                best_water_bomber.go_to_strike(ignition, ignition.spawn_time, min_arrival_time)
+                    best_water_bomber.go_to_base(via_base, ignition.inspected_time)
+                best_water_bomber.go_to_strike(ignition, ignition.inspected_time, min_arrival_time)
                 best_water_bomber.print_past_locations()
             else:
                 _LOG.error("No water bomber were available")
         for water_bomber_type in self.water_bombers_dict:
             for water_bomber in self.water_bombers_dict[water_bomber_type]:
                 water_bomber_bases = self.water_bomber_bases_dict[water_bomber_type]
-                water_bomber.consider_going_to_base(water_bomber_bases, ignition.spawn_time)
+                water_bomber.consider_going_to_base(water_bomber_bases, ignition.inspected_time)
 
 
 class Event:

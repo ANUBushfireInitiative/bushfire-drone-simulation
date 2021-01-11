@@ -1,6 +1,7 @@
 """Functions for reading and writing data to a csv."""
 
 import copy
+import csv
 import json
 import logging
 import math
@@ -10,6 +11,7 @@ from functools import reduce
 from typing import List
 
 import pandas as pd
+from matplotlib import pyplot as plt
 
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.fire_utils import Time
@@ -94,6 +96,33 @@ class JSONParameters:
 
             recurse_through_dictionaries([], self.parameters)
 
+        if (
+            "scenarios_to_run" in self.parameters.keys()
+            and self.parameters["scenarios_to_run"] != "all"
+        ):
+            self.scenarios_to_run = self.parameters["scenarios_to_run"]
+        else:
+            self.scenarios_to_run = range(0, len(self.scenarios))
+
+        self.output_folder = os.path.join(
+            os.path.dirname(self.folder), self.scenarios[0]["output_folder_name"]
+        )
+        self.abort = False
+        # All scenarios output to same folder
+        if os.path.exists(self.output_folder):
+            if os.listdir(self.output_folder):
+                cont = input(
+                    "Output folder already exists and is not empty, "
+                    + "do you want to overwrite its contents? \nEnter 'Y' if yes and 'N' if no \n"
+                )
+                if cont != "Y":
+                    print("Aborting")
+                    self.abort = True
+
+        else:
+            print("creating output folder")
+            os.mkdir(self.output_folder)
+
     def process_water_bombers(self, bases, scenario_idx=None):
         """Create water bombers from json file."""
         if scenario_idx is None:
@@ -175,3 +204,64 @@ class JSONParameters:
         if scenario_idx is None:
             scenario_idx = self.scenario_idx
         return os.path.join(self.folder, self.scenarios[scenario_idx][key])
+
+    def write_to_output_folder(self, lightning_strikes, scenario_idx=None):
+        """Write results of simulation to output folder."""
+        with open(
+            os.path.join(self.output_folder, "simulation_output_s" + str(scenario_idx) + ".csv"),
+            "w",
+        ) as outputfile:
+            filewriter = csv.writer(outputfile)
+            lats = []
+            lons = []
+            inspection_times = []
+            supression_times = []
+            supression_times_ignitions_only = []
+            for strike in lightning_strikes:
+                lats.append(strike.lat)
+                lons.append(strike.lon)
+                if strike.inspected_time is not None:
+                    inspection_times.append((strike.inspected_time - strike.spawn_time).get("hr"))
+                else:
+                    inspection_times.append("N/A")
+                if strike.supressed_time is not None:
+                    supression_times.append((strike.supressed_time - strike.spawn_time).get("hr"))
+                    supression_times_ignitions_only.append(
+                        (strike.supressed_time - strike.spawn_time).get("hr")
+                    )
+                else:
+                    supression_times.append("N/A")
+            filewriter.writerow(
+                ["Latitude", "Longitude", "Inspection time (hr)", "Supression time (hr)"]
+            )
+            for row in zip(*[lats, lons, inspection_times, supression_times]):
+                filewriter.writerow(row)
+
+            fig, axs = plt.subplots(2, 2)
+            axs[0, 0].hist(inspection_times)
+            axs[0, 0].set_title("Histogram of UAV inspection times")
+            axs[0, 0].set(xlabel="hours", ylabel="frequency")
+            axs[0, 1].hist(supression_times_ignitions_only)
+            axs[0, 1].set_title("Histogram of supression times")
+            axs[0, 1].set(xlabel="hours", ylabel="frequency")
+            axs[1, 0].hist(inspection_times)
+            axs[1, 0].set_title("Axis [1, 0]")
+            axs[1, 1].hist(inspection_times)
+            axs[1, 1].set_title("Axis [1, 1]")
+
+            # for axis in axs.flat:
+            #     axis.set(xlabel='x-label', ylabel='y-label')
+            fig.tight_layout()
+            # plt.hist(inspection_times)
+            plt.savefig(
+                os.path.join(
+                    self.output_folder, "inspection_times_plot_s" + str(scenario_idx) + ".png"
+                )
+            )
+            # plt.cla()
+            # plt.hist(supression_times_ignitions_only, density=True)
+            # plt.savefig(
+            #     os.path.join(
+            #         self.output_folder, "supression_times_plot_s" + str(scenario_idx) + ".png"
+            #     )
+            # )

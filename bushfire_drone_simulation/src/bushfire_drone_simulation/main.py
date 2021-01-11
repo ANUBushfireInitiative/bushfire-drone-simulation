@@ -31,8 +31,9 @@ def gui(
     parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT,
 ):
     """Start a GUI version of the drone simulation."""
-    coordinator, lightning_strikes = run_simulation(parameters_filename)
-    start_gui(coordinator, lightning_strikes)
+    coordinator, lightning_strikes = run_simulation(parameters_filename)[0]
+    if coordinator is not None:
+        start_gui(coordinator, lightning_strikes)
 
 
 @app.command()
@@ -50,41 +51,56 @@ def run_simulation(
 ):
     """Run bushfire drone simulation."""
     # Read parameters
-    # params = CSVParameters(parameters_filename, scenario)
     params = JSONParameters(parameters_filename)
 
-    # Read and initialise data
-    uav_bases = read_locations(params.get_relative_filepath("uav_bases_filename"), Base)
-    water_bomber_bases = read_locations(
-        params.get_relative_filepath("water_bomber_bases_filename"), Base
-    )
-    water_tanks = read_locations(params.get_relative_filepath("water_tanks_filename"), WaterTank)
-    # FIXME(water tank capacity) # pylint: disable=fixme
+    if params.abort:
+        return None, None
 
-    uavs = params.process_uavs()
-    water_bombers, water_bomber_bases = params.process_water_bombers(water_bomber_bases)
+    ret = []
 
-    lightning_strikes = read_lightning(
-        params.get_relative_filepath("lightning_filename"),
-        params.get_attribute("ignition_probability"),
-    )
-    # lightning_strikes = read_lightning(
-    # lightning_filename, params.get_attribute("ignition_probability")
-    # )
-    lightning_strikes.sort()  # By strike time
+    for scenario_idx in params.scenarios_to_run:
+        # Read and initialise data
+        uav_bases = read_locations(
+            params.get_relative_filepath("uav_bases_filename", scenario_idx), Base
+        )
+        water_bomber_bases = read_locations(
+            params.get_relative_filepath("water_bomber_bases_filename", scenario_idx), Base
+        )
+        water_tanks = read_locations(
+            params.get_relative_filepath("water_tanks_filename", scenario_idx), WaterTank
+        )
+        # FIXME(water tank capacity) # pylint: disable=fixme
 
-    coordinator = Coordinator(uavs, uav_bases, water_bombers, water_bomber_bases, water_tanks)
+        uavs = params.process_uavs()
+        water_bombers, water_bomber_bases = params.process_water_bombers(
+            water_bomber_bases, scenario_idx
+        )
 
-    process_lightning(lightning_strikes, coordinator)
-    _LOG.info("Completed processing lightning strikes")
+        lightning_strikes = read_lightning(
+            params.get_relative_filepath("lightning_filename", scenario_idx),
+            params.get_attribute("ignition_probability", scenario_idx),
+        )
+        # lightning_strikes = read_lightning(
+        # lightning_filename, params.get_attribute("ignition_probability")
+        # )
+        lightning_strikes.sort()  # By strike time
 
-    ignitions = reduce_lightning_to_ignitions(lightning_strikes)
-    ignitions.sort()  # By time of inspection
+        coordinator = Coordinator(uavs, uav_bases, water_bombers, water_bomber_bases, water_tanks)
 
-    process_ignitions(ignitions, coordinator)
-    _LOG.info("Completed processing ignitions")
+        process_lightning(lightning_strikes, coordinator)
+        _LOG.info("Completed processing lightning strikes")
 
-    return coordinator, lightning_strikes
+        ignitions = reduce_lightning_to_ignitions(lightning_strikes)
+        ignitions.sort()  # By time of inspection
+
+        process_ignitions(ignitions, coordinator)
+        _LOG.info("Completed processing ignitions")
+
+        params.write_to_output_folder(lightning_strikes, scenario_idx)
+
+        ret.append((coordinator, lightning_strikes))
+
+    return ret
 
 
 def process_lightning(lightning_strikes: List[Lightning], coordinator: Coordinator):

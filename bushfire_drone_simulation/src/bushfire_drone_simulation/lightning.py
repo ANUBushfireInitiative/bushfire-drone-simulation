@@ -44,6 +44,5 @@ def reduce_lightning_to_ignitions(lightning_strikes):
     for strike in lightning_strikes:
         if strike.ignition:
             if strike.inspected_time is not None:  # Lignting was not inspected
-                strike.spawn_time = strike.inspected_time
                 ignitions.append(strike)
     return ignitions
