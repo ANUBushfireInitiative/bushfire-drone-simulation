@@ -55,6 +55,7 @@ class WaterTank(Location):
         """Initialise watertank from location and capacity."""
         super().__init__(latitude, longitude)
         self.capacity = capacity
+        self.initial_capacity = self.capacity
 
     def empty(self, volume: Volume):
         """Remove a given volume from the water tank."""

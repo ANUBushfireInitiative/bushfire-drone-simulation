@@ -10,9 +10,9 @@ class Lightning(Location):
     """Class for individual lightning strikes."""
 
     inspected_time: Time = None
-    supressed_time: Time = None
+    suppressed_time: Time = None
     inspected_by: UAV = None
-    supressed_by: WaterBomber = None
+    suppressed_by: WaterBomber = None
     nearest_base: int = None
 
     def __init__(
@@ -28,10 +28,10 @@ class Lightning(Location):
         self.inspected_by = uav
         self.inspected_time = time
 
-    def supressed(self, water_bomber: WaterBomber, time: Time):
-        """Lightning strike is updated when supressed."""
-        self.supressed_by = water_bomber
-        self.supressed_time = time
+    def suppressed(self, water_bomber: WaterBomber, time: Time):
+        """Lightning strike is updated when suppressed."""
+        self.suppressed_by = water_bomber
+        self.suppressed_time = time
 
     def __lt__(self, other):
         """Less than operator for Lightning."""

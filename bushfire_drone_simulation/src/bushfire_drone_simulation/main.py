@@ -22,7 +22,7 @@ PARAMETERS_FILENAME_ARGUMENT = typer.Option(
 
 def main():
     """Entry point for bushfire_drone_simulation."""
-    logging.basicConfig(stream=stderr, level=logging.DEBUG)
+    logging.basicConfig(stream=stderr, level=logging.INFO)
     app()
 
 
@@ -96,7 +96,7 @@ def run_simulation(
         process_ignitions(ignitions, coordinator)
         _LOG.info("Completed processing ignitions")
 
-        params.write_to_output_folder(lightning_strikes, scenario_idx)
+        params.write_to_output_folder(lightning_strikes, water_bombers, water_tanks, scenario_idx)
 
         ret.append((coordinator, lightning_strikes))
 

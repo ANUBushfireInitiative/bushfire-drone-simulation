@@ -240,6 +240,8 @@ class WaterBomber(Aircraft):
         bombing_time: Duration,
         water_capacity: Volume,
         water_per_delivery: Volume,
+        bomber_type: str,
+        bomber_name: str,
     ):  # pylint: disable=too-many-arguments
         """Initialize water bombing aircraft."""
         super().__init__(latitude, longitude, max_velocity, fuel_refill_time, id_no)
@@ -250,6 +252,9 @@ class WaterBomber(Aircraft):
         self.water_per_delivery = water_per_delivery
         self.water_capacity = water_capacity
         self.water_on_board = water_capacity
+        self.type = bomber_type
+        self.name = bomber_name
+        self.ignitions_suppressed = []
 
     def get_range(self):
         """Return range of Water bomber."""
@@ -259,7 +264,12 @@ class WaterBomber(Aircraft):
     def go_to_strike(self, ignition, departure_time, arrival_time):
         """UAV go to and inspect strike."""
         self.update_position(ignition, departure_time, Status.HOVERING)
-        ignition.supressed(self, arrival_time)  # change location of this in future
+        ignition.suppressed(self, arrival_time)  # change location of this in future
+        self.ignitions_suppressed.append((ignition, arrival_time))
+
+    def num_ignitions_suppressed(self):
+        """Return number of ignitions this water bomber has suppressed."""
+        return len(self.ignitions_suppressed)
 
     def go_to_water(self, water_tank, departure_time):
         """UAV go to and inspect strike."""

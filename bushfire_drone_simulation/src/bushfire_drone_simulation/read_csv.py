@@ -10,15 +10,17 @@ import os
 from functools import reduce
 from typing import List
 
+import matplotlib
+import matplotlib.pyplot as plt
 import pandas as pd
-from matplotlib import pyplot as plt
 
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
-from bushfire_drone_simulation.fire_utils import Time
+from bushfire_drone_simulation.fire_utils import Time, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.units import Distance, Duration, Speed, Volume
 
 _LOG = logging.getLogger(__name__)
+matplotlib.use("Agg")
 
 
 def _get_from_dict(data_dict, key_list):
@@ -104,9 +106,7 @@ class JSONParameters:
         else:
             self.scenarios_to_run = range(0, len(self.scenarios))
 
-        self.output_folder = os.path.join(
-            os.path.dirname(self.folder), self.scenarios[0]["output_folder_name"]
-        )
+        self.output_folder = os.path.join(self.folder, self.scenarios[0]["output_folder_name"])
         self.abort = False
         # All scenarios output to same folder
         if os.path.exists(self.output_folder):
@@ -115,7 +115,7 @@ class JSONParameters:
                     "Output folder already exists and is not empty, "
                     + "do you want to overwrite its contents? \nEnter 'Y' if yes and 'N' if no \n"
                 )
-                if cont != "Y":
+                if cont.lower() != "y":
                     print("Aborting")
                     self.abort = True
 
@@ -127,15 +127,15 @@ class JSONParameters:
         """Create water bombers from json file."""
         if scenario_idx is None:
             scenario_idx = self.scenario_idx
-        water_bombers_dict = {}
+        water_bombers = []
         water_bombers_bases_dict = {}
-        for water_bomber in self.scenarios[scenario_idx]["water_bombers"]:
+        for water_bomber_type in self.scenarios[scenario_idx]["water_bombers"]:
+            water_bomber = self.scenarios[scenario_idx]["water_bombers"][water_bomber_type]
             water_bomber_spawn_locs = pd.read_csv(
                 os.path.join(self.folder, water_bomber["spawn_loc_file"])
             )
             x = water_bomber_spawn_locs[water_bomber_spawn_locs.columns[0]].values.tolist()
             y = water_bomber_spawn_locs[water_bomber_spawn_locs.columns[1]].values.tolist()
-            water_bombers = []
             attributes = water_bomber["attributes"]
             for idx, _ in enumerate(x):
                 water_bombers.append(
@@ -151,23 +151,24 @@ class JSONParameters:
                         bombing_time=Duration(int(attributes["bombing_time"]), "min"),
                         water_capacity=Volume(int(attributes["water_capacity"]), "L"),
                         water_per_delivery=Volume(int(attributes["water_per_delivery"]), "L"),
+                        bomber_type=water_bomber_type,
+                        bomber_name=f"{water_bomber_type} {idx+1}",
                     )
                 )
-            water_bombers_dict[water_bomber["name"]] = water_bombers
             base_data = pd.read_csv(
                 os.path.join(
                     self.folder, self.scenarios[scenario_idx]["water_bomber_bases_filename"]
                 )
             )
-            bases_specific = base_data[water_bomber["name"]]
+            bases_specific = base_data[water_bomber_type]
             bases_all = base_data["all"]
             current_bases = []
             for (idx, base) in enumerate(bases):
                 if bases_all[idx] == 1 or bases_specific[idx] == 1:
                     current_bases.append(base)
-            water_bombers_bases_dict[water_bomber["name"]] = current_bases
+            water_bombers_bases_dict[water_bomber_type] = current_bases
 
-        return water_bombers_dict, water_bombers_bases_dict
+        return water_bombers, water_bombers_bases_dict
 
     def process_uavs(self, scenario_idx=None):
         """Create uavs from json file."""
@@ -205,7 +206,13 @@ class JSONParameters:
             scenario_idx = self.scenario_idx
         return os.path.join(self.folder, self.scenarios[scenario_idx][key])
 
-    def write_to_output_folder(self, lightning_strikes, scenario_idx=None):
+    def write_to_output_folder(
+        self,
+        lightning_strikes: List[Lightning],
+        water_bombers: List[WaterBomber],
+        water_tanks: List[WaterTank],
+        scenario_idx=None,
+    ):
         """Write results of simulation to output folder."""
         with open(
             os.path.join(self.output_folder, "simulation_output_s" + str(scenario_idx) + ".csv"),
@@ -224,10 +231,10 @@ class JSONParameters:
                     inspection_times.append((strike.inspected_time - strike.spawn_time).get("hr"))
                 else:
                     inspection_times.append("N/A")
-                if strike.supressed_time is not None:
-                    supression_times.append((strike.supressed_time - strike.spawn_time).get("hr"))
+                if strike.suppressed_time is not None:
+                    supression_times.append((strike.suppressed_time - strike.spawn_time).get("hr"))
                     supression_times_ignitions_only.append(
-                        (strike.supressed_time - strike.spawn_time).get("hr")
+                        (strike.suppressed_time - strike.spawn_time).get("hr")
                     )
                 else:
                     supression_times.append("N/A")
@@ -237,31 +244,41 @@ class JSONParameters:
             for row in zip(*[lats, lons, inspection_times, supression_times]):
                 filewriter.writerow(row)
 
-            fig, axs = plt.subplots(2, 2)
-            axs[0, 0].hist(inspection_times)
+            fig, axs = plt.subplots(2, 2, figsize=(12, 8), dpi=300)
+            axs[0, 0].set_xlim(left=0)
+            axs[0, 0].set_ylim(bottom=0)
+            axs[0, 0].hist(inspection_times, bins=20)
             axs[0, 0].set_title("Histogram of UAV inspection times")
-            axs[0, 0].set(xlabel="hours", ylabel="frequency")
-            axs[0, 1].hist(supression_times_ignitions_only)
-            axs[0, 1].set_title("Histogram of supression times")
-            axs[0, 1].set(xlabel="hours", ylabel="frequency")
-            axs[1, 0].hist(inspection_times)
-            axs[1, 0].set_title("Axis [1, 0]")
-            axs[1, 1].hist(inspection_times)
-            axs[1, 1].set_title("Axis [1, 1]")
+            axs[0, 0].set(xlabel="Inspection time (Hours)", ylabel="Frequency")
 
-            # for axis in axs.flat:
-            #     axis.set(xlabel='x-label', ylabel='y-label')
+            axs[0, 1].set_xlim(left=0)
+            axs[0, 1].set_ylim(bottom=0)
+            axs[0, 1].hist(supression_times_ignitions_only, bins=20)
+            axs[0, 1].set_title("Histogram of supression times")
+            axs[0, 1].set(xlabel="Suppression time (Hours)", ylabel="Frequency")
+
+            water_bomber_names = [wb.name for wb in water_bombers]
+            num_suppressed = [wb.num_ignitions_suppressed() for wb in water_bombers]
+            axs[1, 0].set_title("Ligntning strikes suppressed per helicopter")
+            axs[1, 0].bar(water_bomber_names, num_suppressed)
+            axs[1, 0].tick_params(labelrotation=90)
+
+            water_tank_ids = [i for i, _ in enumerate(water_tanks)]
+            water_tank_levels = [wt.capacity.get(units="kL") for wt in water_tanks]
+            axs[1, 1].set_title("Water tank levels after suppression")
+            axs[1, 1].bar(
+                water_tank_ids,
+                [wt.initial_capacity.get(units="kL") for wt in water_tanks],
+                label="Full Capacity",
+                color="orange",
+            )
+            axs[1, 1].bar(water_tank_ids, water_tank_levels, label="Final Level", color="blue")
+            axs[1, 1].legend()
+            axs[1, 1].set(ylabel="kL")
+
             fig.tight_layout()
-            # plt.hist(inspection_times)
             plt.savefig(
                 os.path.join(
                     self.output_folder, "inspection_times_plot_s" + str(scenario_idx) + ".png"
                 )
             )
-            # plt.cla()
-            # plt.hist(supression_times_ignitions_only, density=True)
-            # plt.savefig(
-            #     os.path.join(
-            #         self.output_folder, "supression_times_plot_s" + str(scenario_idx) + ".png"
-            #     )
-            # )
