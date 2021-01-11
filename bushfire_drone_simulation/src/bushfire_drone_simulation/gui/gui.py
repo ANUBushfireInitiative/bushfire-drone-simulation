@@ -81,14 +81,14 @@ def start_gui(coordinator, lightning):  # pylint: disable = too-many-locals
         create_point_from_elm(canvas, base, uav_base_points, rad=2)
     water_bomber_base_points = []
     water_bomber_points = []
-    for water_bomber_type in coordinator.water_bombers_dict:
+    for water_bomber_type in coordinator.water_bomber_bases_dict:
         for base in coordinator.water_bomber_bases_dict[water_bomber_type]:
             create_point_from_elm(canvas, base, water_bomber_base_points, rad=2)
-        for water_bomber in coordinator.water_bombers_dict[water_bomber_type]:
-            for (idx, past_loc) in enumerate(water_bomber.past_locations):
-                if idx != 0:
-                    connect_points(canvas, past_loc, water_bomber.past_locations[idx - 1])
-                create_point_from_elm(canvas, water_bomber, water_bomber_points, rad=3)
+    for water_bomber in coordinator.water_bombers:
+        for (idx, past_loc) in enumerate(water_bomber.past_locations):
+            if idx != 0:
+                connect_points(canvas, past_loc, water_bomber.past_locations[idx - 1])
+            create_point_from_elm(canvas, water_bomber, water_bomber_points, rad=3)
 
     # delete(canvas, water_bomber_base_points)
     var = tkinter.IntVar()

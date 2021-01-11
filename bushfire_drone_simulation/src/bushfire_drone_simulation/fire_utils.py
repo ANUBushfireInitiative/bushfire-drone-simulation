@@ -31,7 +31,7 @@ class Location:  # pylint: disable=too-few-public-methods
     def to_coordinates(self):
         """Return pixel coordinates of location."""
         # FIXME(not converting lat lon to coordinates)  # pylint: disable=fixme
-        return (self.lat + 39) * 130, (self.lon - 142) * 60
+        return (self.lon - 144) * 100, (-34 - self.lat) * 100
 
     def distance(self, other, units: str = "km"):
         """Find Euclidian distance."""
