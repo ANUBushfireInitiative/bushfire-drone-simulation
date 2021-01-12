@@ -10,7 +10,8 @@ from bushfire_drone_simulation.coordinator import Coordinator
 from bushfire_drone_simulation.fire_utils import Base, WaterTank
 from bushfire_drone_simulation.gui.gui import start_gui, start_map_gui
 from bushfire_drone_simulation.lightning import Lightning, reduce_lightning_to_ignitions
-from bushfire_drone_simulation.read_csv import JSONParameters, read_lightning, read_locations
+from bushfire_drone_simulation.parameters import JSONParameters
+from bushfire_drone_simulation.read_csv import read_lightning, read_locations
 
 _LOG = logging.getLogger(__name__)
 app = typer.Typer()
