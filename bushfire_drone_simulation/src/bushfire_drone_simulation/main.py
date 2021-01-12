@@ -11,7 +11,7 @@ from bushfire_drone_simulation.fire_utils import Base, WaterTank
 from bushfire_drone_simulation.gui.gui import start_gui, start_map_gui
 from bushfire_drone_simulation.lightning import Lightning, reduce_lightning_to_ignitions
 from bushfire_drone_simulation.parameters import JSONParameters
-from bushfire_drone_simulation.read_csv import read_lightning, read_locations
+from bushfire_drone_simulation.read_csv import read_lightning, read_locations_with_capacity
 
 _LOG = logging.getLogger(__name__)
 app = typer.Typer()
@@ -61,13 +61,13 @@ def run_simulation(
 
     for scenario_idx in range(0, len(params.scenarios)):
         # Read and initialise data
-        uav_bases = read_locations(
+        uav_bases = read_locations_with_capacity(
             params.get_relative_filepath("uav_bases_filename", scenario_idx), Base
         )
-        water_bomber_bases = read_locations(
+        water_bomber_bases = read_locations_with_capacity(
             params.get_relative_filepath("water_bomber_bases_filename", scenario_idx), Base
         )
-        water_tanks = read_locations(
+        water_tanks = read_locations_with_capacity(
             params.get_relative_filepath("water_tanks_filename", scenario_idx), WaterTank
         )
         # FIXME(water tank capacity) # pylint: disable=fixme

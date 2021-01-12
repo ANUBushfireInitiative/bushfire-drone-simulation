@@ -17,6 +17,7 @@ import pandas as pd
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.fire_utils import WaterTank
 from bushfire_drone_simulation.lightning import Lightning
+from bushfire_drone_simulation.read_csv import CSVFile
 
 _LOG = logging.getLogger(__name__)
 matplotlib.use("Agg")
@@ -43,16 +44,13 @@ class JSONParameters:
             self.parameters = json.load(file)
 
         self.scenarios = [self.parameters]
-        if (
-            "scenario_parameters_filename" in self.parameters.keys()
-            and self.parameters["scenario_parameters_filename"] != "?"
-        ):
-            self.csv_scenarios = pd.read_csv(
+        if "scenario_parameters_filename" in self.parameters.keys():
+            self.csv_scenarios = CSVFile(
                 self.get_relative_filepath("scenario_parameters_filename", 0)
             )
 
             self.scenarios = [
-                copy.deepcopy(self.parameters) for _ in range(len(self.csv_scenarios.axes[0]))
+                copy.deepcopy(self.parameters) for _ in range(len(self.csv_scenarios))
             ]
 
             for scenario_idx, scenario in enumerate(self.scenarios):
@@ -73,6 +71,8 @@ class JSONParameters:
                         )
 
             recurse_through_dictionaries([], self.parameters)
+        else:
+            self.scenarios[0]["scenario_name"] = ""
 
         self.output_folder = os.path.join(self.folder, self.scenarios[0]["output_folder_name"])
         self.abort = False
@@ -114,7 +114,7 @@ class JSONParameters:
                 )
             base_data = pd.read_csv(
                 os.path.join(
-                    self.folder, self.scenarios[scenario_idx]["water_bomber_bases_filename"]
+                    self.folder, self.get_attribute("water_bomber_bases_filename", scenario_idx)
                 )
             )
             bases_specific = base_data[water_bomber_type]
@@ -129,7 +129,7 @@ class JSONParameters:
 
     def process_uavs(self, scenario_idx):
         """Create uavs from json file."""
-        uav_data = self.scenarios[scenario_idx]["uavs"]
+        uav_data = self.get_attribute("uavs", scenario_idx)
         uav_spawn_locs = pd.read_csv(os.path.join(self.folder, uav_data["spawn_loc_file"]))
         x = uav_spawn_locs[uav_spawn_locs.columns[0]].values.tolist()
         y = uav_spawn_locs[uav_spawn_locs.columns[1]].values.tolist()
@@ -149,11 +149,16 @@ class JSONParameters:
 
     def get_attribute(self, attribute: str, scenario_idx):
         """Return attribute of JSON file."""
+        if attribute not in self.scenarios[scenario_idx]:
+            raise Exception(
+                f"Error: Parameter '{attribute}' is missing in '{self.filepath}'.\n\
+           Please add '{attribute}' to '{self.filepath}' and run the simulation again"
+            )
         return self.scenarios[scenario_idx][attribute]
 
     def get_relative_filepath(self, key: str, scenario_idx):
         """Return realtive file path to given key."""
-        return os.path.join(self.folder, self.scenarios[scenario_idx][key])
+        return os.path.join(self.folder, self.get_attribute(key, scenario_idx))
 
     def write_to_output_folder(
         self,
@@ -165,7 +170,7 @@ class JSONParameters:
         """Write results of simulation to output folder."""
         prefix = ""
         if "scenario_name" in self.scenarios[scenario_idx]:
-            prefix = str(self.scenarios[scenario_idx]["scenario_name"]) + "_"
+            prefix = str(self.get_attribute("scenario_name", scenario_idx)) + "_"
 
         with open(
             os.path.join(
@@ -240,7 +245,7 @@ class JSONParameters:
             plt.savefig(
                 os.path.join(
                     self.output_folder,
-                    str(self.scenarios[scenario_idx]["scenario_name"])
+                    str(self.get_attribute("scenario_name", scenario_idx))
                     + "inspection_times_plot.png",
                 )
             )
@@ -274,7 +279,7 @@ class JSONParameters:
             str(os.path.join(self.folder, self.scenarios[scenario_idx]["uavs"]["spawn_loc_file"])),
             str(input_folder),
         )
-        for water_bomber_type in self.scenarios[scenario_idx]["water_bombers"]:
+        for water_bomber_type in self.get_attribute("water_bombers", scenario_idx):
             shutil.copy2(
                 str(
                     os.path.join(

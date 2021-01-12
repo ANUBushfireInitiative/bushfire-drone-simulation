@@ -21,7 +21,7 @@ class Status(Enum):
     GOING_TO_WATER = 5
 
 
-class Updates(Location):  # pylint: disable=too-few-public-methods
+class UpdateEvent(Location):  # pylint: disable=too-few-public-methods
     """Class keeping track of all updates to an Aircrafts position."""
 
     def __init__(
@@ -37,7 +37,7 @@ class Updates(Location):  # pylint: disable=too-few-public-methods
         distance_hovered: float,
         current_water: float = None,
     ):  # pylint: disable=too-many-arguments
-        """Initialize Updates class."""
+        """Initialize UpdateEvent class."""
         self.name = name
         self.distance_travelled = distance_travelled  # since previous update
         self.fuel = current_fuel
@@ -50,7 +50,7 @@ class Updates(Location):  # pylint: disable=too-few-public-methods
 
     @classmethod
     def from_pos(cls, position: Location, time: Time, status: Status):
-        """Initialize Updates class with position."""
+        """Initialize UpdateEvent class with position."""
         cls.latitude = position.lat
         cls.longitude = position.lon
         cls.time = time
@@ -222,7 +222,7 @@ class UAV(Aircraft):
         )
         self.total_range = Distance(int(attributes["range"]), "km")
         self.past_locations = [
-            Updates(
+            UpdateEvent(
                 "uav" + str(self.id_no),
                 self.lat,
                 self.lon,
@@ -254,7 +254,7 @@ class UAV(Aircraft):
         if previous_update.status == Status.HOVERING:
             distance_hovered = (previous_update.time - self.time).get() * self.max_velocity.get()
         self.past_locations.append(
-            Updates(
+            UpdateEvent(
                 "uav" + str(self.id_no),
                 self.lat,
                 self.lon,
@@ -300,7 +300,7 @@ class WaterBomber(Aircraft):
         self.name = f"{bomber_type} {id_no+1}"
         self.ignitions_suppressed = []
         self.past_locations = [
-            Updates(
+            UpdateEvent(
                 self.name,
                 self.lat,
                 self.lon,
@@ -369,7 +369,7 @@ class WaterBomber(Aircraft):
         if previous_update.status == Status.HOVERING:
             distance_hovered = (previous_update.time - self.time).get() * self.max_velocity.get()
         self.past_locations.append(
-            Updates(
+            UpdateEvent(
                 self.name,
                 self.lat,
                 self.lon,

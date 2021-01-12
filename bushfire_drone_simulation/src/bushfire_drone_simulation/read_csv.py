@@ -2,6 +2,7 @@
 
 import logging
 import math
+from typing import Union
 
 import pandas as pd
 
@@ -12,32 +13,83 @@ from bushfire_drone_simulation.units import Volume
 _LOG = logging.getLogger(__name__)
 
 
-def read_locations(filename: str, constructor, offset: int = 0):
+class ColumnNotFoundException(Exception):
+    """ColumnNotFoundException."""
+
+
+class CSVFile:
+    """CSVFile class to provide wrapper for csv files (with useful errors)."""
+
+    def __init__(self, filename: str):
+        """__init__.
+
+        Args:
+            filename (str): filename
+        """
+        self.filename = filename
+        self.csv_dataframe = pd.read_csv(filename)
+
+    def get_column(self, column: Union[str, int]):
+        """get_column.
+
+        Args:
+            column_name (str): column_name
+        """
+        if isinstance(column, int):
+            return self.csv_dataframe.iloc[:, column]
+        if column not in self.csv_dataframe:
+            raise ColumnNotFoundException(
+                f"Error: No column labelled '{column}' in '{self.filename}'"
+            )
+        return self.csv_dataframe[column]
+
+    def get_cell(self, column_name: str, cell_idx: int):
+        """get_cell.
+
+        Args:
+            column_name (str): column_name
+            cell_idx (int): cell_idx
+        """
+        return self.get_column(column_name)[cell_idx]
+
+    def __len__(self):
+        """__len__."""
+        return len(self.csv_dataframe.axes[0])
+
+    def __getitem__(self, i: Union[str, int]):
+        """__getitem__.
+
+        Args:
+            i (Union[str, int]): i
+        """
+        return self.get_column(i)
+
+
+def read_locations_with_capacity(filename: str, constructor):
     """Return a list of Locations contained in the first two columns of a given a csv file."""
-    location_data = pd.read_csv(filename)
-    x = location_data[location_data.columns[0 + offset]].values.tolist()
-    y = location_data[location_data.columns[1 + offset]].values.tolist()
-    capacity = location_data[location_data.columns[2 + offset]].values.tolist()
-    ret = []
-    for i, _ in enumerate(x):
-        if str(capacity[i]) == "inf":
-            capacity[i] = math.inf
-        ret.append(constructor(x[i], y[i], Volume(capacity[i])))
-    return ret
+    location_data = CSVFile(filename)
+    to_return = []
+    for i, cap in enumerate(location_data["capacity"]):
+        if str(cap) == "inf":
+            cap = math.inf
+        to_return.append(
+            constructor(location_data["latitude"][i], location_data["longitude"][i], Volume(cap))
+        )
+    return to_return
 
 
 def read_lightning(filename: str, ignition_probability: float):
     """Return a list of Locations contained in the first two columns of a given a csv file."""
     lightning = []
-    ligtning_data = pd.read_csv(filename)
-    x = ligtning_data[ligtning_data.columns[0]].values.tolist()
-    y = ligtning_data[ligtning_data.columns[1]].values.tolist()
-    time = ligtning_data[ligtning_data.columns[2]].values.tolist()
+    lightning_data = CSVFile(filename)
+    lats = lightning_data[0]
+    lons = lightning_data[1]
+    times = lightning_data[2]
     try:
-        ignition = ligtning_data[ligtning_data.columns[3]].values.tolist()
-        for i, _ in enumerate(x):
-            lightning.append(Lightning(x[i], y[i], Time(time[i]), ignition[i]))
-    except IndexError:
-        for i, _ in enumerate(x):
-            lightning.append(Lightning(x[i], y[i], Time(time[i]), ignition_probability))
+        ignitions = lightning_data[3]
+        for i, lat in enumerate(lats):
+            lightning.append(Lightning(lat, lons[i], Time(times[i]), ignitions[i]))
+    except (ColumnNotFoundException, IndexError):
+        for i, lat in enumerate(lats):
+            lightning.append(Lightning(lat, lons[i], Time(times[i]), ignition_probability))
     return lightning
