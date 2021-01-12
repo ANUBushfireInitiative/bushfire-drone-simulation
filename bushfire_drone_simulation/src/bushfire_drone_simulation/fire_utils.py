@@ -4,14 +4,6 @@ from math import atan2, cos, inf, radians, sin, sqrt
 
 from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Distance, Duration, Volume
 
-# class Point:  # pylint: disable=too-few-public-methods
-#     """Point class holding a pair of x-y coordinates."""
-
-#     def __init__(self, x: int, y: int):
-#         """Initialise point coordinates."""
-#         self.x = x
-#         self.y = y
-
 
 class Location:  # pylint: disable=too-few-public-methods
     """Location class storing postion in worldwide latitude and longitude coordinates."""
@@ -21,20 +13,8 @@ class Location:  # pylint: disable=too-few-public-methods
         self.lat = latitude
         self.lon = longitude
 
-    @classmethod
-    def from_coordinates(cls, x: int, y: int):
-        """Initialise location from pixel coordinates."""
-        location = cls(x, y)
-        # FIXME(not converting coordinates to lat lon)  # pylint: disable=fixme
-        return location
-
-    def to_coordinates(self):
-        """Return pixel coordinates of location."""
-        # FIXME(not converting lat lon to coordinates)  # pylint: disable=fixme
-        return (self.lon - 144) * 100, (-34 - self.lat) * 100
-
     def distance(self, other, units: str = "km"):
-        """Find Euclidian distance."""
+        """Find Euclidian distance between two locations."""
         temp = (
             sin(radians(other.lat - self.lat) / 2) ** 2
             + cos(radians(self.lat))

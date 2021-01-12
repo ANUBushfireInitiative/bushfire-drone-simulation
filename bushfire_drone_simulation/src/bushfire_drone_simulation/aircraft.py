@@ -60,10 +60,6 @@ class UpdateEvent(Location):  # pylint: disable=too-few-public-methods
 class Aircraft(Location):
     """Generic aircraft class for flying vehicles."""
 
-    current_fuel_capacity: float = 1.0
-    status = Status.WAITING_AT_BASE
-    past_locations = []
-
     def __init__(
         self,
         latitude: float,
@@ -78,6 +74,9 @@ class Aircraft(Location):
         self.time = Time("0")
         self.id_no = id_no
         super().__init__(latitude, longitude)
+        self.current_fuel_capacity: float = 1.0
+        self.status = Status.WAITING_AT_BASE
+        self.past_locations = []
 
     def fuel_refill(self, base: Base):  # pylint: disable=unused-argument
         """Update time and range of aircraft after fuel refill."""

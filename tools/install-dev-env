@@ -4,21 +4,21 @@
 python -m pip install --upgrade pip setuptools wheel
 
 # Install pre-commit
-pip install pre-commit
+python -m pip install pre-commit
 pre-commit install --install-hooks
 
 # Install pylint
-pip install pylint
+python -m pip install pylint
 pylint --generate-rcfile > ~/.pylintrc
 
 # Install sphinx for documentation
-pip install sphinx
-pip install sphinx-rtd-theme
-pip install sphinx-autobuild
-pip install sphinx-autodoc-typehints
+python -m pip install sphinx
+python -m pip install sphinx-rtd-theme
+python -m pip install sphinx-autobuild
+python -m pip install sphinx-autodoc-typehints
 mkdir docs/source/_static
 
 # Install bushfire_drone_simulation
-pip install -e bushfire_drone_simulation
+python -m pip install -e bushfire_drone_simulation
 
 echo "Congratulations! The ANU Bushfire Initiative Drone Simulation is now installed."

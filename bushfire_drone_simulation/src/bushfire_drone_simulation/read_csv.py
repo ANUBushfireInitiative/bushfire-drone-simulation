@@ -82,11 +82,11 @@ def read_lightning(filename: str, ignition_probability: float):
     """Return a list of Locations contained in the first two columns of a given a csv file."""
     lightning = []
     lightning_data = CSVFile(filename)
-    lats = lightning_data[0]
-    lons = lightning_data[1]
-    times = lightning_data[2]
+    lats = lightning_data["latitude"]
+    lons = lightning_data["longitude"]
+    times = lightning_data["time"]
     try:
-        ignitions = lightning_data[3]
+        ignitions = lightning_data["ignited"]
         for i, lat in enumerate(lats):
             lightning.append(Lightning(lat, lons[i], Time(times[i]), ignitions[i]))
     except (ColumnNotFoundException, IndexError):
