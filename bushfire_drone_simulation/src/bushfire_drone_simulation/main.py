@@ -58,7 +58,7 @@ def run_simulation(
 
     ret = []
 
-    for scenario_idx in params.scenarios_to_run:
+    for scenario_idx in range(0, len(params.scenarios)):
         # Read and initialise data
         uav_bases = read_locations(
             params.get_relative_filepath("uav_bases_filename", scenario_idx), Base
@@ -87,12 +87,14 @@ def run_simulation(
 
         coordinator = Coordinator(uavs, uav_bases, water_bombers, water_bomber_bases, water_tanks)
 
+        _LOG.info("Processing lightning strikes")
         process_lightning(lightning_strikes, coordinator)
         _LOG.info("Completed processing lightning strikes")
 
         ignitions = reduce_lightning_to_ignitions(lightning_strikes)
         ignitions.sort()  # By time of inspection
 
+        _LOG.info("Processing ignitions")
         process_ignitions(ignitions, coordinator)
         _LOG.info("Completed processing ignitions")
 

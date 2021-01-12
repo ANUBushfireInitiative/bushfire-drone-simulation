@@ -70,6 +70,10 @@ class Base(Location):
         super().__init__(latitude, longitude)
         self.capacity = capacity
 
+    def empty(self, volume: Volume):
+        """Remove a given volume of fuel from the base."""
+        self.capacity -= volume
+
 
 def month_to_days(month: int, leap_year: bool = False):
     """Month is coverted to the number of days since the beginning of the year."""
@@ -112,26 +116,32 @@ def days_to_month(days: int, leap_year: bool = False):
 class Time:  # pylint: disable=too-few-public-methods
     """Time class storing time in the form YYYY-MM-DD-HH-MM-SS."""
 
-    def __init__(self, time_in: str):
+    def __init__(self, time_in: str, just_mins: bool = False):
         """Initialise time from string in the form YYYY*MM*DD*HH*MM*SS.
 
         "*" represents any character, e.g. 2033-11/03D12*00?12 would be accepted
         Alternatively enter "inf" for an 'infnite time' (i.e. all times occur before it)
+        Or "0" for time 0.
         """
         if time_in == "inf":
             self.time = Duration(inf)
+        elif time_in == "0":
+            self.time = Duration(0)
         else:
-            self.time = (
-                # Duration(int(time_in[:4]), "year")
-                Duration(month_to_days(int(time_in[5:7])) + int(time_in[8:10]) - 1, "day")
-                + Duration(int(time_in[11:13]), "hr")
-                + Duration(int(time_in[14:16]), "min")
-                + Duration(int(time_in[17:19]), "s")
-            )
+            if just_mins:
+                self.time = Duration(int(time_in), "min")
+            else:
+                self.time = (
+                    # Duration(int(time_in[:4]), "year")
+                    Duration(month_to_days(int(time_in[5:7])) + int(time_in[8:10]) - 1, "day")
+                    + Duration(int(time_in[11:13]), "hr")
+                    + Duration(int(time_in[14:16]), "min")
+                    + Duration(int(time_in[17:19]), "s")
+                )
 
     def copy_time(self):
         """Create new Time."""
-        copy = Time("0000/00/00/00/00/00")
+        copy = Time("0")
         copy.time = self.time
         return copy
 

@@ -3,7 +3,7 @@
     "uav_bases_filename": "uav_base_locations.csv",
     "water_tanks_filename": "water_tank_locations.csv",
     "lightning_filename": "lightning.csv",
-    "csv_scenarios_filename": "scenarios.csv",
+    "scenario_parameters_filename": "scenario_parameters.csv",
     "output_folder_name": "output",
     "ignition_probability": 0.072,
 

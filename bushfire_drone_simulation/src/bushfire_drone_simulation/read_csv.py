@@ -7,6 +7,7 @@ import logging
 import math
 import operator
 import os
+import shutil
 from functools import reduce
 from typing import List
 
@@ -17,7 +18,7 @@ import pandas as pd
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.fire_utils import Time, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
-from bushfire_drone_simulation.units import Distance, Duration, Speed, Volume
+from bushfire_drone_simulation.units import Volume
 
 _LOG = logging.getLogger(__name__)
 matplotlib.use("Agg")
@@ -47,15 +48,20 @@ def read_locations(filename: str, constructor, offset: int = 0):
     return ret
 
 
-def read_lightning(filename: str, ignition_probability: float, offset: int = 0):
+def read_lightning(filename: str, ignition_probability: float):
     """Return a list of Locations contained in the first two columns of a given a csv file."""
-    data = pd.read_csv(filename)
-    x = data[data.columns[0 + offset]].values.tolist()
-    y = data[data.columns[1 + offset]].values.tolist()
-    time = data[data.columns[2 + offset]].values.tolist()
     lightning = []
-    for i, _ in enumerate(x):
-        lightning.append(Lightning(x[i], y[i], Time(time[i]), ignition_probability))
+    data = pd.read_csv(filename)
+    x = data[data.columns[0]].values.tolist()
+    y = data[data.columns[1]].values.tolist()
+    time = data[data.columns[2]].values.tolist()
+    try:
+        ignition = data[data.columns[3]].values.tolist()
+        for i, _ in enumerate(x):
+            lightning.append(Lightning(x[i], y[i], Time(time[i]), ignition[i]))
+    except IndexError:
+        for i, _ in enumerate(x):
+            lightning.append(Lightning(x[i], y[i], Time(time[i]), ignition_probability))
     return lightning
 
 
@@ -65,6 +71,7 @@ class JSONParameters:
     def __init__(self, filename: str):
         """Read collection of variables stored in filename."""
         self.folder = os.path.dirname(filename)
+        self.filepath = filename
         with open(filename) as file:
             self.parameters = json.load(file)
 
@@ -80,6 +87,9 @@ class JSONParameters:
             self.scenarios = [
                 copy.deepcopy(self.parameters) for _ in range(len(self.csv_scenarios.axes[0]))
             ]
+
+            for scenario_idx, scenario in enumerate(self.scenarios):
+                scenario["scenario_name"] = self.csv_scenarios["scenario_name"][scenario_idx]
 
             def recurse_through_dictionaries(dictionary_path: List[str], dictionary):
                 if isinstance(dictionary, str) and dictionary == "?":
@@ -97,14 +107,6 @@ class JSONParameters:
 
             recurse_through_dictionaries([], self.parameters)
 
-        if (
-            "scenarios_to_run" in self.parameters.keys()
-            and self.parameters["scenarios_to_run"] != "all"
-        ):
-            self.scenarios_to_run = self.parameters["scenarios_to_run"]
-        else:
-            self.scenarios_to_run = range(0, len(self.scenarios))
-
         self.output_folder = os.path.join(self.folder, self.scenarios[0]["output_folder_name"])
         self.abort = False
         # All scenarios output to same folder
@@ -115,11 +117,10 @@ class JSONParameters:
                     + "do you want to overwrite its contents? \nEnter 'Y' if yes and 'N' if no \n"
                 )
                 if cont.lower() != "y":
-                    print("Aborting")
+                    _LOG.info("Aborting")
                     self.abort = True
 
         else:
-            print("creating output folder")
             os.mkdir(self.output_folder)
 
     def process_water_bombers(self, bases, scenario_idx):
@@ -140,16 +141,8 @@ class JSONParameters:
                         id_no=idx,
                         latitude=x[idx],
                         longitude=y[idx],
-                        max_velocity=Speed(int(attributes["flight_speed"]), "km", "hr"),
-                        range_under_load=Distance(int(attributes["range_under_load"]), "km"),
-                        range_empty=Distance(int(attributes["range_empty"]), "km"),
-                        water_refill_time=Duration(int(attributes["water_refill_time"]), "min"),
-                        fuel_refill_time=Duration(int(attributes["fuel_refill_time"]), "min"),
-                        bombing_time=Duration(int(attributes["bombing_time"]), "min"),
-                        water_capacity=Volume(int(attributes["water_capacity"]), "L"),
-                        water_per_delivery=Volume(int(attributes["water_per_delivery"]), "L"),
+                        attributes=attributes,
                         bomber_type=water_bomber_type,
-                        bomber_name=f"{water_bomber_type} {idx+1}",
                     )
                 )
             base_data = pd.read_csv(
@@ -175,16 +168,13 @@ class JSONParameters:
         y = uav_spawn_locs[uav_spawn_locs.columns[1]].values.tolist()
         uavs = []
         attributes = uav_data["attributes"]
-        print("flight_speed " + str(attributes["flight_speed"]))
         for idx, _ in enumerate(x):
             uavs.append(
                 UAV(
                     id_no=idx,
                     latitude=x[idx],
                     longitude=y[idx],
-                    max_velocity=Speed(int(attributes["flight_speed"]), "km", "hr"),
-                    total_range=Distance(int(attributes["range"]), "km"),
-                    fuel_refill_time=Duration(int(attributes["fuel_refill_time"]), "min"),
+                    attributes=attributes
                     # TODO(Inspection time) Incorporate inspection time #pylint: disable=fixme
                 )
             )
@@ -206,8 +196,15 @@ class JSONParameters:
         scenario_idx,
     ):
         """Write results of simulation to output folder."""
+        prefix = ""
+        if "scenario_name" in self.scenarios[scenario_idx]:
+            prefix = str(self.scenarios[scenario_idx]["scenario_name"]) + "_"
+
         with open(
-            os.path.join(self.output_folder, "simulation_output_s" + str(scenario_idx) + ".csv"),
+            os.path.join(
+                self.output_folder,
+                prefix + "simulation_output.csv",
+            ),
             "w",
         ) as outputfile:
             filewriter = csv.writer(outputfile)
@@ -237,17 +234,17 @@ class JSONParameters:
                 filewriter.writerow(row)
 
             fig, axs = plt.subplots(2, 2, figsize=(12, 8), dpi=300)
-            axs[0, 0].set_xlim(left=0)
-            axs[0, 0].set_ylim(bottom=0)
             axs[0, 0].hist(inspection_times, bins=20)
             axs[0, 0].set_title("Histogram of UAV inspection times")
             axs[0, 0].set(xlabel="Inspection time (Hours)", ylabel="Frequency")
+            axs[0, 0].set_xlim(left=0)
+            axs[0, 0].set_ylim(bottom=0)
 
-            axs[0, 1].set_xlim(left=0)
-            axs[0, 1].set_ylim(bottom=0)
             axs[0, 1].hist(supression_times_ignitions_only, bins=20)
             axs[0, 1].set_title("Histogram of supression times")
             axs[0, 1].set(xlabel="Suppression time (Hours)", ylabel="Frequency")
+            axs[0, 1].set_xlim(left=0)
+            axs[0, 1].set_ylim(bottom=0)
 
             water_bomber_names = [wb.name for wb in water_bombers]
             num_suppressed = [wb.num_ignitions_suppressed() for wb in water_bombers]
@@ -256,7 +253,6 @@ class JSONParameters:
             axs[1, 0].tick_params(labelrotation=90)
 
             water_tank_ids = [i for i, _ in enumerate(water_tanks)]
-            water_tank_levels = [wt.capacity.get(units="kL") for wt in water_tanks]
             axs[1, 1].set_title("Water tank levels after suppression")
             axs[1, 1].bar(
                 water_tank_ids,
@@ -264,13 +260,62 @@ class JSONParameters:
                 label="Full Capacity",
                 color="orange",
             )
-            axs[1, 1].bar(water_tank_ids, water_tank_levels, label="Final Level", color="blue")
+            axs[1, 1].bar(
+                water_tank_ids,
+                [wt.capacity.get(units="kL") for wt in water_tanks],
+                label="Final Level",
+                color="blue",
+            )
             axs[1, 1].legend()
             axs[1, 1].set(ylabel="kL")
 
             fig.tight_layout()
             plt.savefig(
                 os.path.join(
-                    self.output_folder, "inspection_times_plot_s" + str(scenario_idx) + ".png"
+                    self.output_folder,
+                    str(self.scenarios[scenario_idx]["scenario_name"])
+                    + "inspection_times_plot.png",
                 )
+            )
+        self.write_to_input_parameters_folder(scenario_idx)
+
+    def write_to_input_parameters_folder(self, scenario_idx):
+        """Copy input parameters to input parameters folder to be outputed."""
+        input_folder = os.path.join(self.output_folder, "simulation_input")
+        if not os.path.exists(input_folder):
+            os.mkdir(input_folder)
+
+        shutil.copy2(self.filepath, str(input_folder))
+        shutil.copy2(
+            str(self.get_relative_filepath("water_bomber_bases_filename", scenario_idx)),
+            str(input_folder),
+        )
+        shutil.copy2(
+            str(self.get_relative_filepath("uav_bases_filename", scenario_idx)), str(input_folder)
+        )
+        shutil.copy2(
+            str(self.get_relative_filepath("water_tanks_filename", scenario_idx)), str(input_folder)
+        )
+        shutil.copy2(
+            str(self.get_relative_filepath("lightning_filename", scenario_idx)), str(input_folder)
+        )
+        shutil.copy2(
+            str(self.get_relative_filepath("scenario_parameters_filename", scenario_idx)),
+            str(input_folder),
+        )
+        shutil.copy2(
+            str(os.path.join(self.folder, self.scenarios[scenario_idx]["uavs"]["spawn_loc_file"])),
+            str(input_folder),
+        )
+        for water_bomber_type in self.scenarios[scenario_idx]["water_bombers"]:
+            shutil.copy2(
+                str(
+                    os.path.join(
+                        self.folder,
+                        self.scenarios[scenario_idx]["water_bombers"][water_bomber_type][
+                            "spawn_loc_file"
+                        ],
+                    )
+                ),
+                str(input_folder),
             )

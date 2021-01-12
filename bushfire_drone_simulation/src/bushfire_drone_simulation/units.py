@@ -34,6 +34,10 @@ class Distance:  # pylint: disable=too-few-public-methods
         """Less than operator of Distance."""
         return self.get() < other.get()
 
+    def __sub__(self, other):
+        """Subtraction operator for Distance."""
+        return Distance(self.get() - other.get())
+
 
 class Duration:  # pylint: disable=too-few-public-methods
     """Duration class for easy unit conversion. Duration stored internally as seconds."""
