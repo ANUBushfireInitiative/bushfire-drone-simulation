@@ -207,7 +207,10 @@ bad-names=foo,
           baz,
           toto,
           tutu,
-          tata
+          tata,
+	  data,
+	  var,
+	  variable
 
 # Bad variable names regexes, separated by a comma. If names match any regex,
 # they will always be refused
@@ -254,7 +257,9 @@ good-names=i,
            x,
            y,
            z,
-           _
+           _,
+	   dx,
+	   dy
 
 # Good variable names regexes, separated by a comma. If names match any regex,
 # they will always be accepted

@@ -36,10 +36,10 @@ def _set_in_dict(data_dict, key_list, value):
 
 def read_locations(filename: str, constructor, offset: int = 0):
     """Return a list of Locations contained in the first two columns of a given a csv file."""
-    data = pd.read_csv(filename)
-    x = data[data.columns[0 + offset]].values.tolist()
-    y = data[data.columns[1 + offset]].values.tolist()
-    capacity = data[data.columns[2 + offset]].values.tolist()
+    location_data = pd.read_csv(filename)
+    x = location_data[location_data.columns[0 + offset]].values.tolist()
+    y = location_data[location_data.columns[1 + offset]].values.tolist()
+    capacity = location_data[location_data.columns[2 + offset]].values.tolist()
     ret = []
     for i, _ in enumerate(x):
         if str(capacity[i]) == "inf":
@@ -51,12 +51,12 @@ def read_locations(filename: str, constructor, offset: int = 0):
 def read_lightning(filename: str, ignition_probability: float):
     """Return a list of Locations contained in the first two columns of a given a csv file."""
     lightning = []
-    data = pd.read_csv(filename)
-    x = data[data.columns[0]].values.tolist()
-    y = data[data.columns[1]].values.tolist()
-    time = data[data.columns[2]].values.tolist()
+    ligtning_data = pd.read_csv(filename)
+    x = ligtning_data[ligtning_data.columns[0]].values.tolist()
+    y = ligtning_data[ligtning_data.columns[1]].values.tolist()
+    time = ligtning_data[ligtning_data.columns[2]].values.tolist()
     try:
-        ignition = data[data.columns[3]].values.tolist()
+        ignition = ligtning_data[ligtning_data.columns[3]].values.tolist()
         for i, _ in enumerate(x):
             lightning.append(Lightning(x[i], y[i], Time(time[i]), ignition[i]))
     except IndexError:
