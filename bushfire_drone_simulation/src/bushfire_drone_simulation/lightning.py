@@ -1,6 +1,7 @@
 """Module containing lightning class for bushfire_drone_simulation."""
 
 import random
+from typing import List, Union
 
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.fire_utils import Location, Time
@@ -9,11 +10,11 @@ from bushfire_drone_simulation.fire_utils import Location, Time
 class Lightning(Location):
     """Class for individual lightning strikes."""
 
-    inspected_time: Time = None
-    suppressed_time: Time = None
-    inspected_by: UAV = None
-    suppressed_by: WaterBomber = None
-    nearest_base: int = None
+    inspected_time: Union[Time, None] = None
+    suppressed_time: Union[Time, None] = None
+    inspected_by: Union[UAV, None] = None
+    suppressed_by: Union[WaterBomber, None] = None
+    nearest_base: Union[int, None] = None
 
     def __init__(
         self, latitude: float, longitude: float, spawn_time: Time, ignition_probability: float
@@ -33,16 +34,16 @@ class Lightning(Location):
         self.suppressed_by = water_bomber
         self.suppressed_time = time
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         """Less than operator for Lightning."""
         return self.spawn_time < other.spawn_time
 
 
-def reduce_lightning_to_ignitions(lightning_strikes):
+def reduce_lightning_to_ignitions(lightning_strikes: List[Lightning]) -> List[Lightning]:
     """Given an array of inspected lightning_strikes, return an array of those that ignited."""
     ignitions = []
     for strike in lightning_strikes:
         if strike.ignition:
-            if strike.inspected_time is not None:  # Lignting was not inspected
+            if strike.inspected_time is not None:  # Lightning was not inspected
                 ignitions.append(strike)
     return ignitions

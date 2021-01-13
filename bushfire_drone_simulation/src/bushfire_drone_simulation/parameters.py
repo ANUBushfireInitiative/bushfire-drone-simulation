@@ -165,7 +165,7 @@ class JSONParameters:
         self,
         lightning_strikes: List[Lightning],
         coordinator: Coordinator,
-        scenario_idx,
+        scenario_idx: int,
     ):
         """Write results of simulation to output folder."""
         water_bombers: List[WaterBomber] = coordinator.water_bombers

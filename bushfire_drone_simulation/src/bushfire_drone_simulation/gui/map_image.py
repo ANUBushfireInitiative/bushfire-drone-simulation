@@ -60,7 +60,7 @@ def downloader(tiles, num_workers: int):
     return caching_downloader(get_from_cache, put_in_cache, fetch_tiles, tiles, num_workers)
 
 
-def render_map(geotiler_map):
+def render_map(geotiler_map: geotiler.Map) -> PIL.Image.Image:
     """Render a geotiler map as an image.
 
     Args:
@@ -124,7 +124,7 @@ class MapImage:
         self.lon = self.display_lon
         self.extent = geotiler_map.extent
         self.reload_required = False
-        self.big_image: PIL.Image = render_map(geotiler_map)
+        self.big_image: PIL.Image.Image = render_map(geotiler_map)
         self.left = int((self.big_image.size[0] - self.width) / 2)
         self.top = int((self.big_image.size[1] - self.height) / 2)
 

@@ -2,6 +2,7 @@
 
 import logging
 import queue
+from typing import Union
 
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.fire_utils import Base, Time, WaterTank, minimum
@@ -46,7 +47,7 @@ class Coordinator:
         return None
 
     def lightning_update(self, lightning: Lightning = None):  # pylint: disable=too-many-branches
-        """Coordinator receives lightning strike that just occured."""
+        """Coordinator receives lightning strike that just occurred."""
         # If lightning None then process next update, otherwise process lightning strike
         if lightning is None:  # pylint: disable=too-many-nested-blocks
             self.events.get().get_uav.complete_update()
@@ -94,7 +95,7 @@ class Coordinator:
                 best_uav.go_to_strike(lightning, lightning.spawn_time, min_arrival_time)
                 best_uav.print_past_locations()
             else:
-                # There are no UVAs that can reach the lighnting strike without refuling
+                # There are no UAVs that can reach the lightning strike without refueling
                 # Try going via a base to refuel
                 _LOG.error("No UAVs were available")
 
@@ -104,16 +105,16 @@ class Coordinator:
     def ignition_update(
         self, ignition: Lightning = None
     ):  # pylint: disable=too-many-branches, too-many-statements
-        """Coordinator receives ignition strike that just occured."""
+        """Coordinator receives ignition strike that just occurred."""
         # If lightning None then process next update, otherwise process lightning strike
         if ignition is None:  # pylint: disable=too-many-nested-blocks
             self.events.get().get_uav.complete_update()
         else:
             min_arrival_time = Time("inf")
-            best_water_bomber: WaterBomber = None
-            via_water: WaterTank = None
-            via_base: Base = None
-            fuel_first: bool = None
+            best_water_bomber: Union[WaterBomber, None] = None
+            via_water: Union[WaterTank, None] = None
+            via_base: Union[Base, None] = None
+            fuel_first: Union[bool, None] = None
             for water_bomber in self.water_bombers:
                 water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
                 base_index, _ = minimum(water_bomber_bases, Distance(1000000), ignition.distance)

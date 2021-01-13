@@ -1,6 +1,5 @@
 """Functions for reading and writing data to a csv."""
 
-import logging
 import math
 from typing import Any, List, Union
 
@@ -9,8 +8,6 @@ import pandas as pd
 from bushfire_drone_simulation.fire_utils import Time
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.units import Volume
-
-_LOG = logging.getLogger(__name__)
 
 
 class ColumnNotFoundException(Exception):
