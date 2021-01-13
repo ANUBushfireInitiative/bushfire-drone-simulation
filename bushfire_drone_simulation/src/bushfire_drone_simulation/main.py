@@ -51,10 +51,7 @@ def run_simulation(
     # Read parameters
     params = JSONParameters(parameters_filename)
 
-    if params.abort:
-        return None, None
-
-    ret = []
+    to_return = []
 
     for scenario_idx in range(0, len(params.scenarios)):
         # Read and initialise data
@@ -96,9 +93,9 @@ def run_simulation(
 
         params.write_to_output_folder(lightning_strikes, coordinator, scenario_idx)
 
-        ret.append((coordinator, lightning_strikes))
+        to_return.append((coordinator, lightning_strikes))
 
-    return ret
+    return to_return
 
 
 def process_lightning(lightning_strikes: List[Lightning], coordinator: Coordinator):

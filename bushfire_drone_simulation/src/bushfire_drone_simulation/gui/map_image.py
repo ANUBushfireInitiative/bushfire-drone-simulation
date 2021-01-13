@@ -7,6 +7,7 @@ from typing import Tuple
 import geotiler
 import PIL.Image
 from geotiler.cache import caching_downloader
+from geotiler.tile.io import fetch_tiles
 
 cache_folder = Path(os.path.dirname(os.path.realpath(__file__))) / "map_tile_cache"
 cache_folder.mkdir(parents=True, exist_ok=True)
@@ -56,9 +57,7 @@ def downloader(tiles, num_workers: int):
         tiles: Tiles to download
         num_workers (int): num_workers
     """
-    return caching_downloader(
-        get_from_cache, put_in_cache, geotiler.tile.io.fetch_tiles, tiles, num_workers
-    )
+    return caching_downloader(get_from_cache, put_in_cache, fetch_tiles, tiles, num_workers)
 
 
 def render_map(geotiler_map):
@@ -88,8 +87,8 @@ class MapImage:
         self.height = height
         self.width = width
 
-        self.disp_lat = latitude
-        self.disp_lon = longitude
+        self.display_lat = latitude
+        self.display_lon = longitude
         self.lat = latitude
         self.lon = longitude
         self.reload_required = True
@@ -117,17 +116,15 @@ class MapImage:
     def _fetch_image(self):
         """_fetch_image."""
         geotiler_map = geotiler.Map(
-            center=(self.disp_lon, self.disp_lat),
+            center=(self.display_lon, self.display_lat),
             zoom=self.zoom,
             size=(self.width * 2, self.height * 2),
         )
-        self.lat = self.disp_lat
-        self.lon = self.disp_lon
+        self.lat = self.display_lat
+        self.lon = self.display_lon
         self.extent = geotiler_map.extent
         self.reload_required = False
-        # coro = geotiler.render_map_async(geotiler_map)
-        # loop = asyncio.get_event_loop()
-        self.big_image = render_map(geotiler_map)
+        self.big_image: PIL.Image = render_map(geotiler_map)
         self.left = int((self.big_image.size[0] - self.width) / 2)
         self.top = int((self.big_image.size[1] - self.height) / 2)
 
@@ -142,13 +139,13 @@ class MapImage:
             dx (int): dx
             dy (int): dy
         """
-        self.left = self._constrain(self.left, dx, self.big_image.size[0] - self.width)
-        self.top = self._constrain(self.top, dy, self.big_image.size[1] - self.height)
-        self.disp_lat = (self.top + int(self.height / 2)) * (self.extent[1] - self.extent[3]) / (
-            self.big_image.size[1]
+        self.top = self._constrain(self.top, dy, self.big_image.height - self.height)
+        self.left = self._constrain(self.left, dx, self.big_image.width - self.width)
+        self.display_lat = (self.top + int(self.height / 2)) * (self.extent[1] - self.extent[3]) / (
+            self.big_image.height
         ) + self.extent[3]
-        self.disp_lon = (self.left + int(self.width / 2)) * (self.extent[2] - self.extent[0]) / (
-            self.big_image.size[0]
+        self.display_lon = (self.left + int(self.width / 2)) * (self.extent[2] - self.extent[0]) / (
+            self.big_image.width
         ) + self.extent[0]
         if self.reload_required:
             self._fetch_and_update()
