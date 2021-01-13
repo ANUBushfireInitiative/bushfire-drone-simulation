@@ -145,3 +145,4 @@ csv_data
 bushfire_drone_simulation/src/bushfire_drone_simulation/gui/map_tile_cache
 *out
 *output
+*.vim
