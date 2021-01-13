@@ -168,9 +168,6 @@ class JSONParameters:
         scenario_idx: int,
     ):
         """Write results of simulation to output folder."""
-        water_bombers: List[WaterBomber] = coordinator.water_bombers
-        water_tanks: List[WaterTank] = coordinator.water_tanks
-
         prefix = ""
         if "scenario_name" in self.scenarios[scenario_idx]:
             prefix = str(self.get_attribute("scenario_name", scenario_idx)) + "_"
@@ -179,7 +176,14 @@ class JSONParameters:
             lightning_strikes, prefix
         )
         self.write_to_uav_updates_file(coordinator, prefix)
-        self.write_to_wb_updates_file(water_bombers, prefix)
+        self.write_to_wb_updates_file(coordinator, prefix)
+        self.write_to_input_parameters_folder(scenario_idx)
+        self.create_plots(inspection_times, supression_times_ignitions_only, coordinator, prefix)
+
+    def create_plots(self, inspection_times, supression_times_ignitions_only, coordinator, prefix):
+        """Create plots and write to output."""
+        water_tanks: List[WaterTank] = coordinator.water_tanks
+        water_bombers: List[WaterTank] = coordinator.water_bombers
 
         fig, axs = plt.subplots(2, 2, figsize=(12, 8), dpi=300)
         axs[0, 0].hist(inspection_times, bins=20)
@@ -221,12 +225,9 @@ class JSONParameters:
         plt.savefig(
             os.path.join(
                 self.output_folder,
-                str(self.get_attribute("scenario_name", scenario_idx))
-                + "inspection_times_plot.png",
+                prefix + "inspection_times_plot.png",
             )
         )
-
-        self.write_to_input_parameters_folder(scenario_idx)
 
     def write_to_simulation_output_file(self, lightning_strikes, prefix):
         """Write simulation data to output file."""
@@ -309,8 +310,9 @@ class JSONParameters:
                     ]
                 )
 
-    def write_to_wb_updates_file(self, water_bombers, prefix):
+    def write_to_wb_updates_file(self, coordinator, prefix):
         """Write water bomber event update data to output file."""
+        water_bombers: List[WaterBomber] = coordinator.water_bombers
         with open(
             os.path.join(
                 self.output_folder,

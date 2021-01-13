@@ -322,8 +322,7 @@ class WaterBomber(Aircraft):
     def get_range(self):
         """Return range of Water bomber."""
         return Distance(
-            self.water_on_board.get()
-            / self.water_capacity.get()
+            (self.water_on_board / self.water_capacity)
             * (self.range_under_load - self.range_empty).get()
             + self.range_empty.get()
         )
