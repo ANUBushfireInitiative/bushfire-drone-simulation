@@ -4,11 +4,11 @@ import copy
 import csv
 import json
 import logging
-import operator
 import os
 import shutil
+import sys
 from functools import reduce
-from typing import List
+from typing import Any, Dict, List
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -23,9 +23,9 @@ _LOG = logging.getLogger(__name__)
 matplotlib.use("Agg")
 
 
-def _get_from_dict(data_dict, key_list):
+def _get_from_dict(data_dict: Dict[str, Any], key_list: List[str]):
     """Get value corresponding to a list of keys in nested dictionaries."""
-    return reduce(operator.getitem, key_list, data_dict)
+    return reduce(dict.__getitem__, key_list, data_dict)
 
 
 def _set_in_dict(data_dict, key_list, value):
@@ -75,7 +75,7 @@ class JSONParameters:
             self.scenarios[0]["scenario_name"] = ""
 
         self.output_folder = os.path.join(self.folder, self.scenarios[0]["output_folder_name"])
-        self.abort = False
+
         # All scenarios output to same folder
         if os.path.exists(self.output_folder):
             if os.listdir(self.output_folder):
@@ -85,7 +85,7 @@ class JSONParameters:
                 )
                 if cont.lower() != "y":
                     _LOG.info("Aborting")
-                    self.abort = True
+                    sys.exit()
 
         else:
             os.mkdir(self.output_folder)

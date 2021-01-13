@@ -2,7 +2,7 @@
 
 import logging
 import math
-from typing import Union
+from typing import Any, List, Union
 
 import pandas as pd
 
@@ -26,31 +26,33 @@ class CSVFile:
         Args:
             filename (str): filename
         """
-        self.filename = filename
-        self.csv_dataframe = pd.read_csv(filename)
+        self.filename: str = filename
+        self.csv_dataframe: pd.DataFrame = pd.DataFrame(pd.read_csv(filename))
 
-    def get_column(self, column: Union[str, int]):
+    def get_column(self, column: Union[str, int]) -> pd.Series:
         """get_column.
 
         Args:
             column_name (str): column_name
         """
         if isinstance(column, int):
-            return self.csv_dataframe.iloc[:, column]
-        if column not in self.csv_dataframe:
+            column_to_return = pd.Series(self.csv_dataframe.iloc[:, column])
+        elif column not in self.csv_dataframe:
             raise ColumnNotFoundException(
                 f"Error: No column labelled '{column}' in '{self.filename}'"
             )
-        return self.csv_dataframe[column]
+        else:
+            column_to_return = pd.Series(self.csv_dataframe[column])
+        return column_to_return
 
-    def get_cell(self, column_name: str, cell_idx: int):
+    def get_cell(self, column: Union[str, int], cell_idx: int):
         """get_cell.
 
         Args:
             column_name (str): column_name
             cell_idx (int): cell_idx
         """
-        return self.get_column(column_name)[cell_idx]
+        return self.get_column(column)[cell_idx]
 
     def __len__(self):
         """__len__."""
@@ -72,13 +74,16 @@ def read_locations_with_capacity(filename: str, constructor):
     for i, cap in enumerate(location_data["capacity"]):
         if str(cap) == "inf":
             cap = math.inf
+        assert isinstance(
+            cap, (float, int)
+        ), f"Error: The capacity on row {i+1} of '{filename}' ('{cap}') is not a number"
         to_return.append(
             constructor(location_data["latitude"][i], location_data["longitude"][i], Volume(cap))
         )
     return to_return
 
 
-def read_lightning(filename: str, ignition_probability: float):
+def read_lightning(filename: str, ignition_probability: float) -> List[Lightning]:
     """Return a list of Locations contained in the first two columns of a given a csv file."""
     lightning = []
     lightning_data = CSVFile(filename)
@@ -88,8 +93,57 @@ def read_lightning(filename: str, ignition_probability: float):
     try:
         ignitions = lightning_data["ignited"]
         for i, lat in enumerate(lats):
-            lightning.append(Lightning(lat, lons[i], Time(times[i]), ignitions[i]))
-    except (ColumnNotFoundException, IndexError):
+            lat = assert_number(
+                lat, f"Error: The latitude on row {i+1} of '{filename}' ('{lat}') is not a number."
+            )
+            lon = assert_number(
+                lons[i],
+                f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number.",
+            )
+            ignited = assert_bool(
+                ignitions[i],
+                f"Error: The ignition on row {i+1} of '{filename}'\
+('{ignitions[i]}') is not a boolean.",
+            )
+            lightning.append(Lightning(lat, lon, Time(str(times[i])), 1 if ignited else 0))
+    except ColumnNotFoundException:
         for i, lat in enumerate(lats):
-            lightning.append(Lightning(lat, lons[i], Time(times[i]), ignition_probability))
+            lat = assert_number(
+                lat, f"Error: The latitude on row {i+1} of '{filename}' ('{lat}') is not a number."
+            )
+            lon = assert_number(
+                lons[i],
+                f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number.",
+            )
+            lightning.append(Lightning(lat, lon, Time(str(times[i])), ignition_probability))
     return lightning
+
+
+def assert_number(value: Any, message: str) -> float:
+    """assert_number.
+
+    Args:
+        value (Any): value
+        message (str): message
+
+    Returns:
+        float:
+    """
+    assert isinstance(value, (float, int)), message
+    return float(value)
+
+
+def assert_bool(value: Any, message: str) -> bool:
+    """assert_bool.
+
+    Args:
+        value (Any): value
+        message (str): message
+
+    Returns:
+        bool:
+    """
+    assert isinstance(value, (bool, int)), message
+    if isinstance(value, int):
+        assert value in (0, 1), message
+    return bool(value)

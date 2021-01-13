@@ -13,7 +13,7 @@ class Location:  # pylint: disable=too-few-public-methods
         self.lat = latitude
         self.lon = longitude
 
-    def distance(self, other, units: str = "km"):
+    def distance(self, other, units: str = "km") -> Distance:
         """Find Euclidian distance between two locations."""
         temp = (
             sin(radians(other.lat - self.lat) / 2) ** 2
@@ -22,6 +22,11 @@ class Location:  # pylint: disable=too-few-public-methods
             * sin(radians(other.lon - self.lon) / 2) ** 2
         )
         return Distance(6371 * 2 * atan2(sqrt(temp), sqrt(1 - temp)), units)
+
+    def to_coordinates(self):
+        """Return pixel coordinates of location."""
+        # FIXME(not converting lat lon to coordinates)  # pylint: disable=fixme
+        return (self.lon - 144) * 100, (-34 - self.lat) * 100
 
     def copy_loc(self):
         """Create a new instance of Location."""
@@ -45,7 +50,7 @@ class WaterTank(Location):
 class Base(Location):
     """Class containing a base's location and fuel capacity."""
 
-    def __init__(self, latitude: float, longitude: float, capacity: Volume = None):
+    def __init__(self, latitude: float, longitude: float, capacity: Volume):
         """Initialise aircraft base from location and fuel capacity."""
         super().__init__(latitude, longitude)
         self.capacity = capacity

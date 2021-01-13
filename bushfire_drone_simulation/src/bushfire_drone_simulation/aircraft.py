@@ -90,11 +90,11 @@ class Aircraft(Location):
         self.lon = position.lon
 
     @abstractmethod
-    def get_range(self):
+    def get_range(self) -> Distance:
         """Return total range of Aircraft."""
 
-    def get_water_refil_time(self):  # pylint: disable=no-self-use
-        """Return water refil time of Aircraft."""
+    def get_water_refill_time(self):  # pylint: disable=no-self-use
+        """Return water refill time of Aircraft."""
         return 0
 
     def update_position(self, position: Location, departure_time: Time, final_status: Status):
@@ -157,7 +157,7 @@ class Aircraft(Location):
                     )
                 )
             if isinstance(position, WaterTank):
-                current_time.add_duration(self.get_water_refil_time())
+                current_time.add_duration(self.get_water_refill_time())
             if isinstance(position, Base):
                 current_time.add_duration(self.fuel_refill_time)
         return current_time

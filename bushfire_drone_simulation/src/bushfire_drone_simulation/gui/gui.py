@@ -44,7 +44,7 @@ def type_to_colour(element: Location):
 
 
 def delete(canvas_name, points_list):
-    """Delete list of points from cavas_name."""
+    """Delete list of points from canvas_name."""
     for point in points_list:
         canvas_name.delete(point)
 
