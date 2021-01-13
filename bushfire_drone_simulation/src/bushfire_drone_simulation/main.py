@@ -5,6 +5,7 @@ from sys import stderr
 from typing import List
 
 import typer
+from tqdm import tqdm
 
 from bushfire_drone_simulation.coordinator import Coordinator
 from bushfire_drone_simulation.fire_utils import Base, WaterTank
@@ -23,7 +24,7 @@ PARAMETERS_FILENAME_ARGUMENT = typer.Option(
 
 def main():
     """Entry point for bushfire_drone_simulation."""
-    logging.basicConfig(stream=stderr, level=logging.INFO)
+    logging.basicConfig(stream=stderr, level=logging.WARNING)
     app()
 
 
@@ -53,7 +54,7 @@ def run_simulation(
 
     to_return = []
 
-    for scenario_idx in range(0, len(params.scenarios)):
+    for scenario_idx in tqdm(range(0, len(params.scenarios)), unit="scenario"):
         # Read and initialise data
         uav_bases = read_locations_with_capacity(
             params.get_relative_filepath("uav_bases_filename", scenario_idx), Base
