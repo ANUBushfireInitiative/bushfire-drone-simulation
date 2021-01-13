@@ -1,6 +1,7 @@
 """Various classes and functions useful to the bushfire_drone_simulation application."""
 
 from math import atan2, cos, inf, radians, sin, sqrt
+from typing import Any
 
 from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Distance, Duration, Volume
 
@@ -159,3 +160,33 @@ def minimum(array, min_value, operator=id):
             index = i
             min_value = operator(val)
     return index, min_value
+
+
+def assert_number(value: Any, message: str) -> float:
+    """assert_number.
+
+    Args:
+        value (Any): value
+        message (str): message
+
+    Returns:
+        float:
+    """
+    assert isinstance(value, (float, int)), message
+    return float(value)
+
+
+def assert_bool(value: Any, message: str) -> bool:
+    """assert_bool.
+
+    Args:
+        value (Any): value
+        message (str): message
+
+    Returns:
+        bool:
+    """
+    assert isinstance(value, (bool, int)), message
+    if isinstance(value, int):
+        assert value in (0, 1), message
+    return bool(value)

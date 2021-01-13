@@ -1,11 +1,11 @@
 """Functions for reading and writing data to a csv."""
 
 import math
-from typing import Any, List, Union
+from typing import List, Union
 
 import pandas as pd
 
-from bushfire_drone_simulation.fire_utils import Time
+from bushfire_drone_simulation.fire_utils import Time, assert_bool, assert_number
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.units import Volume
 
@@ -114,33 +114,3 @@ def read_lightning(filename: str, ignition_probability: float) -> List[Lightning
             )
             lightning.append(Lightning(lat, lon, Time(str(times[i])), ignition_probability))
     return lightning
-
-
-def assert_number(value: Any, message: str) -> float:
-    """assert_number.
-
-    Args:
-        value (Any): value
-        message (str): message
-
-    Returns:
-        float:
-    """
-    assert isinstance(value, (float, int)), message
-    return float(value)
-
-
-def assert_bool(value: Any, message: str) -> bool:
-    """assert_bool.
-
-    Args:
-        value (Any): value
-        message (str): message
-
-    Returns:
-        bool:
-    """
-    assert isinstance(value, (bool, int)), message
-    if isinstance(value, int):
-        assert value in (0, 1), message
-    return bool(value)

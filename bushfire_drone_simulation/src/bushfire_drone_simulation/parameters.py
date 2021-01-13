@@ -12,11 +12,10 @@ from typing import Any, Dict, List
 
 import matplotlib
 import matplotlib.pyplot as plt
-import pandas as pd
 
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.coordinator import Coordinator
-from bushfire_drone_simulation.fire_utils import WaterTank
+from bushfire_drone_simulation.fire_utils import WaterTank, assert_bool, assert_number
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.read_csv import CSVFile
 
@@ -97,51 +96,88 @@ class JSONParameters:
         water_bombers_bases_dict = {}
         for water_bomber_type in self.scenarios[scenario_idx]["water_bombers"]:
             water_bomber = self.scenarios[scenario_idx]["water_bombers"][water_bomber_type]
-            water_bomber_spawn_locs = pd.read_csv(
-                os.path.join(self.folder, water_bomber["spawn_loc_file"])
-            )
-            x = water_bomber_spawn_locs[water_bomber_spawn_locs.columns[0]].values.tolist()
-            y = water_bomber_spawn_locs[water_bomber_spawn_locs.columns[1]].values.tolist()
+            filename = os.path.join(self.folder, water_bomber["spawn_loc_file"])
+            water_bomber_spawn_locs = CSVFile(filename)
+            lats = water_bomber_spawn_locs["latitude"]
+            lons = water_bomber_spawn_locs["longitude"]
             attributes = water_bomber["attributes"]
-            for idx, _ in enumerate(x):
+            for i, lat in enumerate(lats):
+                lat = assert_number(
+                    lat,
+                    f"Error: The latitude on row {i+1} of '{filename}' ('{lat}') is not a number.",
+                )
+                lon = assert_number(
+                    lons[i],
+                    f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') \
+is not a number.",
+                )
                 water_bombers.append(
                     WaterBomber(
-                        id_no=idx,
-                        latitude=x[idx],
-                        longitude=y[idx],
+                        id_no=i,
+                        latitude=lat,
+                        longitude=lon,
                         attributes=attributes,
                         bomber_type=water_bomber_type,
                     )
                 )
-            base_data = pd.read_csv(
-                os.path.join(
-                    self.folder, self.get_attribute("water_bomber_bases_filename", scenario_idx)
-                )
+            water_bombers_bases_dict[water_bomber_type] = self.get_water_bomber_bases(
+                bases, water_bomber_type, scenario_idx
             )
-            bases_specific = base_data[water_bomber_type]
-            bases_all = base_data["all"]
-            current_bases = []
-            for (idx, base) in enumerate(bases):
-                if bases_all[idx] == 1 or bases_specific[idx] == 1:
-                    current_bases.append(base)
-            water_bombers_bases_dict[water_bomber_type] = current_bases
 
         return water_bombers, water_bombers_bases_dict
+
+    def get_water_bomber_bases(self, bases, water_bomber_type: str, scenario_idx: int):
+        """get_water_bomber_bases.
+
+        Args:
+            bases:
+            water_bomber_type (str): water_bomber_type
+            scenario_idx (int): scenario_idx
+        """
+        filename = os.path.join(
+            self.folder, self.get_attribute("water_bomber_bases_filename", scenario_idx)
+        )
+        base_data = CSVFile(filename)
+        bases_specific = base_data[water_bomber_type]
+        bases_all = base_data["all"]
+        current_bases = []
+        for (idx, base) in enumerate(bases):
+            if assert_bool(
+                bases_all[idx],
+                f"Error: The value on row {idx+1} of column 'all' in '{filename}' \
+('{bases_all[idx]}') is not a boolean.",
+            ) or assert_bool(
+                bases_specific[idx],
+                "Error: The value on row {idx+1} of column '{water_bomber_type}' \
+in '{filename}' ('{bases_all[idx]}') is not a boolean.",
+            ):
+                current_bases.append(base)
+        return current_bases
 
     def process_uavs(self, scenario_idx):
         """Create uavs from json file."""
         uav_data = self.get_attribute("uavs", scenario_idx)
-        uav_spawn_locs = pd.read_csv(os.path.join(self.folder, uav_data["spawn_loc_file"]))
-        x = uav_spawn_locs[uav_spawn_locs.columns[0]].values.tolist()
-        y = uav_spawn_locs[uav_spawn_locs.columns[1]].values.tolist()
+        filename = os.path.join(self.folder, uav_data["spawn_loc_file"])
+        uav_spawn_locs = CSVFile(filename)
+        lats = uav_spawn_locs["latitude"]
+        lons = uav_spawn_locs["longitude"]
         uavs = []
         attributes = uav_data["attributes"]
-        for idx, _ in enumerate(x):
+        for i, lat in enumerate(lats):
+            lat = assert_number(
+                lat,
+                f"Error: The latitude on row {i+1} of '{filename}' ('{lat}') is not a number.",
+            )
+            lon = assert_number(
+                lons[i],
+                f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') \
+is not a number.",
+            )
             uavs.append(
                 UAV(
-                    id_no=idx,
-                    latitude=x[idx],
-                    longitude=y[idx],
+                    id_no=i,
+                    latitude=lat,
+                    longitude=lon,
                     attributes=attributes
                     # TODO(Inspection time) Incorporate inspection time #pylint: disable=fixme
                 )
@@ -158,7 +194,7 @@ class JSONParameters:
         return self.scenarios[scenario_idx][attribute]
 
     def get_relative_filepath(self, key: str, scenario_idx):
-        """Return realtive file path to given key."""
+        """Return relative file path to given key."""
         return os.path.join(self.folder, self.get_attribute(key, scenario_idx))
 
     def write_to_output_folder(
@@ -183,7 +219,7 @@ class JSONParameters:
     def create_plots(self, inspection_times, supression_times_ignitions_only, coordinator, prefix):
         """Create plots and write to output."""
         water_tanks: List[WaterTank] = coordinator.water_tanks
-        water_bombers: List[WaterTank] = coordinator.water_bombers
+        water_bombers: List[WaterBomber] = coordinator.water_bombers
 
         fig, axs = plt.subplots(2, 2, figsize=(12, 8), dpi=300)
         axs[0, 0].hist(inspection_times, bins=20)
@@ -200,7 +236,7 @@ class JSONParameters:
 
         water_bomber_names = [wb.name for wb in water_bombers]
         num_suppressed = [wb.num_ignitions_suppressed() for wb in water_bombers]
-        axs[1, 0].set_title("Ligntning strikes suppressed per helicopter")
+        axs[1, 0].set_title("Lightning strikes suppressed per helicopter")
         axs[1, 0].bar(water_bomber_names, num_suppressed)
         axs[1, 0].tick_params(labelrotation=90)
 
@@ -357,7 +393,7 @@ class JSONParameters:
                 )
 
     def write_to_input_parameters_folder(self, scenario_idx):
-        """Copy input parameters to input parameters folder to be outputed."""
+        """Copy input parameters to input parameters folder to be output."""
         input_folder = os.path.join(self.output_folder, "simulation_input")
         if not os.path.exists(input_folder):
             os.mkdir(input_folder)
