@@ -56,6 +56,10 @@ class UpdateEvent(Location):  # pylint: disable=too-few-public-methods
         cls.time = time
         cls.status = status
 
+    def __lt__(self, other):
+        """Less than operator for Updates."""
+        return self.time < other.time
+
 
 class Aircraft(Location):
     """Generic aircraft class for flying vehicles."""
@@ -222,15 +226,15 @@ class UAV(Aircraft):
         self.total_range = Distance(int(attributes["range"]), "km")
         self.past_locations = [
             UpdateEvent(
-                "uav" + str(self.id_no),
+                "uav " + str(self.id_no),
                 self.lat,
                 self.lon,
                 self.time.copy_time(),
                 self.status,
-                0,
+                Distance(0),
                 self.current_fuel_capacity,
                 self.get_range(),
-                0,
+                Distance(0),
             )
         ]
 
@@ -249,19 +253,21 @@ class UAV(Aircraft):
     def add_update(self, new_status: Status):
         """Add update to UAV past locations."""
         previous_update = self.past_locations[-1]
-        distance_hovered = 0
+        distance_hovered = Distance(0)
         if previous_update.status == Status.HOVERING:
-            distance_hovered = (previous_update.time - self.time).get() * self.max_velocity.get()
+            distance_hovered = Distance(
+                (previous_update.time - self.time).get() * self.max_velocity.get()
+            )
         self.past_locations.append(
             UpdateEvent(
-                "uav" + str(self.id_no),
+                "uav " + str(self.id_no),
                 self.lat,
                 self.lon,
                 self.time.copy_time(),
                 new_status,
                 super().distance(previous_update),
                 self.current_fuel_capacity,
-                self.get_range(),
+                self.get_range() * self.current_fuel_capacity,
                 distance_hovered,
             )
         )
@@ -305,10 +311,10 @@ class WaterBomber(Aircraft):
                 self.lon,
                 self.time.copy_time(),
                 self.status,
-                0,
+                Distance(0),
                 self.current_fuel_capacity,
                 self.get_range(),
-                0,
+                Distance(0),
                 self.water_on_board,
             )
         ]
@@ -364,9 +370,11 @@ class WaterBomber(Aircraft):
     def add_update(self, new_status: Status):
         """Add update to Water Bomber past locations."""
         previous_update = self.past_locations[-1]
-        distance_hovered = 0
+        distance_hovered = Distance(0)
         if previous_update.status == Status.HOVERING:
-            distance_hovered = (previous_update.time - self.time).get() * self.max_velocity.get()
+            distance_hovered = Distance(
+                (previous_update.time - self.time).get() * self.max_velocity.get()
+            )
         self.past_locations.append(
             UpdateEvent(
                 self.name,
@@ -376,7 +384,7 @@ class WaterBomber(Aircraft):
                 new_status,
                 super().distance(previous_update),
                 self.current_fuel_capacity,
-                self.get_range(),
+                self.get_range() * self.current_fuel_capacity,
                 distance_hovered,
                 self.water_on_board,
             )

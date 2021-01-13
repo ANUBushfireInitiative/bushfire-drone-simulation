@@ -99,7 +99,7 @@ def run_simulation(
         process_ignitions(ignitions, coordinator)
         _LOG.info("Completed processing ignitions")
 
-        params.write_to_output_folder(lightning_strikes, water_bombers, water_tanks, scenario_idx)
+        params.write_to_output_folder(lightning_strikes, coordinator, scenario_idx)
 
         ret.append((coordinator, lightning_strikes))
 
