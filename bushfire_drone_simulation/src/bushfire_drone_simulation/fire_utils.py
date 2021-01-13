@@ -1,6 +1,6 @@
 """Various classes and functions useful to the bushfire_drone_simulation application."""
 
-from math import atan2, cos, inf, radians, sin, sqrt
+from math import atan2, cos, inf, isnan, radians, sin, sqrt
 from typing import Any
 
 from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Distance, Duration, Volume
@@ -186,7 +186,16 @@ def assert_bool(value: Any, message: str) -> bool:
     Returns:
         bool:
     """
-    assert isinstance(value, (bool, int)), message
-    if isinstance(value, int):
-        assert value in (0, 1), message
+    assert isinstance(value, (bool, int, float, str)), message
+    if isinstance(value, (int, float)):
+        if isnan(value):
+            return False
+        assert value in (0, 1, 0.0, 1.0), message
+        value = int(value)
+    if isinstance(value, str):
+        if value.lower in ["t", "true", "yes", "y"]:
+            return True
+        if value.lower in ["f", "false", "no", "n", "", "nan"]:
+            return False
+        assert False, message
     return bool(value)
