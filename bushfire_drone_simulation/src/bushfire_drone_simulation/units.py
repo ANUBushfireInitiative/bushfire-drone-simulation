@@ -13,7 +13,44 @@ DEFAULT_VOLUME_UNITS = "L"
 VOLUME_FACTORS = {"mL": 0.001, "L": 1.0, "kL": 1000, "ML": 1000000}
 
 
-class Distance:
+class Units:
+    """Units class for easy unit conversion."""
+
+    def __init__(self, value: float):
+        """hold."""
+        self.value = value
+
+    def __lt__(self, other):
+        """Less than operator of Distance."""
+        assert isinstance(self, type(other)), "Units in inequaility are not the same"
+        return self.value < other.value
+
+    def __sub__(self, other):
+        """Subtraction operator for Distance."""
+        assert isinstance(self, type(other)), "Units in subtraction are not the same"
+        return type(self)(self.value - other.value)
+
+    def __mul__(self, other: float):
+        """Scalar multiplication operator for Distance."""
+        return type(self)(self.value * other)
+
+    def __add__(self, other):
+        """Addition operator of Duration."""
+        assert isinstance(self, type(other)), "Units in addition are not the same"
+        return type(self)(self.value + other.value)
+
+    def __ge__(self, other):
+        """Greater than or equal to operator for Volume."""
+        assert isinstance(self, type(other)), "Units in inequaility are not the same"
+        return self.value >= other.value
+
+    def __truediv__(self, other):
+        """Division operator for Volume."""
+        assert isinstance(self, type(other)), "Units in division are not the same"
+        return self.value / other.value
+
+
+class Distance(Units):  # pylint: disable=too-few-public-methods
     """Distance class for easy unit conversion. Distance stored internally as metres."""
 
     def __init__(self, distance: float, units: str = DEFAULT_DISTANCE_UNITS):
@@ -21,7 +58,7 @@ class Distance:
 
         Defaults to DEFAULT_DISTANCE_UNITS if units not specified.
         """
-        self.value = distance * DISTANCE_FACTORS[units]
+        super().__init__(distance * DISTANCE_FACTORS[units])
 
     def get(self, units: str = DEFAULT_DISTANCE_UNITS):
         """Get distance specifying units.
@@ -30,20 +67,8 @@ class Distance:
         """
         return self.value / DISTANCE_FACTORS[units]
 
-    def __lt__(self, other):
-        """Less than operator of Distance."""
-        return self.get() < other.get()
 
-    def __sub__(self, other):
-        """Subtraction operator for Distance."""
-        return Distance(self.get() - other.get())
-
-    def __mul__(self, other: float):
-        """Scalar multiplication operator for Distance."""
-        return Distance(self.get() * other)
-
-
-class Duration:  # pylint: disable=too-few-public-methods
+class Duration(Units):  # pylint: disable=too-few-public-methods
     """Duration class for easy unit conversion. Duration stored internally as seconds."""
 
     def __init__(self, duration: float, units: str = DEFAULT_DURATION_UNITS):
@@ -51,7 +76,7 @@ class Duration:  # pylint: disable=too-few-public-methods
 
         Defaults to DEFAULT_DURATION_UNITS if units not specified.
         """
-        self.value = duration * DURATION_FACTORS[units]
+        super().__init__(duration * DURATION_FACTORS[units])
 
     def get(self, units: str = DEFAULT_DURATION_UNITS):
         """Get duration specifying units.
@@ -60,12 +85,8 @@ class Duration:  # pylint: disable=too-few-public-methods
         """
         return self.value / DURATION_FACTORS[units]
 
-    def __add__(self, other):
-        """Addition operator of Duration."""
-        return Duration(self.get() + other.get())
 
-
-class Speed:  # pylint: disable=too-few-public-methods
+class Speed(Units):  # pylint: disable=too-few-public-methods
     """Speed class for easy unit conversion. Speed stored internally as metres/second."""
 
     def __init__(
@@ -79,7 +100,7 @@ class Speed:  # pylint: disable=too-few-public-methods
         Defaults to DEFAULT_SPEED_DISTANCE_UNITS and DEFAULT_SPEED_TIME_UNITS if units not
         specified.
         """
-        self.value = speed * DISTANCE_FACTORS[distance_units] / DURATION_FACTORS[time_units]
+        super().__init__(speed * DISTANCE_FACTORS[distance_units] / DURATION_FACTORS[time_units])
 
     def get(
         self,
@@ -94,7 +115,7 @@ class Speed:  # pylint: disable=too-few-public-methods
         return self.value * DURATION_FACTORS[time_units] / DISTANCE_FACTORS[distance_units]
 
 
-class Volume:  # pylint: disable=too-few-public-methods
+class Volume(Units):  # pylint: disable=too-few-public-methods
     """Volume class for easy unit conversion. Volume stored internally as litres."""
 
     def __init__(self, volume: float, units: str = DEFAULT_VOLUME_UNITS):
@@ -102,7 +123,7 @@ class Volume:  # pylint: disable=too-few-public-methods
 
         Defaults to DEFAULT_VOLUME_UNITS if units not specified.
         """
-        self.value = volume * VOLUME_FACTORS[units]
+        super().__init__(volume * VOLUME_FACTORS[units])
 
     def get(self, units: str = DEFAULT_VOLUME_UNITS):
         """Get distance specifying units.
@@ -110,19 +131,3 @@ class Volume:  # pylint: disable=too-few-public-methods
         Defaults to DEFAULT_VOLUME_UNITS if units not specified.
         """
         return self.value / VOLUME_FACTORS[units]
-
-    def __sub__(self, other):
-        """Subtraction operator for Volume."""
-        return Volume(self.get() - other.get())
-
-    def __ge__(self, other):
-        """Greater than or equal to operator for Volume."""
-        return self.get() >= other.get()
-
-    def __truediv__(self, other):
-        """Division operator for Volume."""
-        return Volume(self.get() / other.get())
-
-    def __mul__(self, other):
-        """Multiplication operator for Distance."""
-        return Volume(self.get() * other.get())

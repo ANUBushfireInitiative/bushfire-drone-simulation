@@ -94,11 +94,11 @@ class Aircraft(Location):
         self.lon = position.lon
 
     @abstractmethod
-    def get_range(self) -> Distance:
+    def get_range(self):
         """Return total range of Aircraft."""
 
-    def get_water_refill_time(self):  # pylint: disable=no-self-use
-        """Return water refill time of Aircraft."""
+    def get_water_refil_time(self):  # pylint: disable=no-self-use
+        """Return water refil time of Aircraft."""
         return 0
 
     def update_position(self, position: Location, departure_time: Time, final_status: Status):
@@ -118,7 +118,7 @@ class Aircraft(Location):
                 * self.max_velocity.get("km", "hr")
                 / self.get_range().get("km")
             )
-        self.current_fuel_capacity -= super().distance(position).get() / self.get_range().get()
+        self.current_fuel_capacity -= super().distance(position) / self.get_range()
 
         self.time.add_duration(
             Duration(super().distance(position).get("km") / self.max_velocity.get("km", "hr"), "hr")
@@ -136,7 +136,7 @@ class Aircraft(Location):
         """
         if self.status == Status.HOVERING:
             index, value = minimum(bases, Distance(10000000000), super().distance)
-            if value.get() * fraction > self.current_fuel_capacity * self.get_range().get():
+            if value * fraction > self.get_range() * self.current_fuel_capacity:
                 self.update_position(bases[index], departure_time, Status.WAITING_AT_BASE)
                 self.fuel_refill(bases[index])
 
@@ -161,7 +161,7 @@ class Aircraft(Location):
                     )
                 )
             if isinstance(position, WaterTank):
-                current_time.add_duration(self.get_water_refill_time())
+                current_time.add_duration(self.get_water_refil_time())
             if isinstance(position, Base):
                 current_time.add_duration(self.fuel_refill_time)
         return current_time
@@ -178,11 +178,9 @@ class Aircraft(Location):
             )
         for index, position in enumerate(positions):
             if index == 0:
-                current_fuel -= super().distance(position).get() / self.get_range().get()
+                current_fuel -= super().distance(position) / self.get_range()
             else:
-                current_fuel -= (
-                    positions[index - 1].distance(position).get() / self.get_range().get()
-                )
+                current_fuel -= positions[index - 1].distance(position) / self.get_range()
             if current_fuel < 0:
                 return False
             if isinstance(position, Base):
@@ -321,12 +319,9 @@ class WaterBomber(Aircraft):
 
     def get_range(self):
         """Return range of Water bomber."""
-        return Distance(
-            (self.water_on_board / self.water_capacity)
-            * (self.range_under_load - self.range_empty).get()
-            + self.range_empty.get()
-        )
-        # FIXME(Add operators to units) #pylint: disable=fixme
+        return (self.range_under_load - self.range_empty) * (
+            self.water_on_board / self.water_capacity
+        ) + self.range_empty
 
     def go_to_strike(self, ignition, departure_time, arrival_time):
         """UAV go to and inspect strike."""
@@ -360,7 +355,7 @@ class WaterBomber(Aircraft):
 
     def enough_water(self, no_of_fires: int = 1):
         """Return whether the water bomber has enough water to extinguish desired fires."""
-        return self.water_on_board.get() >= self.water_per_delivery.get() * no_of_fires
+        return self.water_on_board >= self.water_per_delivery * no_of_fires
 
     def get_water_refil_time(self):
         """Return water refil time of Aircraft. Should be 0 if does not exist."""
