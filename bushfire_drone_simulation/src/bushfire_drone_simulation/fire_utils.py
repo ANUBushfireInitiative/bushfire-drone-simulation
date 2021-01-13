@@ -96,7 +96,7 @@ def days_to_month(days: int, leap_year: bool = False):
 class Time:  # pylint: disable=too-few-public-methods
     """Time class storing time in the form YYYY-MM-DD-HH-MM-SS."""
 
-    def __init__(self, time_in: str, just_mins: bool = False):
+    def __init__(self, time_in: str, just_mins: bool = True):
         """Initialise time from string in the form YYYY*MM*DD*HH*MM*SS.
 
         "*" represents any character, e.g. 2033-11/03D12*00?12 would be accepted

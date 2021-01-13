@@ -13,7 +13,7 @@ DEFAULT_VOLUME_UNITS = "L"
 VOLUME_FACTORS = {"mL": 0.001, "L": 1.0, "kL": 1000, "ML": 1000000}
 
 
-class Distance:  # pylint: disable=too-few-public-methods
+class Distance:
     """Distance class for easy unit conversion. Distance stored internally as metres."""
 
     def __init__(self, distance: float, units: str = DEFAULT_DISTANCE_UNITS):
@@ -118,3 +118,11 @@ class Volume:  # pylint: disable=too-few-public-methods
     def __ge__(self, other):
         """Greater than or equal to operator for Volume."""
         return self.get() >= other.get()
+
+    def __truediv__(self, other):
+        """Division operator for Volume."""
+        return Volume(self.get() / other.get())
+
+    def __mul__(self, other):
+        """Multiplication operator for Distance."""
+        return Volume(self.get() * other.get())

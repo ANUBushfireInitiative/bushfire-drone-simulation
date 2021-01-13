@@ -43,9 +43,6 @@ def map_gui():
     start_map_gui()
 
 
-# SCENARIO_NUM_ARGUMENT = typer.Option(1, help="Scenario number to run.")
-
-
 @app.command()
 def run_simulation(
     parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT,
@@ -81,9 +78,7 @@ def run_simulation(
             params.get_relative_filepath("lightning_filename", scenario_idx),
             params.get_attribute("ignition_probability", scenario_idx),
         )
-        # lightning_strikes = read_lightning(
-        # lightning_filename, params.get_attribute("ignition_probability")
-        # )
+
         lightning_strikes.sort()  # By strike time
 
         coordinator = Coordinator(uavs, uav_bases, water_bombers, water_bomber_bases, water_tanks)
