@@ -38,6 +38,10 @@ class Distance:  # pylint: disable=too-few-public-methods
         """Subtraction operator for Distance."""
         return Distance(self.get() - other.get())
 
+    def __mul__(self, other: float):
+        """Scalar multiplication operator for Distance."""
+        return Distance(self.get() * other)
+
 
 class Duration:  # pylint: disable=too-few-public-methods
     """Duration class for easy unit conversion. Duration stored internally as seconds."""

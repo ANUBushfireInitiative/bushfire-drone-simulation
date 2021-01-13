@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
+from bushfire_drone_simulation.coordinator import Coordinator
 from bushfire_drone_simulation.fire_utils import WaterTank
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.read_csv import CSVFile
@@ -163,15 +164,72 @@ class JSONParameters:
     def write_to_output_folder(
         self,
         lightning_strikes: List[Lightning],
-        water_bombers: List[WaterBomber],
-        water_tanks: List[WaterTank],
+        coordinator: Coordinator,
         scenario_idx,
     ):
         """Write results of simulation to output folder."""
+        water_bombers: List[WaterBomber] = coordinator.water_bombers
+        water_tanks: List[WaterTank] = coordinator.water_tanks
+
         prefix = ""
         if "scenario_name" in self.scenarios[scenario_idx]:
             prefix = str(self.get_attribute("scenario_name", scenario_idx)) + "_"
 
+        inspection_times, supression_times_ignitions_only = self.write_to_simulation_output_file(
+            lightning_strikes, prefix
+        )
+        self.write_to_uav_updates_file(coordinator, prefix)
+        self.write_to_wb_updates_file(water_bombers, prefix)
+
+        fig, axs = plt.subplots(2, 2, figsize=(12, 8), dpi=300)
+        axs[0, 0].hist(inspection_times, bins=20)
+        axs[0, 0].set_title("Histogram of UAV inspection times")
+        axs[0, 0].set(xlabel="Inspection time (Hours)", ylabel="Frequency")
+        axs[0, 0].set_xlim(left=0)
+        axs[0, 0].set_ylim(bottom=0)
+
+        axs[0, 1].hist(supression_times_ignitions_only, bins=20)
+        axs[0, 1].set_title("Histogram of supression times")
+        axs[0, 1].set(xlabel="Suppression time (Hours)", ylabel="Frequency")
+        axs[0, 1].set_xlim(left=0)
+        axs[0, 1].set_ylim(bottom=0)
+
+        water_bomber_names = [wb.name for wb in water_bombers]
+        num_suppressed = [wb.num_ignitions_suppressed() for wb in water_bombers]
+        axs[1, 0].set_title("Ligntning strikes suppressed per helicopter")
+        axs[1, 0].bar(water_bomber_names, num_suppressed)
+        axs[1, 0].tick_params(labelrotation=90)
+
+        water_tank_ids = [i for i, _ in enumerate(water_tanks)]
+        axs[1, 1].set_title("Water tank levels after suppression")
+        axs[1, 1].bar(
+            water_tank_ids,
+            [wt.initial_capacity.get(units="kL") for wt in water_tanks],
+            label="Full Capacity",
+            color="orange",
+        )
+        axs[1, 1].bar(
+            water_tank_ids,
+            [wt.capacity.get(units="kL") for wt in water_tanks],
+            label="Final Level",
+            color="blue",
+        )
+        axs[1, 1].legend()
+        axs[1, 1].set(ylabel="kL")
+
+        fig.tight_layout()
+        plt.savefig(
+            os.path.join(
+                self.output_folder,
+                str(self.get_attribute("scenario_name", scenario_idx))
+                + "inspection_times_plot.png",
+            )
+        )
+
+        self.write_to_input_parameters_folder(scenario_idx)
+
+    def write_to_simulation_output_file(self, lightning_strikes, prefix):
+        """Write simulation data to output file."""
         with open(
             os.path.join(
                 self.output_folder,
@@ -204,52 +262,97 @@ class JSONParameters:
             )
             for row in zip(*[lats, lons, inspection_times, supression_times]):
                 filewriter.writerow(row)
+        return inspection_times, supression_times_ignitions_only
 
-            fig, axs = plt.subplots(2, 2, figsize=(12, 8), dpi=300)
-            axs[0, 0].hist(inspection_times, bins=20)
-            axs[0, 0].set_title("Histogram of UAV inspection times")
-            axs[0, 0].set(xlabel="Inspection time (Hours)", ylabel="Frequency")
-            axs[0, 0].set_xlim(left=0)
-            axs[0, 0].set_ylim(bottom=0)
+    def write_to_uav_updates_file(self, coordinator, prefix):
+        """Write UAV event update data to output file."""
+        uavs: List[UAV] = coordinator.uavs
 
-            axs[0, 1].hist(supression_times_ignitions_only, bins=20)
-            axs[0, 1].set_title("Histogram of supression times")
-            axs[0, 1].set(xlabel="Suppression time (Hours)", ylabel="Frequency")
-            axs[0, 1].set_xlim(left=0)
-            axs[0, 1].set_ylim(bottom=0)
-
-            water_bomber_names = [wb.name for wb in water_bombers]
-            num_suppressed = [wb.num_ignitions_suppressed() for wb in water_bombers]
-            axs[1, 0].set_title("Ligntning strikes suppressed per helicopter")
-            axs[1, 0].bar(water_bomber_names, num_suppressed)
-            axs[1, 0].tick_params(labelrotation=90)
-
-            water_tank_ids = [i for i, _ in enumerate(water_tanks)]
-            axs[1, 1].set_title("Water tank levels after suppression")
-            axs[1, 1].bar(
-                water_tank_ids,
-                [wt.initial_capacity.get(units="kL") for wt in water_tanks],
-                label="Full Capacity",
-                color="orange",
+        with open(
+            os.path.join(
+                self.output_folder,
+                prefix + "uav_event_updates.csv",
+            ),
+            "w",
+        ) as outputfile:
+            filewriter = csv.writer(outputfile)
+            filewriter.writerow(
+                [
+                    "UAV ID",
+                    "Latitude",
+                    "Longitude",
+                    "Time (min)",
+                    "Distance travelled (km)",
+                    "Distance hovered (km)",
+                    "Fuel capacity (%)",
+                    "Current range (km)",
+                    "Status",
+                ]
             )
-            axs[1, 1].bar(
-                water_tank_ids,
-                [wt.capacity.get(units="kL") for wt in water_tanks],
-                label="Final Level",
-                color="blue",
-            )
-            axs[1, 1].legend()
-            axs[1, 1].set(ylabel="kL")
+            all_uav_updates = []
+            for uav in uavs:
+                all_uav_updates = all_uav_updates + uav.past_locations
 
-            fig.tight_layout()
-            plt.savefig(
-                os.path.join(
-                    self.output_folder,
-                    str(self.get_attribute("scenario_name", scenario_idx))
-                    + "inspection_times_plot.png",
+            all_uav_updates.sort()
+            for uav_update in all_uav_updates:
+                filewriter.writerow(
+                    [
+                        uav_update.name,
+                        uav_update.lat,
+                        uav_update.lon,
+                        uav_update.time.get("min"),
+                        uav_update.distance_travelled.get("km"),
+                        uav_update.distance_hovered.get("km"),
+                        uav_update.fuel * 100,
+                        uav_update.current_range.get("km"),
+                        str(uav_update.status),
+                    ]
                 )
+
+    def write_to_wb_updates_file(self, water_bombers, prefix):
+        """Write water bomber event update data to output file."""
+        with open(
+            os.path.join(
+                self.output_folder,
+                prefix + "water_bomber_event_updates.csv",
+            ),
+            "w",
+        ) as outputfile:
+            filewriter = csv.writer(outputfile)
+            filewriter.writerow(
+                [
+                    "Water Bomber ID",
+                    "Latitude",
+                    "Longitude",
+                    "Time (min)",
+                    "Distance travelled (km)",
+                    "Distance hovered (km)",
+                    "Fuel capacity (%)",
+                    "Current range (km)",
+                    "Water capacity (L)",
+                    "Status",
+                ]
             )
-        self.write_to_input_parameters_folder(scenario_idx)
+            all_wb_updates = []
+            for water_bomber in water_bombers:
+                all_wb_updates = all_wb_updates + water_bomber.past_locations
+
+            all_wb_updates.sort()
+            for wb_update in all_wb_updates:
+                filewriter.writerow(
+                    [
+                        wb_update.name,
+                        wb_update.lat,
+                        wb_update.lon,
+                        wb_update.time.get(),
+                        wb_update.distance_travelled.get("km"),
+                        wb_update.distance_hovered.get("km"),
+                        wb_update.fuel * 100,
+                        wb_update.current_range.get("km"),
+                        wb_update.water.get("L"),
+                        str(wb_update.status),
+                    ]
+                )
 
     def write_to_input_parameters_folder(self, scenario_idx):
         """Copy input parameters to input parameters folder to be outputed."""
