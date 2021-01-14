@@ -22,6 +22,8 @@ class Units:
 
     def __lt__(self, other):
         """Less than operator of Distance."""
+        if isinstance(other, (float, int)):
+            return self.value < other
         assert isinstance(self, type(other)), "Units in inequaility are not the same"
         return self.value < other.value
 
@@ -32,6 +34,15 @@ class Units:
 
     def __mul__(self, other: float):
         """Scalar multiplication operator for Distance."""
+        if isinstance(self, Duration) and isinstance(other, Speed):
+            return Distance(self.value * other.value)
+        assert isinstance(other, (float, int)), (
+            "Multiplication of "
+            + str(type(self))
+            + " and "
+            + str(type(other))
+            + " is not supported"
+        )
         return type(self)(self.value * other)
 
     def __add__(self, other):
@@ -46,6 +57,8 @@ class Units:
 
     def __truediv__(self, other):
         """Division operator for Volume."""
+        if isinstance(self, Distance) and isinstance(other, Speed):
+            return Duration(self.value / other.value)
         assert isinstance(self, type(other)), "Units in division are not the same"
         return self.value / other.value
 

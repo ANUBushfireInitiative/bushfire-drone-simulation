@@ -6,7 +6,7 @@ from bushfire_drone_simulation.aircraft import Status
 from bushfire_drone_simulation.main import run_simulation
 
 FILE_LOC = os.path.realpath(__file__)
-PARAMS_LOC = os.path.join(os.path.dirname(FILE_LOC), "input_data/parameters.json")
+PARAMS_LOC = os.path.join(os.path.dirname(FILE_LOC), "parameters.json")
 
 
 def test_times_chronological(monkeypatch):

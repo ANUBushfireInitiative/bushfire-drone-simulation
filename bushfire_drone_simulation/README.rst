@@ -99,7 +99,9 @@ The JSON parameters file should contain the following information formatted as i
 
 **CSV File formats**
 
-The paths to csv files specified above should contain the following information and format requirements:
+The paths to csv files specified above should contain the following information and format requirements.
+Note that the column headers must follow the same naming conventions however the data that follows
+is just sample input.
 
 *  water_bomber_bases_filename
 
@@ -155,8 +157,8 @@ The paths to csv files specified above should contain the following information 
 
         -37.81,144.97,2020/12/13/10/20/30
 
-    Note that the time should be of the form YYYY*MM*DD*HH*MM*SS where "*" represents any character,
-    e.g. 2033-11/03D12*00?12 would be accepted.
+    Note that the time can either be in the form YYYY*MM*DD*HH*MM*SS where "*" represents any character
+    (e.g. 2033-11/03D12*00?12 would be accepted) or in minutes from time 0.
 
 *  spawn_loc_file
 
@@ -177,8 +179,10 @@ may be made. Firstly, any variables (including csv files) that would like to be 
 should be replaced with a "?" in the JSON parameters file.
 The values of these variables should be recorded in a csv file. The title of each column of this csv
 file should indicate the variable altered. Each row that follows contains a scenario to be run,
-each of the parameters in the file should be specified for each scenario. The path to this file
-(relative to the JSON parameter file) should be recorded in the JSON parameter file as follows
+each of the parameters in the file should be specified for each scenario. The name of the scenario should be
+indicated in the first column of the file which will be used in the output to distinguish between scenarios.
+The path to this file (relative to the JSON parameter file) should be recorded in the JSON parameter file
+as follows:
 
 .. code-block:: json
 
@@ -203,26 +207,16 @@ For example, the JSON parameters file
 would require the file scenario_parameters.csv to be formatted as follows
 
 .. csv-table::
-    :header: "ignition_probability","uavs/attributes/fuel_refill_time"
+    :header: "scenario_name","ignition_probability","uavs/attributes/fuel_refill_time"
     :widths: 7, 7
 
-    "0.07", "30"
-    "0.2", "25"
-    "0.5", "20"
+    "s1", "0.07", "30"
+    "s2", "0.2", "25"
+    "s3", "0.5", "20"
 
 Note that all aircraft have a fuel_refill_time attribute so to distinguish between them the
 nesting of the dictionary is used with '/' in between each nesting.
 
-Optionally, the user may also select which scenarios they would like to run. This can be done by
-adding an additional parameter to the parameters JSON file as follows:
-
-.. code-block:: json
-
-    "scenarios_to_run": [0, 2]
-
-The indexes of the scenarios that will be run should be provided in the list, note that these
-are 0 indexed. If all scenarios would like to be run then the list can be replaced by "all" or the
-field can be excluded entirely.
 
 
 **Example Input**

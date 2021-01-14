@@ -114,15 +114,11 @@ class Aircraft(Location):
 
         if self.status == Status.HOVERING and self.time < departure_time:
             self.current_fuel_capacity -= (
-                (self.time - departure_time).get("hr")
-                * self.max_velocity.get("km", "hr")
-                / self.get_range().get("km")
+                (self.time - departure_time) * self.max_velocity / self.get_range()
             )
         self.current_fuel_capacity -= super().distance(position) / self.get_range()
 
-        self.time.add_duration(
-            Duration(super().distance(position).get("km") / self.max_velocity.get("km", "hr"), "hr")
-        )
+        self.time.add_duration(super().distance(position) / self.max_velocity)
         if self.current_fuel_capacity < 0:
             _LOG.error("Aircraft %s ran out of fuel", self.id_no)
         self.status = final_status
@@ -145,20 +141,10 @@ class Aircraft(Location):
         current_time = max(self.time, time_of_event).copy_time()
         for index, position in enumerate(positions):
             if index == 0:
-                current_time.add_duration(
-                    Duration(
-                        super().distance(position, "km").get("km")
-                        / self.max_velocity.get("km", "hr"),
-                        "hr",
-                    )
-                )
+                current_time.add_duration(super().distance(position) / self.max_velocity)
             else:
                 current_time.add_duration(
-                    Duration(
-                        positions[index - 1].distance(position, "km").get("km")
-                        / self.max_velocity.get("km", "hr"),
-                        "hr",
-                    )
+                    positions[index - 1].distance(position) / self.max_velocity
                 )
             if isinstance(position, WaterTank):
                 current_time.add_duration(self.get_water_refil_time())
@@ -171,11 +157,7 @@ class Aircraft(Location):
         current_fuel = self.current_fuel_capacity
         if self.status == Status.HOVERING and self.time < departure_time:
             # Update fuel loss from hovering
-            current_fuel -= (
-                (self.time - departure_time).get("hr")
-                * self.max_velocity.get("km", "hr")
-                / self.get_range().get("km")
-            )
+            current_fuel -= (self.time - departure_time) * self.max_velocity / self.get_range()
         for index, position in enumerate(positions):
             if index == 0:
                 current_fuel -= super().distance(position) / self.get_range()
@@ -253,9 +235,7 @@ class UAV(Aircraft):
         previous_update = self.past_locations[-1]
         distance_hovered = Distance(0)
         if previous_update.status == Status.HOVERING:
-            distance_hovered = Distance(
-                (previous_update.time - self.time).get() * self.max_velocity.get()
-            )
+            distance_hovered = (previous_update.time - self.time) * self.max_velocity
         self.past_locations.append(
             UpdateEvent(
                 "uav " + str(self.id_no),
@@ -348,7 +328,7 @@ class WaterBomber(Aircraft):
     def water_refill(self, water_tank: WaterTank):
         """Update time and range of water bomber after water refill."""
         water_tank.empty(self.water_capacity - self.water_on_board)
-        if water_tank.capacity.get() < 0:
+        if water_tank.capacity < 0:
             _LOG.error("Water tank ran out of water")
         self.water_on_board = self.water_capacity
         self.time.add_duration(self.water_refill_time)
@@ -366,9 +346,7 @@ class WaterBomber(Aircraft):
         previous_update = self.past_locations[-1]
         distance_hovered = Distance(0)
         if previous_update.status == Status.HOVERING:
-            distance_hovered = Distance(
-                (previous_update.time - self.time).get() * self.max_velocity.get()
-            )
+            distance_hovered = (previous_update.time - self.time) * self.max_velocity
         self.past_locations.append(
             UpdateEvent(
                 self.name,

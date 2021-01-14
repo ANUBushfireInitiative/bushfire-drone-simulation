@@ -3,6 +3,8 @@
 from math import atan2, cos, inf, isnan, radians, sin, sqrt
 from typing import Any
 
+import numpy
+
 from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Distance, Duration, Volume
 
 
@@ -102,7 +104,7 @@ def days_to_month(days: int, leap_year: bool = False):
 class Time:  # pylint: disable=too-few-public-methods
     """Time class storing time in the form YYYY-MM-DD-HH-MM-SS."""
 
-    def __init__(self, time_in: str, just_mins: bool = False):
+    def __init__(self, time_in: str):
         """Initialise time from string in the form YYYY*MM*DD*HH*MM*SS.
 
         "*" represents any character, e.g. 2033-11/03D12*00?12 would be accepted
@@ -114,9 +116,9 @@ class Time:  # pylint: disable=too-few-public-methods
         elif time_in == "0":
             self.time = Duration(0)
         else:
-            if just_mins:
-                self.time = Duration(int(time_in), "min")
-            else:
+            try:
+                self.time = Duration(float(time_in), "min")
+            except ValueError:
                 self.time = (
                     # Duration(int(time_in[:4]), "year")
                     Duration(month_to_days(int(time_in[5:7])) + int(time_in[8:10]) - 1, "day")
@@ -186,16 +188,16 @@ def assert_bool(value: Any, message: str) -> bool:
     Returns:
         bool:
     """
-    assert isinstance(value, (bool, int, float, str)), message
+    assert isinstance(value, (numpy.bool_, bool, int, float, str)), message
     if isinstance(value, (int, float)):
         if isnan(value):
             return False
         assert value in (0, 1, 0.0, 1.0), message
         value = int(value)
     if isinstance(value, str):
-        if value.lower in ["t", "true", "yes", "y"]:
+        if value.lower() in ["t", "true", "yes", "y"]:
             return True
-        if value.lower in ["f", "false", "no", "n", "", "nan"]:
+        if value.lower() in ["f", "false", "no", "n", "", "nan"]:
             return False
         assert False, message
     return bool(value)
