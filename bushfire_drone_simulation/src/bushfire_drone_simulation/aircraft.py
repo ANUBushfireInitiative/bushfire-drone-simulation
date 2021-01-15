@@ -94,12 +94,12 @@ class Aircraft(Location):
         self.lon = position.lon
 
     @abstractmethod
-    def get_range(self):
+    def get_range(self) -> Distance:
         """Return total range of Aircraft."""
 
-    def get_water_refil_time(self):  # pylint: disable=no-self-use
+    def get_water_refill_time(self) -> Duration:  # pylint: disable=no-self-use
         """Return water refil time of Aircraft."""
-        return 0
+        return Duration(0)
 
     def update_position(self, position: Location, departure_time: Time, final_status: Status):
         """Update position, range and time of Water bomber."""
@@ -147,7 +147,7 @@ class Aircraft(Location):
                     positions[index - 1].distance(position) / self.max_velocity
                 )
             if isinstance(position, WaterTank):
-                current_time.add_duration(self.get_water_refil_time())
+                current_time.add_duration(self.get_water_refill_time())
             if isinstance(position, Base):
                 current_time.add_duration(self.fuel_refill_time)
         return current_time
@@ -211,10 +211,10 @@ class UAV(Aircraft):
                 self.lon,
                 self.time.copy_time(),
                 self.status,
-                Distance(0),
+                0,  # TODO(fix): Change to distance # pylint: disable=fixme
                 self.current_fuel_capacity,
-                self.get_range(),
-                Distance(0),
+                self.get_range().get(),  # TODO(fix): remove .get() # pylint: disable=fixme
+                0,  # TODO(fix): Change to distance # pylint: disable=fixme
             )
         ]
 
@@ -224,7 +224,7 @@ class UAV(Aircraft):
         lightning.inspected(self, arrival_time)  # change location of this in future
 
     def complete_update(self):
-        """For future devlopments."""
+        """For future developments."""
 
     def get_range(self):
         """Return total range of UAV."""
@@ -243,10 +243,14 @@ class UAV(Aircraft):
                 self.lon,
                 self.time.copy_time(),
                 new_status,
-                super().distance(previous_update),
+                super()
+                .distance(previous_update)
+                .get(),  # TODO(fix): remove.get() # pylint: disable=fixme
                 self.current_fuel_capacity,
-                self.get_range() * self.current_fuel_capacity,
-                distance_hovered,
+                (
+                    self.get_range() * self.current_fuel_capacity
+                ).get(),  # TODO(fix): remove .get() # pylint: disable = fixme
+                distance_hovered.get(),  # TODO(fix): remove .get() # pylint: disable = fixme
             )
         )
 
@@ -289,11 +293,11 @@ class WaterBomber(Aircraft):
                 self.lon,
                 self.time.copy_time(),
                 self.status,
-                Distance(0),
+                Distance(0).get(),  # TODO(fix): remove .get() # pylint: disable = fixme
                 self.current_fuel_capacity,
                 self.get_range(),
-                Distance(0),
-                self.water_on_board,
+                Distance(0).get(),  # TODO(fix): remove .get() # pylint: disable = fixme
+                self.water_on_board.get(),  # TODO(fix): remove .get() # pylint: disable = fixme
             )
         ]
 
@@ -337,8 +341,8 @@ class WaterBomber(Aircraft):
         """Return whether the water bomber has enough water to extinguish desired fires."""
         return self.water_on_board >= self.water_per_delivery * no_of_fires
 
-    def get_water_refil_time(self):
-        """Return water refil time of Aircraft. Should be 0 if does not exist."""
+    def get_water_refill_time(self):
+        """Return water refill time of Aircraft. Should be 0 if does not exist."""
         return self.water_refill_time
 
     def add_update(self, new_status: Status):
@@ -354,10 +358,12 @@ class WaterBomber(Aircraft):
                 self.lon,
                 self.time.copy_time(),
                 new_status,
-                super().distance(previous_update),
+                super()
+                .distance(previous_update)
+                .get(),  # TODO(fix): remove .get() # pylint: disable = fixme
                 self.current_fuel_capacity,
                 self.get_range() * self.current_fuel_capacity,
-                distance_hovered,
-                self.water_on_board,
+                distance_hovered.get(),  # TODO(fix): remove .get() # pylint: disable = fixme
+                self.water_on_board.get(),  # TODO(fix): remove .get() # pylint: disable = fixme
             )
         )

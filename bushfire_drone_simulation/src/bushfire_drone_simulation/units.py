@@ -1,5 +1,8 @@
 """Various unit classes useful to the bushfire_drone_simulation."""
 
+import abc
+from typing import TypeVar, Union
+
 DEFAULT_DISTANCE_UNITS = "km"
 DISTANCE_FACTORS = {"mm": 0.001, "cm": 0.01, "m": 1.0, "km": 1000}
 
@@ -12,27 +15,31 @@ DEFAULT_SPEED_TIME_UNITS = "hr"
 DEFAULT_VOLUME_UNITS = "L"
 VOLUME_FACTORS = {"mL": 0.001, "L": 1.0, "kL": 1000, "ML": 1000000}
 
+UnitsType = TypeVar("UnitsType", bound="Units")
+
 
 class Units:
     """Units class for easy unit conversion."""
 
-    def __init__(self, value: float):
+    @abc.abstractmethod
+    def __init__(self, cls: type, value: float):
         """hold."""
         self.value = value
+        self.cls = cls
 
     def __lt__(self, other):
         """Less than operator of Distance."""
         if isinstance(other, (float, int)):
             return self.value < other
-        assert isinstance(self, type(other)), "Units in inequaility are not the same"
+        assert isinstance(self, type(other)), "Units in inequality are not the same"
         return self.value < other.value
 
-    def __sub__(self, other):
+    def __sub__(self: UnitsType, other: UnitsType) -> UnitsType:
         """Subtraction operator for Distance."""
         assert isinstance(self, type(other)), "Units in subtraction are not the same"
-        return type(self)(self.value - other.value)
+        return self.cls(self.value - other.value)
 
-    def __mul__(self, other: float):
+    def __mul__(self, other: Union[float, "Units"]):
         """Scalar multiplication operator for Distance."""
         if isinstance(self, Duration) and isinstance(other, Speed):
             return Distance(self.value * other.value)
@@ -43,16 +50,16 @@ class Units:
             + str(type(other))
             + " is not supported"
         )
-        return type(self)(self.value * other)
+        return self.cls(self.value * other)
 
     def __add__(self, other):
         """Addition operator of Duration."""
         assert isinstance(self, type(other)), "Units in addition are not the same"
-        return type(self)(self.value + other.value)
+        return self.cls(self.value + other.value)
 
     def __ge__(self, other):
         """Greater than or equal to operator for Volume."""
-        assert isinstance(self, type(other)), "Units in inequaility are not the same"
+        assert isinstance(self, type(other)), "Units in inequality are not the same"
         return self.value >= other.value
 
     def __truediv__(self, other):
@@ -71,7 +78,7 @@ class Distance(Units):  # pylint: disable=too-few-public-methods
 
         Defaults to DEFAULT_DISTANCE_UNITS if units not specified.
         """
-        super().__init__(distance * DISTANCE_FACTORS[units])
+        super().__init__(type(self), distance * DISTANCE_FACTORS[units])
 
     def get(self, units: str = DEFAULT_DISTANCE_UNITS):
         """Get distance specifying units.
@@ -89,7 +96,7 @@ class Duration(Units):  # pylint: disable=too-few-public-methods
 
         Defaults to DEFAULT_DURATION_UNITS if units not specified.
         """
-        super().__init__(duration * DURATION_FACTORS[units])
+        super().__init__(type(self), duration * DURATION_FACTORS[units])
 
     def get(self, units: str = DEFAULT_DURATION_UNITS):
         """Get duration specifying units.
@@ -113,7 +120,9 @@ class Speed(Units):  # pylint: disable=too-few-public-methods
         Defaults to DEFAULT_SPEED_DISTANCE_UNITS and DEFAULT_SPEED_TIME_UNITS if units not
         specified.
         """
-        super().__init__(speed * DISTANCE_FACTORS[distance_units] / DURATION_FACTORS[time_units])
+        super().__init__(
+            type(self), speed * DISTANCE_FACTORS[distance_units] / DURATION_FACTORS[time_units]
+        )
 
     def get(
         self,
@@ -136,7 +145,7 @@ class Volume(Units):  # pylint: disable=too-few-public-methods
 
         Defaults to DEFAULT_VOLUME_UNITS if units not specified.
         """
-        super().__init__(volume * VOLUME_FACTORS[units])
+        super().__init__(type(self), volume * VOLUME_FACTORS[units])
 
     def get(self, units: str = DEFAULT_VOLUME_UNITS):
         """Get distance specifying units.

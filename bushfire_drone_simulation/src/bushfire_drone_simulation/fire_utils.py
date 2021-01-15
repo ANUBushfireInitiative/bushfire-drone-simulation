@@ -43,7 +43,7 @@ class WaterTank(Location):
         """Initialise watertank from location and capacity."""
         super().__init__(latitude, longitude)
         self.capacity: Volume = capacity
-        self.initial_capacity = self.capacity
+        self.initial_capacity: Volume = self.capacity
 
     def empty(self, volume: Volume):
         """Remove a given volume from the water tank."""
@@ -112,12 +112,12 @@ class Time:  # pylint: disable=too-few-public-methods
         Or "0" for time 0.
         """
         if time_in == "inf":
-            self.time = Duration(inf)
+            self.time: Duration = Duration(inf)
         elif time_in == "0":
-            self.time = Duration(0)
+            self.time: Duration = Duration(0)
         else:
             try:
-                self.time = Duration(float(time_in), "min")
+                self.time: Duration = Duration(float(time_in), "min")
             except ValueError:
                 self.time = (
                     # Duration(int(time_in[:4]), "year")
