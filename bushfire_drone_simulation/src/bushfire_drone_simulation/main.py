@@ -17,9 +17,7 @@ from bushfire_drone_simulation.read_csv import read_lightning, read_locations_wi
 _LOG = logging.getLogger(__name__)
 app = typer.Typer()
 
-PARAMETERS_FILENAME_ARGUMENT = typer.Option(
-    "csv_data/parameters.json", help="Path to parameters file."
-)
+PARAMETERS_FILENAME_ARGUMENT = typer.Option("parameters.json", help="Path to parameters file.")
 
 
 def main():

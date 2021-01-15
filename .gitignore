@@ -140,6 +140,7 @@ docs/ANU Bushfire Initiative Drone Simulation Documentation.pdf
 # Input files
 bushfire_drone_simulation/csv_data
 bushfire_drone_simulation/image_data
+bushfire_drone_simulation/input
 csv_data
 *.nvimlog
 bushfire_drone_simulation/src/bushfire_drone_simulation/gui/map_tile_cache
