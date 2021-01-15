@@ -108,8 +108,10 @@ class JSONParameters:
                 )
                 lon = assert_number(
                     lons[i],
-                    f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') \
-is not a number.",
+                    (
+                        f"Error: The longitude on row {i+1} of '{filename}' "
+                        "('{lons[i]}') is not a number."
+                    ),
                 )
                 water_bombers.append(
                     WaterBomber(
@@ -144,12 +146,16 @@ is not a number.",
         for (idx, base) in enumerate(bases):
             if assert_bool(
                 bases_all[idx],
-                f"Error: The value on row {idx+1} of column 'all' in '{filename}' \
-('{bases_all[idx]}') is not a boolean.",
+                (
+                    f"Error: The value on row {idx+1} of column 'all' in '{filename}' "
+                    "('{bases_all[idx]}') is not a boolean."
+                ),
             ) or assert_bool(
                 bases_specific[idx],
-                "Error: The value on row {idx+1} of column '{water_bomber_type}' \
-in '{filename}' ('{bases_all[idx]}') is not a boolean.",
+                (
+                    f"Error: The value on row {idx+1} of column '{water_bomber_type}' in "
+                    "'{filename}' ('{bases_all[idx]}') is not a boolean."
+                ),
             ):
                 current_bases.append(base)
         return current_bases
@@ -170,8 +176,7 @@ in '{filename}' ('{bases_all[idx]}') is not a boolean.",
             )
             lon = assert_number(
                 lons[i],
-                f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') \
-is not a number.",
+                f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number.",
             )
             uavs.append(
                 UAV(
@@ -188,8 +193,9 @@ is not a number.",
         """Return attribute of JSON file."""
         if attribute not in self.scenarios[scenario_idx]:
             raise Exception(
-                f"Error: Parameter '{attribute}' is missing in '{self.filepath}'.\n\
-           Please add '{attribute}' to '{self.filepath}' and run the simulation again"
+                f"Error: Parameter '{attribute}' is missing in '{self.filepath}'.\n"
+                "Please add '{attribute}' to '{self.filepath}' "
+                "and run the simulation again"
             )
         return self.scenarios[scenario_idx][attribute]
 

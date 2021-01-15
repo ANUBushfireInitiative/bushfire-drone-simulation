@@ -42,7 +42,7 @@ class WaterTank(Location):
     def __init__(self, latitude: float, longitude: float, capacity: Volume):
         """Initialise watertank from location and capacity."""
         super().__init__(latitude, longitude)
-        self.capacity = capacity
+        self.capacity: Volume = capacity
         self.initial_capacity = self.capacity
 
     def empty(self, volume: Volume):

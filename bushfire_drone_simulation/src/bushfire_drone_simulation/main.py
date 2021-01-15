@@ -65,7 +65,6 @@ def run_simulation(
         water_tanks = read_locations_with_capacity(
             params.get_relative_filepath("water_tanks_filename", scenario_idx), WaterTank
         )
-        # FIXME(water tank capacity) # pylint: disable=fixme
 
         uavs = params.process_uavs(scenario_idx)
         water_bombers, water_bomber_bases = params.process_water_bombers(
