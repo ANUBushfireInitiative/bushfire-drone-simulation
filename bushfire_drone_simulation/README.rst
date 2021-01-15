@@ -26,6 +26,15 @@ details such as times, locations and capacities or to run the simulation varying
 The parameters file is a JSON file containing all information (or paths to files containing information)
 required to run the Bushfire Drone Simulation. The path to the parameters file from the current working directory
 is taken as input to the run-simulation command. The default parameters filename (if none is specified) is 'parameters.json'.
+To change the current working directory to the directory containing the parameters file, use the following
+commands from the terminal:
+
+--code-block::
+    cd directory_name
+    ls
+
+To either change or list sub directories respectively until the desired directory is reached.
+Alternatively, specify the path to the JSON parameters file from the current working directory.
 
 The JSON parameters file should contain the following information formatted as indicated
 (note that the ordering of these parameters does not matter however the nesting does):
@@ -221,8 +230,9 @@ nesting of the dictionary is used with '/' in between each nesting.
 
 **Example Input**
 
-Finally, please see the following parameter file for example input to the simulation. To also view the csv files
-required please see bushfire_drone_simulation/tests/input_data.
+Finally, please see the following parameter file for example input to the simulation.
+To also view the csv files required and examples for how to run multiple simulations,
+please see bushfire_drone_simulation/example_input.
 
 .. code-block:: json
 
