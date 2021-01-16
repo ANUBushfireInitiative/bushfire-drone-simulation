@@ -5,9 +5,8 @@ import queue
 from typing import Union
 
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
-from bushfire_drone_simulation.fire_utils import Base, Time, WaterTank, minimum
+from bushfire_drone_simulation.fire_utils import Base, Time, WaterTank, min_index
 from bushfire_drone_simulation.lightning import Lightning
-from bushfire_drone_simulation.units import Distance
 
 _LOG = logging.getLogger(__name__)
 
@@ -53,7 +52,7 @@ class Coordinator:
             self.events.get().get_uav.complete_update()
         else:
             # Determine nearest base to lightning strike
-            base_index, _ = minimum(self.uav_bases, Distance(1000000), lightning.distance)
+            base_index = min_index(self.uav_bases, lightning.distance)
             min_arrival_time = Time("inf")
             best_uav = None
             via_base = None
@@ -117,7 +116,7 @@ class Coordinator:
             fuel_first: Union[bool, None] = None
             for water_bomber in self.water_bombers:
                 water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
-                base_index, _ = minimum(water_bomber_bases, Distance(1000000), ignition.distance)
+                base_index = min_index(water_bomber_bases, ignition.distance)
                 if water_bomber.enough_water():
                     if water_bomber.enough_fuel(
                         [ignition, water_bomber_bases[base_index]],

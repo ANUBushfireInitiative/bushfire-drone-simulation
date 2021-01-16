@@ -154,14 +154,20 @@ class Time:  # pylint: disable=too-few-public-methods
         self.time += duration
 
 
-def minimum(array, min_value, operator=id):
-    """Return the minimum value of a list and the index of that value."""
-    index = None
+# OrderedType = TypeVar("OrderedType", bound=Comparable)
+
+# class Comparable()
+
+
+def min_index(array, operator=id):
+    """Return the minimum value of a operator applied to a list and the index of that value."""
+    index = 0
+    min_value = operator(array[0])
     for (i, val) in enumerate(array):
         if operator(val) < min_value:
             index = i
             min_value = operator(val)
-    return index, min_value
+    return index
 
 
 def assert_number(value: Any, message: str) -> float:
