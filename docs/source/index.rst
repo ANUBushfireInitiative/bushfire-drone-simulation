@@ -13,6 +13,7 @@ Documentation goes here
    :caption: Contents:
 
    application/application
+   installation/installation
    contributing/contributing
    testing/testing
    documenting/documenting

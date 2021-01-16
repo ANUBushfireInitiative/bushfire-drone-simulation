@@ -29,7 +29,8 @@ is taken as input to the run-simulation command. The default parameters filename
 To change the current working directory to the directory containing the parameters file, use the following
 commands from the terminal:
 
---code-block::
+.. code-block::
+
     cd directory_name
     ls
 
@@ -217,7 +218,6 @@ would require the file scenario_parameters.csv to be formatted as follows
 
 .. csv-table::
     :header: "scenario_name","ignition_probability","uavs/attributes/fuel_refill_time"
-    :widths: 7, 7
 
     "s1", "0.07", "30"
     "s2", "0.2", "25"
