@@ -3,10 +3,13 @@
 import logging
 from abc import abstractmethod
 from enum import Enum
-from typing import List
+from typing import Any, List
 
 from bushfire_drone_simulation.fire_utils import Base, Location, Time, WaterTank, min_index
 from bushfire_drone_simulation.units import Distance, Duration, Speed, Volume
+
+# if TYPE_CHECKING:
+#     from bushfire_drone_simulation.lightning import Lightning
 
 _LOG = logging.getLogger(__name__)
 
@@ -49,14 +52,6 @@ class UpdateEvent(Location):  # pylint: disable=too-few-public-methods
         self.status = status
         super().__init__(latitude, longitude)
 
-    @classmethod
-    def from_pos(cls, position: Location, time: Time, status: Status):
-        """Initialize UpdateEvent class with position."""
-        cls.latitude = position.lat
-        cls.longitude = position.lon
-        cls.time = time
-        cls.status = status
-
     def __lt__(self, other: "UpdateEvent") -> bool:
         """Less than operator for Updates."""
         return self.time < other.time
@@ -81,7 +76,7 @@ class Aircraft(Location):
         super().__init__(latitude, longitude)
         self.current_fuel_capacity: float = 1.0
         self.status = Status.WAITING_AT_BASE
-        self.past_locations = []
+        self.past_locations: List[UpdateEvent] = []
 
     def fuel_refill(self, base: Base) -> None:  # pylint: disable=unused-argument
         """Update time and range of aircraft after fuel refill."""
@@ -286,7 +281,7 @@ class WaterBomber(Aircraft):
         self.water_on_board = Volume(int(attributes["water_capacity"]), "L")
         self.type = bomber_type
         self.name = f"{bomber_type} {id_no+1}"
-        self.ignitions_suppressed = []
+        self.ignitions_suppressed: List[Any] = []  # TODO(fix types) #pylint: disable=fixme
         self.past_locations = [
             UpdateEvent(
                 self.name,

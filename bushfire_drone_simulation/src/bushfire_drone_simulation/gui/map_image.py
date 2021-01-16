@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Tuple
+from typing import Any, Dict, Tuple
 
 import geotiler
 import PIL.Image
@@ -12,7 +12,7 @@ from geotiler.tile.io import fetch_tiles
 cache_folder = Path(os.path.dirname(os.path.realpath(__file__))) / "map_tile_cache"
 cache_folder.mkdir(parents=True, exist_ok=True)
 
-session_cache = {}
+session_cache: Dict[str, Any] = {}  # TODO(fix types) #pylint: disable=fixme
 
 
 def get_from_cache(url: str):

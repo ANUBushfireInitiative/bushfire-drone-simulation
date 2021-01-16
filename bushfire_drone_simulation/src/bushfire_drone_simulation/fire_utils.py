@@ -114,10 +114,10 @@ class Time:  # pylint: disable=too-few-public-methods
         if time_in == "inf":
             self.time: Duration = Duration(inf)
         elif time_in == "0":
-            self.time: Duration = Duration(0)
+            self.time = Duration(0)
         else:
             try:
-                self.time: Duration = Duration(float(time_in), "min")
+                self.time = Duration(float(time_in), "min")
             except ValueError:
                 self.time = (
                     # Duration(int(time_in[:4]), "year")

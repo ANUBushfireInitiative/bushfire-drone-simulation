@@ -99,20 +99,20 @@ def run_simulation(
 def process_lightning(lightning_strikes: List[Lightning], coordinator: Coordinator):
     """Process lightning strikes by feeding to coordinator."""
     for lightning in lightning_strikes:
-        while (
-            coordinator.get_next_event_time() is not None
-            and coordinator.get_next_event_time() < lightning.spawn_time
-        ):
-            coordinator.lightning_update()
+        # while (
+        #     coordinator.get_next_event_time() is not None
+        #     and coordinator.get_next_event_time() < lightning.spawn_time
+        # ):
+        #     coordinator.lightning_update()
         coordinator.lightning_update(lightning)
 
 
 def process_ignitions(ignitions, coordinator):
     """Process ignitions by feeding to coordinator."""
     for ignition in ignitions:
-        while (
-            coordinator.get_next_event_time() is not None
-            and coordinator.get_next_event_time() < ignition.spawn_time
-        ):
-            coordinator.ignition_update()
+        # while (
+        #     coordinator.get_next_event_time() is not None
+        #     and coordinator.get_next_event_time() < ignition.spawn_time
+        # ):
+        #     coordinator.ignition_update()
         coordinator.ignition_update(ignition)
