@@ -79,8 +79,12 @@ def make_documentation() -> None:
             application_rst.write("  :parts: 1\n\n")
 
     os.chdir(os.getcwd() + "/docs/")
-    subprocess.run(["make", "clean"], check=True)
-    subprocess.run(["make", "html"], check=True)
+    if os.name == "nt":  # Running on a windows maching
+        subprocess.run(["make.bat", "clean"], check=True)
+        subprocess.run(["make.bat", "html"], check=True)
+    else:
+        subprocess.run(["make", "clean"], check=True)
+        subprocess.run(["make", "html"], check=True)
     os.chdir(script_location + "/../")
 
 
