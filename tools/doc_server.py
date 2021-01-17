@@ -49,7 +49,7 @@ def make_documentation() -> None:
             f"docs/source/auto_generated/application/{application}/modules.rst",
             "r",
         ) as application_rst:
-            previous_text = application_rst.read()
+            previous_text = application_rst.read().replace("=", "-")
 
         with open(
             f"docs/source/auto_generated/application/{application}/modules.rst",
