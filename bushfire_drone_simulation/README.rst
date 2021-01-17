@@ -21,7 +21,8 @@ Several input files are required to run the bushfire drone simulation. Most impo
 detailing most of the parameters for the simulation. The program additionally utilises a number of csv files to specify
 details such as times, locations and capacities or to run the simulation varying specific parameters to create multiple scenarios.
 
-**Parameters File**
+Parameters File
+~~~~~~~~~~~~~~~
 
 The parameters file is a JSON file containing all information (or paths to files containing information)
 required to run the Bushfire Drone Simulation. The path to the parameters file from the current working directory
@@ -45,10 +46,12 @@ The JSON parameters file should contain the following information formatted as i
 
     .. code-block:: json
 
-        "water_bomber_bases_filename": "path_to_file",
-        "uav_bases_filename": "path_to_file",
-        "water_tanks_filename": "path_to_file",
-        "lightning_filename": "path_to_file"
+        {
+            "water_bomber_bases_filename": "path_to_file",
+            "uav_bases_filename": "path_to_file",
+            "water_tanks_filename": "path_to_file",
+            "lightning_filename": "path_to_file"
+        }
 
     The information provided in these files and the correct formatting is discussed below.
 
@@ -56,7 +59,9 @@ The JSON parameters file should contain the following information formatted as i
 
     .. code-block:: json
 
-        "output_folder_name": "path_to_output_folder"
+        {
+            "output_folder_name": "path_to_output_folder"
+        }
 
     If this folder already exists and is not empty, the user will be prompted as to whether they wish to
     overwrite the current contents of the folder or respecify the output destination.
@@ -65,19 +70,22 @@ The JSON parameters file should contain the following information formatted as i
 
     .. code-block:: json
 
-        "ignition_probability": "the probability a given lightning strike will ignite"
-
+        {
+            "ignition_probability": "the probability a given lightning strike will ignite"
+        }
 
 *  A dictionary containing the following information about UAVs
 
     .. code-block:: json
 
-        "uavs": {
-            "spawn_loc_file": "path_to_file",
-            "attributes": {
-                "flight_speed": "flight speed of uav in km/hr",
-                "fuel_refill_time": "fuel refill time of uav in min",
-                "range": "total range of uav traveling at 'flight_speed' with a full tank in km"
+        {
+            "uavs": {
+                "spawn_loc_file": "path_to_file",
+                "attributes": {
+                    "flight_speed": "flight speed of uav in km/hr",
+                    "fuel_refill_time": "fuel refill time of uav in min",
+                    "range": "total range of uav traveling at 'flight_speed' with a full tank in km"
+                }
             }
         }
 
@@ -85,29 +93,31 @@ The JSON parameters file should contain the following information formatted as i
 
 .. code-block:: json
 
-    "water_bombers": {
-        "water_bomber_type_1": {
-            "spawn_loc_file": "path_to_file",
-            "attributes": {
-                "flight_speed": "flight speed of water bomber in km/hr",
-                "bombing_time": "bombing time of water bomber in min",
-                "water_refill_time": "water refill time of water bomber in min",
-                "fuel_refill_time": "fuel refill time of water bomber in min",
-                "water_per_delivery": "water required for each suppression in L",
-                "range_empty": "range of empty water bomber in km",
-                "range_under_load": "range of loaded water bomber in km",
-                "water_capacity": "water capacity of water bomber in L"
-            }
-        },
-        "water_bomber_type_2": {
-            "Same attribute structure as above"
-        },
-        "Additional water bombers can be added using the same structure shown above"
+    {
+        "water_bombers": {
+            "water_bomber_type_1": {
+                "spawn_loc_file": "path_to_file",
+                "attributes": {
+                    "flight_speed": "flight speed of water bomber in km/hr",
+                    "bombing_time": "bombing time of water bomber in min",
+                    "water_refill_time": "water refill time of water bomber in min",
+                    "fuel_refill_time": "fuel refill time of water bomber in min",
+                    "water_per_delivery": "water required for each suppression in L",
+                    "range_empty": "range of empty water bomber in km",
+                    "range_under_load": "range of loaded water bomber in km",
+                    "water_capacity": "water capacity of water bomber in L"
+                }
+            },
+            "water_bomber_type_2": {
+                "Same attribute structure as above"
+            },
+            "Additional water bombers can be added using the same structure shown above"
+        }
     }
 
 
-
-**CSV File formats**
+CSV File formats
+~~~~~~~~~~~~~~~~
 
 The paths to csv files specified above should contain the following information and format requirements.
 Note that the column headers must follow the same naming conventions however the data that follows
@@ -182,7 +192,8 @@ is just sample input.
         -37.81,144.97
 
 
-**Multiple Simulations**
+Multiple Simulations
+~~~~~~~~~~~~~~~~~~~~
 
 In order to run multiple simulations at once from the same csv file, a few alterations to the above format
 may be made. Firstly, any variables (including csv files) that would like to be varied between simulations
@@ -196,21 +207,25 @@ as follows:
 
 .. code-block:: json
 
-    "scenario_parameters_filename": "path_to_file"
+    {
+        "scenario_parameters_filename": "path_to_file"
+    }
 
 For example, the JSON parameters file
 
 .. code-block:: json
 
-    "scenario_parameters_filename": "scenario_parameters.csv"
-    "ignition_probability": "?"
+    {
+        "scenario_parameters_filename": "scenario_parameters.csv"
+        "ignition_probability": "?"
 
-    "uavs": {
-        "spawn_loc_file": "uav_spawn_locations.csv",
-        "attributes": {
-            "flight_speed": "?",
-            "fuel_refill_time": 30,
-            "range": 650
+        "uavs": {
+            "spawn_loc_file": "uav_spawn_locations.csv",
+            "attributes": {
+                "flight_speed": "?",
+                "fuel_refill_time": 30,
+                "range": 650
+            }
         }
     }
 
@@ -228,7 +243,8 @@ nesting of the dictionary is used with '/' in between each nesting.
 
 
 
-**Example Input**
+Example Input
+~~~~~~~~~~~~~
 
 Finally, please see the following parameter file for example input to the simulation.
 To also view the csv files required and examples for how to run multiple simulations,
