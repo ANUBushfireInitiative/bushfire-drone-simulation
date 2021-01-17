@@ -1,6 +1,7 @@
 """Various unit classes useful to the bushfire_drone_simulation."""
 
 import abc
+from copy import deepcopy
 from typing import TypeVar, Union
 
 DEFAULT_DISTANCE_UNITS = "km"
@@ -22,12 +23,11 @@ class Units:
     """Units class for easy unit conversion."""
 
     @abc.abstractmethod
-    def __init__(self, cls: type, value: float):
+    def __init__(self, value: float):
         """hold."""
         self.value = value
-        self.cls = cls
 
-    def __lt__(self, other):
+    def __lt__(self, other: "Units") -> bool:
         """Less than operator of Distance."""
         if isinstance(other, (float, int)):
             return self.value < other
@@ -36,13 +36,14 @@ class Units:
 
     def __sub__(self: UnitsType, other: UnitsType) -> UnitsType:
         """Subtraction operator for Distance."""
+        to_return = deepcopy(self)
         assert isinstance(self, type(other)), "Units in subtraction are not the same"
-        return self.cls(self.value - other.value)
+        to_return.value -= other.value
+        return to_return
 
-    def __mul__(self, other: Union[float, "Units"]):
+    def __mul__(self: UnitsType, other: Union[int, float]) -> UnitsType:
         """Scalar multiplication operator for Distance."""
-        if isinstance(self, Duration) and isinstance(other, Speed):
-            return Distance(self.value * other.value)
+        to_return = deepcopy(self)
         assert isinstance(other, (float, int)), (
             "Multiplication of "
             + str(type(self))
@@ -50,27 +51,39 @@ class Units:
             + str(type(other))
             + " is not supported"
         )
-        return self.cls(self.value * other)
+        to_return.value *= other
+        return to_return
 
-    def __add__(self, other):
+    def __rmul__(self: UnitsType, lhs: Union[int, float]) -> UnitsType:
+        """__rmul__.
+
+        Args:
+            lhs (float): lhs
+
+        Returns:
+            UnitsType:
+        """
+        return self * lhs
+
+    def __add__(self: UnitsType, other: UnitsType) -> UnitsType:
         """Addition operator of Duration."""
+        to_return = deepcopy(self)
         assert isinstance(self, type(other)), "Units in addition are not the same"
-        return self.cls(self.value + other.value)
+        to_return.value += other.value
+        return to_return
 
-    def __ge__(self, other):
-        """Greater than or equal to operator for Volume."""
+    def __ge__(self: UnitsType, other: UnitsType) -> bool:
+        """Greater than or equal to operator for Units."""
         assert isinstance(self, type(other)), "Units in inequality are not the same"
         return self.value >= other.value
 
-    def __truediv__(self, other):
-        """Division operator for Volume."""
-        if isinstance(self, Distance) and isinstance(other, Speed):
-            return Duration(self.value / other.value)
+    def __truediv__(self: UnitsType, other: UnitsType) -> float:
+        """Division operator for Units."""
         assert isinstance(self, type(other)), "Units in division are not the same"
         return self.value / other.value
 
 
-class Distance(Units):  # pylint: disable=too-few-public-methods
+class Distance(Units):
     """Distance class for easy unit conversion. Distance stored internally as metres."""
 
     def __init__(self, distance: float, units: str = DEFAULT_DISTANCE_UNITS):
@@ -78,17 +91,39 @@ class Distance(Units):  # pylint: disable=too-few-public-methods
 
         Defaults to DEFAULT_DISTANCE_UNITS if units not specified.
         """
-        super().__init__(type(self), distance * DISTANCE_FACTORS[units])
+        super().__init__(distance * DISTANCE_FACTORS[units])
 
-    def get(self, units: str = DEFAULT_DISTANCE_UNITS):
+    def get(self, units: str = DEFAULT_DISTANCE_UNITS) -> float:
         """Get distance specifying units.
 
         Defaults to DEFAULT_DISTANCE_UNITS if units not specified.
         """
         return self.value / DISTANCE_FACTORS[units]
 
+    def div_by_time(self, time: "Duration") -> "Speed":
+        """Divide distance by time to get speed.
 
-class Duration(Units):  # pylint: disable=too-few-public-methods
+        Args:
+            time ("Duration"): time
+
+        Returns:
+            "Speed": Speed
+        """
+        return Speed(self.value / time.value)
+
+    def div_by_speed(self, speed: "Speed") -> "Duration":
+        """Divide distance by speed to get time.
+
+        Args:
+            time ("Duration"): time
+
+        Returns:
+            "Speed": Speed
+        """
+        return Duration(self.value / speed.value)
+
+
+class Duration(Units):
     """Duration class for easy unit conversion. Duration stored internally as seconds."""
 
     def __init__(self, duration: float, units: str = DEFAULT_DURATION_UNITS):
@@ -96,17 +131,28 @@ class Duration(Units):  # pylint: disable=too-few-public-methods
 
         Defaults to DEFAULT_DURATION_UNITS if units not specified.
         """
-        super().__init__(type(self), duration * DURATION_FACTORS[units])
+        super().__init__(duration * DURATION_FACTORS[units])
 
-    def get(self, units: str = DEFAULT_DURATION_UNITS):
+    def get(self, units: str = DEFAULT_DURATION_UNITS) -> float:
         """Get duration specifying units.
 
         Defaults to DEFAULT_DURATION_UNITS if units not specified.
         """
         return self.value / DURATION_FACTORS[units]
 
+    def mul_by_speed(self, speed: "Speed") -> Distance:
+        """mul_by_speed.
 
-class Speed(Units):  # pylint: disable=too-few-public-methods
+        Args:
+            speed ("Speed"): speed
+
+        Returns:
+            Distance:
+        """
+        return Distance(self.value * speed.value)
+
+
+class Speed(Units):
     """Speed class for easy unit conversion. Speed stored internally as metres/second."""
 
     def __init__(
@@ -120,21 +166,30 @@ class Speed(Units):  # pylint: disable=too-few-public-methods
         Defaults to DEFAULT_SPEED_DISTANCE_UNITS and DEFAULT_SPEED_TIME_UNITS if units not
         specified.
         """
-        super().__init__(
-            type(self), speed * DISTANCE_FACTORS[distance_units] / DURATION_FACTORS[time_units]
-        )
+        super().__init__(speed * DISTANCE_FACTORS[distance_units] / DURATION_FACTORS[time_units])
 
     def get(
         self,
         distance_units: str = DEFAULT_SPEED_DISTANCE_UNITS,
         time_units: str = DEFAULT_SPEED_TIME_UNITS,
-    ):
+    ) -> float:
         """Get speed specifying both distance and time units.
 
         Defaults to DEFAULT_SPEED_DISTANCE_UNITS and DEFAULT_SPEED_TIME_UNITS if units not
         specified.
         """
         return self.value * DURATION_FACTORS[time_units] / DISTANCE_FACTORS[distance_units]
+
+    def mul_by_duration(self, duration: "Duration") -> Distance:
+        """Multiply speed by duration to get distance.
+
+        Args:
+            duration ("Duration"): duration
+
+        Returns:
+            Distance: distance
+        """
+        return Distance(self.value * duration.value)
 
 
 class Volume(Units):  # pylint: disable=too-few-public-methods
@@ -145,9 +200,9 @@ class Volume(Units):  # pylint: disable=too-few-public-methods
 
         Defaults to DEFAULT_VOLUME_UNITS if units not specified.
         """
-        super().__init__(type(self), volume * VOLUME_FACTORS[units])
+        super().__init__(volume * VOLUME_FACTORS[units])
 
-    def get(self, units: str = DEFAULT_VOLUME_UNITS):
+    def get(self, units: str = DEFAULT_VOLUME_UNITS) -> float:
         """Get distance specifying units.
 
         Defaults to DEFAULT_VOLUME_UNITS if units not specified.

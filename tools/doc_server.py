@@ -85,7 +85,7 @@ def make_documentation() -> None:
 
 
 @app.command()
-def start_server(host="localhost", port="8000", live: bool = False):
+def start_server(host: str = "localhost", port: str = "8000", live: bool = False) -> None:
     """Start server for documentation."""
     make_documentation()
     server = Server()
@@ -105,7 +105,7 @@ def start_server(host="localhost", port="8000", live: bool = False):
 
 
 @app.command()
-def make_pdf():
+def make_pdf() -> None:
     """Make a pdf version of the documentation."""
     script_location = os.path.dirname(os.path.abspath(__file__))
     make_documentation()

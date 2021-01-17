@@ -1,14 +1,14 @@
 """Various classes and functions useful to the bushfire_drone_simulation application."""
 
 from math import atan2, cos, inf, isnan, radians, sin, sqrt
-from typing import Any
+from typing import Any, Tuple
 
-import numpy
+import numpy as np
 
 from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Distance, Duration, Volume
 
 
-class Location:  # pylint: disable=too-few-public-methods
+class Location:
     """Location class storing postion in worldwide latitude and longitude coordinates."""
 
     def __init__(self, latitude: float, longitude: float):
@@ -16,7 +16,7 @@ class Location:  # pylint: disable=too-few-public-methods
         self.lat = latitude
         self.lon = longitude
 
-    def distance(self, other, units: str = "km") -> Distance:
+    def distance(self, other: "Location", units: str = "km") -> Distance:
         """Find Euclidian distance between two locations."""
         temp = (
             sin(radians(other.lat - self.lat) / 2) ** 2
@@ -26,12 +26,12 @@ class Location:  # pylint: disable=too-few-public-methods
         )
         return Distance(6371 * 2 * atan2(sqrt(temp), sqrt(1 - temp)), units)
 
-    def to_coordinates(self):
+    def to_coordinates(self) -> Tuple[float, float]:
         """Return pixel coordinates of location."""
         # FIXME(not converting lat lon to coordinates)  # pylint: disable=fixme
         return (self.lon - 144) * 100, (-34 - self.lat) * 100
 
-    def copy_loc(self):
+    def copy_loc(self) -> "Location":
         """Create a new instance of Location."""
         return Location(self.lat, self.lon)
 
@@ -45,7 +45,7 @@ class WaterTank(Location):
         self.capacity: Volume = capacity
         self.initial_capacity: Volume = self.capacity
 
-    def empty(self, volume: Volume):
+    def remove_water(self, volume: Volume) -> None:
         """Remove a given volume from the water tank."""
         self.capacity -= volume
 
@@ -58,12 +58,12 @@ class Base(Location):
         super().__init__(latitude, longitude)
         self.capacity = capacity
 
-    def empty(self, volume: Volume):
+    def remove_fuel(self, volume: Volume) -> None:
         """Remove a given volume of fuel from the base."""
         self.capacity -= volume
 
 
-def month_to_days(month: int, leap_year: bool = False):
+def month_to_days(month: int, leap_year: bool = False) -> int:
     """Month is coverted to the number of days since the beginning of the year."""
     month -= 1
     days = month * 31
@@ -77,7 +77,7 @@ def month_to_days(month: int, leap_year: bool = False):
     return days
 
 
-def days_to_month(days: int, leap_year: bool = False):
+def days_to_month(days: int, leap_year: bool = False) -> Tuple[int, int]:
     """Convert number of days to a date since the beginning of the year.
 
     Usage:
@@ -101,7 +101,7 @@ def days_to_month(days: int, leap_year: bool = False):
     return month, days
 
 
-class Time:  # pylint: disable=too-few-public-methods
+class Time:
     """Time class storing time in the form YYYY-MM-DD-HH-MM-SS."""
 
     def __init__(self, time_in: str):
@@ -127,47 +127,34 @@ class Time:  # pylint: disable=too-few-public-methods
                     + Duration(int(time_in[17:19]), "s")
                 )
 
-    def copy_time(self):
+    def copy_time(self) -> "Time":
         """Create new Time."""
+        # TODO(use copy.deepcopy instead) pylint: disable=fixme
         copy = Time("0")
         copy.time = self.time
         return copy
 
-    def get(self, units: str = DEFAULT_DURATION_UNITS):
+    def get(self, units: str = DEFAULT_DURATION_UNITS) -> float:
         """Return time."""
         return self.time.get(units)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Equality for Time."""
+        if not isinstance(other, Time):
+            return False
         return self.get() == other.get()
 
-    def __lt__(self, other):
+    def __lt__(self, other: "Time") -> bool:
         """Less than operator for Time."""
         return self.get() < other.get()
 
-    def __sub__(self, other):
+    def __sub__(self, other: "Time") -> Duration:
         """Subtraction operator for Time, returns a Duration."""
         return Duration(self.get() - other.get())
 
-    def add_duration(self, duration: Duration):
+    def add_duration(self, duration: Duration) -> None:
         """Add a given duration to time."""
         self.time += duration
-
-
-# OrderedType = TypeVar("OrderedType", bound=Comparable)
-
-# class Comparable()
-
-
-def min_index(array, operator=id):
-    """Return the minimum value of a operator applied to a list and the index of that value."""
-    index = 0
-    min_value = operator(array[0])
-    for (i, val) in enumerate(array):
-        if operator(val) < min_value:
-            index = i
-            min_value = operator(val)
-    return index
 
 
 def assert_number(value: Any, message: str) -> float:
@@ -194,7 +181,7 @@ def assert_bool(value: Any, message: str) -> bool:
     Returns:
         bool:
     """
-    assert isinstance(value, (numpy.bool_, bool, int, float, str)), message
+    assert isinstance(value, (np.bool_, bool, int, float, str)), message
     if isinstance(value, (int, float)):
         if isnan(value):
             return False

@@ -50,6 +50,7 @@ repos:
     rev: v0.730
     hooks:
     -   id: mypy
+        #args: [--strict]
 -   repo: local
     hooks:
     -   id: pylint

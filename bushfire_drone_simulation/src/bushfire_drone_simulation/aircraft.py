@@ -3,9 +3,11 @@
 import logging
 from abc import abstractmethod
 from enum import Enum
-from typing import Any, List
+from typing import Any, List, Optional
 
-from bushfire_drone_simulation.fire_utils import Base, Location, Time, WaterTank, min_index
+import numpy as np
+
+from bushfire_drone_simulation.fire_utils import Base, Location, Time, WaterTank
 from bushfire_drone_simulation.units import Distance, Duration, Speed, Volume
 
 # if TYPE_CHECKING:
@@ -39,7 +41,7 @@ class UpdateEvent(Location):  # pylint: disable=too-few-public-methods
         current_fuel: float,
         current_range: Distance,
         distance_hovered: Distance,
-        current_water: Volume = None,
+        current_water: Optional[Volume] = None,
     ):  # pylint: disable=too-many-arguments
         """Initialize UpdateEvent class."""
         self.name = name
@@ -98,7 +100,9 @@ class Aircraft(Location):
         assert isinstance(self, WaterBomber), "A UAV is trying to visit a water tank"
         return Duration(0)
 
-    def update_position(self, position: Location, departure_time: Time, final_status: Status):
+    def update_position(
+        self, position: Location, departure_time: Time, final_status: Status
+    ) -> None:
         """Update position, range and time of Water bomber."""
         if self.time < departure_time:
             self.time = departure_time.copy_time()
@@ -110,25 +114,27 @@ class Aircraft(Location):
             self.add_update(Status.GOING_TO_WATER)
 
         if self.status == Status.HOVERING and self.time < departure_time:
-            self.current_fuel_capacity -= (
-                (self.time - departure_time) * self.max_velocity / self.get_range()
-            )
+            self.current_fuel_capacity -= (self.time - departure_time).mul_by_speed(
+                self.max_velocity
+            ) / self.get_range()
         self.current_fuel_capacity -= self.distance(position) / self.get_range()
 
-        self.time.add_duration(self.distance(position) / self.max_velocity)
+        self.time.add_duration(self.distance(position).div_by_speed(self.max_velocity))
         if self.current_fuel_capacity < 0:
             _LOG.error("Aircraft %s ran out of fuel", self.id_no)
         self.status = final_status
         self.update_location(position)
         self.add_update(self.status)
 
-    def consider_going_to_base(self, bases: List[Base], departure_time: Time, fraction: float = 3):
+    def consider_going_to_base(
+        self, bases: List[Base], departure_time: Time, fraction: float = 3
+    ) -> None:
         """Aircraft will return to base.
 
         if it takes more than 1/fraction of its fuel tank to return to the nearest base
         """
         if self.status == Status.HOVERING:
-            index = min_index(bases, self.distance)
+            index = np.argmin(map(self.distance, bases))
             if (
                 self.distance(bases[index]) * fraction
                 > self.get_range() * self.current_fuel_capacity
@@ -141,14 +147,14 @@ class Aircraft(Location):
         current_time = max(self.time, time_of_event).copy_time()
         for index, position in enumerate(positions):
             if index == 0:
-                current_time.add_duration(self.distance(position) / self.max_velocity)
+                current_time.add_duration(self.distance(position).div_by_speed(self.max_velocity))
             else:
                 current_time.add_duration(
-                    positions[index - 1].distance(position) / self.max_velocity
+                    positions[index - 1].distance(position).div_by_speed(self.max_velocity)
                 )
             if isinstance(position, WaterTank):
                 current_time.add_duration(self.get_water_refill_time())
-            if isinstance(position, Base):
+            elif isinstance(position, Base):
                 current_time.add_duration(self.fuel_refill_time)
         return current_time
 
@@ -157,7 +163,9 @@ class Aircraft(Location):
         current_fuel = self.current_fuel_capacity
         if self.status == Status.HOVERING and self.time < departure_time:
             # Update fuel loss from hovering
-            current_fuel -= (self.time - departure_time) * self.max_velocity / self.get_range()
+            current_fuel -= (self.time - departure_time).mul_by_speed(
+                self.max_velocity
+            ) / self.get_range()
         for index, position in enumerate(positions):
             if index == 0:
                 current_fuel -= self.distance(position) / self.get_range()
@@ -235,7 +243,7 @@ class UAV(Aircraft):
         previous_update = self.past_locations[-1]
         distance_hovered = Distance(0)
         if previous_update.status == Status.HOVERING:
-            distance_hovered = (previous_update.time - self.time) * self.max_velocity
+            distance_hovered = (previous_update.time - self.time).mul_by_speed(self.max_velocity)
         self.past_locations.append(
             UpdateEvent(
                 "uav " + str(self.id_no),
@@ -327,8 +335,8 @@ class WaterBomber(Aircraft):
 
     def water_refill(self, water_tank: WaterTank):
         """Update time and range of water bomber after water refill."""
-        water_tank.empty(self.water_capacity - self.water_on_board)
-        if water_tank.capacity < 0:
+        water_tank.remove_water(self.water_capacity - self.water_on_board)
+        if water_tank.capacity < Volume(0):
             _LOG.error("Water tank ran out of water")
         self.water_on_board = self.water_capacity
         self.time.add_duration(self.water_refill_time)
@@ -346,7 +354,7 @@ class WaterBomber(Aircraft):
         previous_update = self.past_locations[-1]
         distance_hovered = Distance(0)
         if previous_update.status == Status.HOVERING:
-            distance_hovered = (previous_update.time - self.time) * self.max_velocity
+            distance_hovered = (previous_update.time - self.time).mul_by_speed(self.max_velocity)
         self.past_locations.append(
             UpdateEvent(
                 self.name,

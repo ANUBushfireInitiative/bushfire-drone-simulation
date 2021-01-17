@@ -2,20 +2,21 @@
 
 import os
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 import geotiler
 import PIL.Image
 from geotiler.cache import caching_downloader
 from geotiler.tile.io import fetch_tiles
+from PIL.Image import Image
 
 cache_folder = Path(os.path.dirname(os.path.realpath(__file__))) / "map_tile_cache"
 cache_folder.mkdir(parents=True, exist_ok=True)
 
-session_cache: Dict[str, Any] = {}  # TODO(fix types) #pylint: disable=fixme
+session_cache: Dict[str, bytes] = {}
 
 
-def get_from_cache(url: str):
+def get_from_cache(url: str) -> Optional[bytes]:
     """Get image from cache.
 
     Returns None if image is not in the cache.
@@ -33,7 +34,7 @@ def get_from_cache(url: str):
     return None
 
 
-def put_in_cache(url: str, image: bytes):
+def put_in_cache(url: str, image: bytes) -> None:
     """Put image in cache.
 
     Args:
@@ -104,16 +105,16 @@ class MapImage:
 
         self._update_image()
 
-    def get_image(self):
+    def get_image(self) -> Image:
         """Return map image to be displayed."""
         return self.display_image
 
-    def _fetch_and_update(self):
+    def _fetch_and_update(self) -> None:
         """_fetch_and_update."""
         self._fetch_image()
         self._update_image()
 
-    def _fetch_image(self):
+    def _fetch_image(self) -> None:
         """_fetch_image."""
         geotiler_map = geotiler.Map(
             center=(self.display_lon, self.display_lat),
@@ -128,11 +129,11 @@ class MapImage:
         self.left = int((self.big_image.size[0] - self.width) / 2)
         self.top = int((self.big_image.size[1] - self.height) / 2)
 
-    def _update_image(self):
+    def _update_image(self) -> None:
         """_update_image."""
         self.display_image.paste(self.big_image, (-self.left, -self.top))
 
-    def move(self, dx: int, dy: int):
+    def move(self, dx: int, dy: int) -> None:
         """move.
 
         Args:
@@ -152,7 +153,7 @@ class MapImage:
         else:
             self._update_image()
 
-    def change_zoom(self, zoom: int):
+    def change_zoom(self, zoom: int) -> None:
         """change_zoom.
 
         Args:
@@ -161,7 +162,7 @@ class MapImage:
         self.zoom = zoom
         self._fetch_and_update()
 
-    def _constrain(self, old: int, change: int, max_value: int):
+    def _constrain(self, old: int, change: int, max_value: int) -> int:
         """_constrain.
 
         Args:
