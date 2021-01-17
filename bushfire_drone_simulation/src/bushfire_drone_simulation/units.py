@@ -49,7 +49,8 @@ class Units:
             + str(type(self))
             + " and "
             + str(type(other))
-            + " is not supported"
+            + " is not supported. To multiply a speed and time to return a distance, "
+            "use time.mul_by_speed(speed) or speed.mul_by_time(time) respectively."
         )
         to_return.value *= other
         return to_return
@@ -79,7 +80,10 @@ class Units:
 
     def __truediv__(self: UnitsType, other: UnitsType) -> float:
         """Division operator for Units."""
-        assert isinstance(self, type(other)), "Units in division are not the same"
+        assert isinstance(self, type(other)), (
+            "Units in division are not the same. To divide a distance by speed or time, "
+            "use distance.div_by_speed(speed) or distance.div_by_time(time) respectively."
+        )
         return self.value / other.value
 
 
@@ -109,7 +113,7 @@ class Distance(Units):
         Returns:
             "Speed": Speed
         """
-        return Speed(self.value / time.value)
+        return Speed(self.get(DEFAULT_SPEED_DISTANCE_UNITS) / time.get(DEFAULT_SPEED_TIME_UNITS))
 
     def div_by_speed(self, speed: "Speed") -> "Duration":
         """Divide distance by speed to get time.
@@ -120,7 +124,7 @@ class Distance(Units):
         Returns:
             "Speed": Speed
         """
-        return Duration(self.value / speed.value)
+        return Duration(self.get("km") / speed.get("km", DEFAULT_DURATION_UNITS))
 
 
 class Duration(Units):
@@ -149,7 +153,7 @@ class Duration(Units):
         Returns:
             Distance:
         """
-        return Distance(self.value * speed.value)
+        return Distance(self.get("hr") * speed.get(DEFAULT_DISTANCE_UNITS, "hr"))
 
 
 class Speed(Units):
@@ -189,7 +193,7 @@ class Speed(Units):
         Returns:
             Distance: distance
         """
-        return Distance(self.value * duration.value)
+        return Distance(self.get(DEFAULT_DISTANCE_UNITS, "s") * duration.get("s"))
 
 
 class Volume(Units):  # pylint: disable=too-few-public-methods

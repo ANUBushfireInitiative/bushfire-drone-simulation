@@ -5,7 +5,7 @@
     "lightning_filename": "input_data/lightning.csv",
     "scenario_parameters_filename": "input_data/scenario_parameters.csv",
     "output_folder_name": "output",
-    "ignition_probability": 0.072,
+    "ignition_probability": 1,
 
     "uavs": {"spawn_loc_file": "input_data/uav_spawn_locations.csv",
         "attributes": {

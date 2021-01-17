@@ -244,6 +244,7 @@ class UAV(Aircraft):
         distance_hovered = Distance(0)
         if previous_update.status == Status.HOVERING:
             distance_hovered = (previous_update.time - self.time).mul_by_speed(self.max_velocity)
+            print(distance_hovered.get())
         self.past_locations.append(
             UpdateEvent(
                 "uav " + str(self.id_no),

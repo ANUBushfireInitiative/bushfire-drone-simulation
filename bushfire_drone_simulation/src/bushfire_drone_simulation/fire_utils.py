@@ -148,6 +148,10 @@ class Time:
         """Less than operator for Time."""
         return self.get() < other.get()
 
+    def __ge__(self, other: "Time") -> bool:
+        """Greater than or equal to operator for Time."""
+        return self.get() >= other.get()
+
     def __sub__(self, other: "Time") -> Duration:
         """Subtraction operator for Time, returns a Duration."""
         return Duration(self.get() - other.get())
