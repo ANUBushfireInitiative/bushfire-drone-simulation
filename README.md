@@ -111,8 +111,14 @@ bushfire_drone_simulation --help
 
 ## Documentation
 
-The documentation for this application is a combination of manual and automatically generated components, primarily contained within the [docs/source](docs/source) directory. This consists of some graphical components which rely on the graphviz application. This is often preinstalled but on a unix system it may need to be installed using the command
+The documentation for this application is a combination of manual and automatically generated components, primarily contained within the [docs/source](docs/source) directory. This consists of some graphical components which rely on the graphviz application. It can be installed using the command
 
+**Windows:**
+```powershell
+choco install graphviz; dot -c
+```
+
+**Unix:**
 ```bash
 sudo apt-get install graphviz
 ```
@@ -120,7 +126,7 @@ sudo apt-get install graphviz
 You can now start a local documentation server by running the command
 
 **Windows:**
-```bash
+```powershell
 py -3.8 tools/doc_server.py start-server
 ```
 
