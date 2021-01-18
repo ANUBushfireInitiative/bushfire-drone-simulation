@@ -37,7 +37,11 @@ class JSONParameters:
     """Class for reading parameters from a csv file."""
 
     def __init__(self, filename: str):
-        """Read collection of variables stored in filename."""
+        """Read collection of variables stored in filename.
+
+        Args:
+            filename (str): filepath to json parameters file from current working directory
+        """
         self.folder = os.path.dirname(filename)
         self.filepath = filename
         with open(filename) as file:
@@ -180,7 +184,7 @@ class JSONParameters:
             )
             lon = assert_number(
                 lons[i],
-                f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number.",
+                f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number",
             )
             uavs.append(
                 UAV(

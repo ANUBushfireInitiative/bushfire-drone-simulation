@@ -18,10 +18,10 @@ class CSVFile:
     """CSVFile class to provide wrapper for csv files (with useful errors)."""
 
     def __init__(self, filename: str):
-        """__init__.
+        """Initialize CSVFile class.
 
         Args:
-            filename (str): filename
+            filename (str): path to csv file from current working directory
         """
         self.filename: str = filename
         self.csv_dataframe: pd.DataFrame = pd.DataFrame(pd.read_csv(filename))
@@ -41,6 +41,14 @@ class CSVFile:
         else:
             column_to_return = pd.Series(self.csv_dataframe[column])
         return column_to_return
+
+    def get_column_headings(self) -> List[str]:
+        """Get headins of columns.
+
+        Returns:
+            List[str]: List of column headings
+        """
+        return self.csv_dataframe.head()
 
     def get_cell(self, column: Union[str, int], cell_idx: int):
         """get_cell.
@@ -87,30 +95,31 @@ def read_lightning(filename: str, ignition_probability: float) -> List[Lightning
     lats = lightning_data["latitude"]
     lons = lightning_data["longitude"]
     times = lightning_data["time"]
-    try:
+    if "ignited" in lightning_data.get_column_headings():
         ignitions = lightning_data["ignited"]
-        for i, lat in enumerate(lats):
-            lat = assert_number(
-                lat, f"Error: The latitude on row {i+1} of '{filename}' ('{lat}') is not a number."
+        ignition_probabilities: List[float] = [
+            1
+            if assert_bool(
+                i,
+                (
+                    f"Error: The ignition on row {i+1} of '{filename}'"
+                    "('{ignitions[i]}') is not a boolean."
+                ),
             )
-            lon = assert_number(
-                lons[i],
-                f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number.",
-            )
-            ignited = assert_bool(
-                ignitions[i],
-                f"Error: The ignition on row {i+1} of '{filename}'\
-('{ignitions[i]}') is not a boolean.",
-            )
-            lightning.append(Lightning(lat, lon, Time(str(times[i])), 1 if ignited else 0))
-    except ColumnNotFoundException:
-        for i, lat in enumerate(lats):
-            lat = assert_number(
-                lat, f"Error: The latitude on row {i+1} of '{filename}' ('{lat}') is not a number."
-            )
-            lon = assert_number(
-                lons[i],
-                f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number.",
-            )
-            lightning.append(Lightning(lat, lon, Time(str(times[i])), ignition_probability))
+            else 0
+            for i in ignitions
+        ]
+    else:
+        ignition_probabilities = [ignition_probability for _ in enumerate(lats)]
+
+    for i, lat in enumerate(lats):
+        lat = assert_number(
+            lat, f"Error: The latitude on row {i+1} of '{filename}' ('{lat}') is not a number."
+        )
+        lon = assert_number(
+            lons[i],
+            f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number.",
+        )
+        lightning.append(Lightning(lat, lon, Time(str(times[i])), ignition_probabilities[i]))
+
     return lightning

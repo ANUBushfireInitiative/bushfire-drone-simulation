@@ -3,7 +3,7 @@
 import logging
 from abc import abstractmethod
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -41,7 +41,20 @@ class UpdateEvent(Location):  # pylint: disable=too-few-public-methods
         distance_hovered: Distance,
         current_water: Optional[Volume] = None,
     ):  # pylint: disable=too-many-arguments
-        """Initialize UpdateEvent class."""
+        """Initialize UpdateEvent class.
+
+        Args:
+            name (str): name of aircraft
+            latitude (float): latitude of aircraft
+            longitude (float): logitude of aircraft
+            time (Time): time of event
+            status (Status): status of aircraft
+            distance_travelled (Distance): distance travelled by aircraft since last event update
+            current_fuel (float): percentage of current fuel remaining
+            current_range (Distance): current range of aircraft
+            distance_hovered (Distance): distance hovered by aircraft since last event update
+            current_water (Optional[Volume], optional): Current water on board aircraft.
+        """
         self.name = name
         self.distance_travelled = distance_travelled  # since previous update
         self.fuel = current_fuel
@@ -80,13 +93,17 @@ class Aircraft(Location):
         self.strikes_visited: List[Tuple[Lightning, Time]] = []
 
     def fuel_refill(self, base: Base) -> None:  # pylint: disable=unused-argument
-        """Update time and range of aircraft after fuel refill."""
+        """Update time and range of aircraft after fuel refill.
+
+        Args:
+            base (Base): base to be refilled from
+        """
         # base.empty()
         self.current_fuel_capacity = 1.0
         self.time.add_duration(self.fuel_refill_time)
 
     def update_location(self, position: Location) -> None:
-        """Hopefully not necessary."""
+        """Update location of aircraft."""
         self.lat = position.lat
         self.lon = position.lon
 
@@ -106,7 +123,13 @@ class Aircraft(Location):
     def update_position(
         self, position: Location, departure_time: Time, final_status: Status
     ) -> None:
-        """Update position, range and time of Water bomber."""
+        """Update position, range and time of Water bomber.
+
+        Args:
+            position (Location): new aircraft position
+            departure_time (Time): time of triggering event of update position
+            final_status (Status): status of aircraft after position update
+        """
         if self.time < departure_time:
             self.time = departure_time.copy_time()
         if final_status == Status.WAITING_AT_BASE:
@@ -135,6 +158,11 @@ class Aircraft(Location):
         """Aircraft will return to base.
 
         if it takes more than 1/fraction of its fuel tank to return to the nearest base
+
+        Args:
+            bases (List[Base]): list of avaliable bases
+            departure_time (Time): time of triggering event of consider going to base
+            fraction (float, optional): fraction of fuel tank. Defaults to 3.
         """
         if self.status == Status.HOVERING:
             index = np.argmin(map(self.distance, bases))
@@ -145,8 +173,16 @@ class Aircraft(Location):
                 self.update_position(bases[index], departure_time, Status.WAITING_AT_BASE)
                 self.fuel_refill(bases[index])
 
-    def arrival_time(self, positions: List[Location], time_of_event: Time):
-        """Return arrival time of Aircraft to a given array of positions."""
+    def arrival_time(self, positions: List[Location], time_of_event: Time) -> Time:
+        """Return arrival time of Aircraft to a given array of positions.
+
+        Args:
+            positions (List[Location]): array of locations for the aircraft to traverse
+            time_of_event (Time): Time of departure
+
+        Returns:
+            Time: Arrival time of aircraft
+        """
         current_time = max(self.time, time_of_event).copy_time()
         for index, position in enumerate(positions):
             if index == 0:
@@ -163,8 +199,16 @@ class Aircraft(Location):
                 current_time.add_duration(self.get_time_at_strike())
         return current_time
 
-    def enough_fuel(self, positions: List[Location], departure_time: Time):
-        """Return whether an Aircraft has enough fuel to traverse a given array of positions."""
+    def enough_fuel(self, positions: List[Location], departure_time: Time) -> bool:
+        """Return whether an Aircraft has enough fuel to traverse a given array of positions.
+
+        Args:
+            positions (List[Location]): array of locations for the aircraft to traverse
+            departure_time (Time): Time of departure
+
+        Returns:
+            bool: whether the aircraft has enough fuel to traverse positions
+        """
         current_fuel = self.current_fuel_capacity
         if self.status == Status.HOVERING and self.time < departure_time:
             # Update fuel loss from hovering
@@ -215,8 +259,15 @@ class Aircraft(Location):
 class UAV(Aircraft):
     """UAV class for unmanned aircraft searching lightning strikes."""
 
-    def __init__(self, id_no: int, latitude: float, longitude: float, attributes):
-        """Initialize UAV."""
+    def __init__(self, id_no: int, latitude: float, longitude: float, attributes: Dict[str, Any]):
+        """Initialize UAV.
+
+        Args:
+            id_no (int): id number of UAV
+            latitude (float): latitude of UAV
+            longitude (float): longitude of UAV
+            attributes (Dict[Any]): dictionary of attributes of UAV
+        """
         super().__init__(
             latitude,
             longitude,
@@ -242,7 +293,7 @@ class UAV(Aircraft):
             )
         ]
 
-    def go_to_strike(self, lightning, departure_time, arrival_time):
+    def go_to_strike(self, lightning: Lightning, departure_time: Time, arrival_time: Time) -> None:
         """UAV go to and inspect strike."""
         self.update_position(lightning, departure_time, Status.HOVERING)
         self.time.add_duration(self.get_time_at_strike())
