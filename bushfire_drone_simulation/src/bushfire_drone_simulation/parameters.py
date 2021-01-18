@@ -78,8 +78,6 @@ class JSONParameters:
             self.scenarios = [self.parameters]
             self.scenarios[0]["scenario_name"] = ""
 
-        print("hols " + str(len(self.scenarios)))
-
         self.output_folder = os.path.join(self.folder, self.scenarios[0]["output_folder_name"])
 
         # All scenarios output to same folder

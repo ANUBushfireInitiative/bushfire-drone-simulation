@@ -225,7 +225,9 @@ class UAV(Aircraft):
             id_no,
         )
         self.total_range: Distance = Distance(int(attributes["range"]), "km")
-        self.inspection_time: Duration = Duration(1)  # TODO(read from csv) pylint: disable=fixme
+        self.inspection_time: Duration = Duration(
+            1, "min"
+        )  # TODO(read from csv) pylint: disable=fixme
         self.past_locations = [
             UpdateEvent(
                 "uav " + str(self.id_no),
