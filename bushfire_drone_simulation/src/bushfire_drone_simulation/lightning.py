@@ -21,7 +21,7 @@ class Lightning(Location):
         self.ignition = random.random() < ignition_probability
         super().__init__(latitude, longitude)
 
-    def inspected(self, time: Time):
+    def inspected(self, time: Time) -> None:
         """Lightning strike is updated when inspected."""
         self.inspected_time = time
 
