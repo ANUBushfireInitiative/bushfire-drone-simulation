@@ -3,7 +3,6 @@
 import random
 from typing import List, Union
 
-from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.fire_utils import Location, Time
 
 
@@ -12,8 +11,6 @@ class Lightning(Location):
 
     inspected_time: Union[Time, None] = None
     suppressed_time: Union[Time, None] = None
-    inspected_by: Union[UAV, None] = None
-    suppressed_by: Union[WaterBomber, None] = None
     nearest_base: Union[int, None] = None
 
     def __init__(
@@ -24,14 +21,12 @@ class Lightning(Location):
         self.ignition = random.random() < ignition_probability
         super().__init__(latitude, longitude)
 
-    def inspected(self, uav: UAV, time: Time):
+    def inspected(self, time: Time):
         """Lightning strike is updated when inspected."""
-        self.inspected_by = uav
         self.inspected_time = time
 
-    def suppressed(self, water_bomber: WaterBomber, time: Time):
+    def suppressed(self, time: Time):
         """Lightning strike is updated when suppressed."""
-        self.suppressed_by = water_bomber
         self.suppressed_time = time
 
     def __lt__(self, other) -> bool:

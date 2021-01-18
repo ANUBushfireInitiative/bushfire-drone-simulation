@@ -9,7 +9,7 @@
 
     "uavs": {"spawn_loc_file": "input_data/uav_spawn_locations.csv",
         "attributes": {
-            "flight_speed": 235,
+            "flight_speed": "?",
             "fuel_refill_time": 30,
             "range": 650
         }

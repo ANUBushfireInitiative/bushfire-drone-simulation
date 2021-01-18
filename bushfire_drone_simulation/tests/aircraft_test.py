@@ -43,7 +43,7 @@ def test_reasonable_fuel_refill(monkeypatch):
                         assert (update.time - time_full) - Duration(
                             1
                         ) <= uav.get_range().div_by_speed(
-                            uav.max_velocity
+                            uav.flight_speed
                         ), f"UAV {uav.id_no} should have run out of fuel"
         for water_bomber in coordinator.water_bombers:
             time_full = water_bomber.past_locations[0].time
@@ -54,7 +54,7 @@ def test_reasonable_fuel_refill(monkeypatch):
                     if update.status == Status.WAITING_AT_BASE:
                         has_adequate_fuel = (
                             update.time - time_full
-                        ) <= water_bomber.get_range().div_by_speed(water_bomber.max_velocity)
+                        ) <= water_bomber.get_range().div_by_speed(water_bomber.flight_speed)
                         assert (
                             has_adequate_fuel
                         ), f"Water bomber {water_bomber.name} should have run out of fuel"

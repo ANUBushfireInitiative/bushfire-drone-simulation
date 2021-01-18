@@ -43,21 +43,20 @@ class JSONParameters:
         with open(filename) as file:
             self.parameters = json.load(file)
 
-        self.scenarios = [self.parameters]
+        self.scenarios: List[Dict[str, Any]] = []
+
         if "scenario_parameters_filename" in self.parameters.keys():
             self.csv_scenarios = CSVFile(
-                self.get_relative_filepath("scenario_parameters_filename", 0)
+                os.path.join(self.folder, self.parameters["scenario_parameters_filename"])
             )
-
-            self.scenarios = [
-                copy.deepcopy(self.parameters) for _ in range(len(self.csv_scenarios))
-            ]
-
-            for scenario_idx, scenario in enumerate(self.scenarios):
-                scenario["scenario_name"] = self.csv_scenarios["scenario_name"][scenario_idx]
 
             def recurse_through_dictionaries(dictionary_path: List[str], dictionary):
                 if isinstance(dictionary, str) and dictionary == "?":
+                    if len(self.scenarios) == 0:
+                        # Haven't yet deep copied self.scenarios
+                        self.scenarios = [
+                            copy.deepcopy(self.parameters) for _ in range(len(self.csv_scenarios))
+                        ]
                     for scenario_idx, scenario in enumerate(self.scenarios):
                         _set_in_dict(
                             scenario,
@@ -71,8 +70,15 @@ class JSONParameters:
                         )
 
             recurse_through_dictionaries([], self.parameters)
-        else:
+
+            for scenario_idx, scenario in enumerate(self.scenarios):
+                scenario["scenario_name"] = self.csv_scenarios["scenario_name"][scenario_idx]
+
+        if len(self.scenarios) == 0:
+            self.scenarios = [self.parameters]
             self.scenarios[0]["scenario_name"] = ""
+
+        print("hols " + str(len(self.scenarios)))
 
         self.output_folder = os.path.join(self.folder, self.scenarios[0]["output_folder_name"])
 
@@ -241,7 +247,7 @@ class JSONParameters:
         axs[0, 1].set_ylim(bottom=0)
 
         water_bomber_names = [wb.name for wb in water_bombers]
-        num_suppressed = [wb.num_ignitions_suppressed() for wb in water_bombers]
+        num_suppressed = [wb.num_strikes_visited() for wb in water_bombers]
         axs[1, 0].set_title("Lightning strikes suppressed per helicopter")
         axs[1, 0].bar(water_bomber_names, num_suppressed)
         axs[1, 0].tick_params(labelrotation=90)
@@ -279,6 +285,7 @@ class JSONParameters:
                 prefix + "simulation_output.csv",
             ),
             "w",
+            newline="",
         ) as outputfile:
             filewriter = csv.writer(outputfile)
             lats = []
@@ -317,6 +324,7 @@ class JSONParameters:
                 prefix + "uav_event_updates.csv",
             ),
             "w",
+            newline="",
         ) as outputfile:
             filewriter = csv.writer(outputfile)
             filewriter.writerow(
@@ -361,6 +369,7 @@ class JSONParameters:
                 prefix + "water_bomber_event_updates.csv",
             ),
             "w",
+            newline="",
         ) as outputfile:
             filewriter = csv.writer(outputfile)
             filewriter.writerow(
