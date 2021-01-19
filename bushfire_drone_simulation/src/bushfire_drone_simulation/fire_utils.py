@@ -1,9 +1,7 @@
 """Various classes and functions useful to the bushfire_drone_simulation application."""
 
-from math import atan2, cos, inf, isnan, radians, sin, sqrt
+from math import atan2, cos, inf, radians, sin, sqrt
 from typing import Any, Tuple
-
-import numpy as np
 
 from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Distance, Duration, Volume
 
@@ -171,8 +169,13 @@ def assert_number(value: Any, message: str) -> float:
     Returns:
         float:
     """
-    assert isinstance(value, (float, int)), message
-    return float(value)
+    if str(value) == "inf":
+        return inf
+    try:
+        int(value)
+        return float(value)
+    except ValueError:
+        assert False, message
 
 
 def assert_bool(value: Any, message: str) -> bool:
@@ -185,16 +188,8 @@ def assert_bool(value: Any, message: str) -> bool:
     Returns:
         bool:
     """
-    assert isinstance(value, (np.bool_, bool, int, float, str)), message
-    if isinstance(value, (int, float)):
-        if isnan(value):
-            return False
-        assert value in (0, 1, 0.0, 1.0), message
-        value = int(value)
-    if isinstance(value, str):
-        if value.lower() in ["t", "true", "yes", "y"]:
-            return True
-        if value.lower() in ["f", "false", "no", "n", "", "nan"]:
-            return False
-        assert False, message
-    return bool(value)
+    value = str(value)
+    if value.lower() in ["1", "1.0", "t", "true", "yes", "y"]:
+        return True
+    assert value.lower() in ["0", "0.0", "f", "false", "no", "n", "", "nan"], message
+    return False
