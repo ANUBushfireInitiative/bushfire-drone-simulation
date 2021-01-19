@@ -51,7 +51,7 @@ class Coordinator:
         """Coordinator receives lightning strike that just occurred."""
         # If lightning None then process next update, otherwise process lightning strike
         # Determine nearest base to lightning strike
-        base_index = np.argmin(map(lightning.distance, self.uav_bases))
+        base_index = np.argmin(list(map(lightning.distance, self.uav_bases)))
         min_arrival_time = Time("inf")
         best_uav = None
         via_base = None
@@ -90,7 +90,9 @@ class Coordinator:
                 # Update UAV position accordingly
                 best_uav.go_to_base(via_base, lightning.spawn_time)
             # There exists a UAV that has enough fuel, send it to the lightning strike
-            best_uav.go_to_strike(lightning, lightning.spawn_time, min_arrival_time)
+            # if best_uav.id_no == 34:
+            #     print("accoring to C: " + str(best_uav.current_fuel_capacity))
+            best_uav.go_to_strike(lightning, lightning.spawn_time)
             best_uav.print_past_locations()
         else:
             # There are no UAVs that can reach the lightning strike without refueling
@@ -112,7 +114,7 @@ class Coordinator:
         fuel_first: Union[bool, None] = None
         for water_bomber in self.water_bombers:  # pylint: disable=too-many-nested-blocks
             water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
-            base_index = np.argmin(map(ignition.distance, water_bomber_bases))
+            base_index = np.argmin(list(map(ignition.distance, water_bomber_bases)))
             if water_bomber.enough_water():
                 if water_bomber.enough_fuel(
                     [ignition, water_bomber_bases[base_index]],
@@ -228,7 +230,7 @@ class Coordinator:
                 best_water_bomber.go_to_base(via_base, ignition.inspected_time)
             elif via_water is not None:
                 best_water_bomber.go_to_water(via_water, ignition.inspected_time)
-            best_water_bomber.go_to_strike(ignition, ignition.inspected_time, min_arrival_time)
+            best_water_bomber.go_to_strike(ignition, ignition.inspected_time)
             best_water_bomber.print_past_locations()
         else:
             _LOG.error("No water bombers were available")
