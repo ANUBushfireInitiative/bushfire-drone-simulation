@@ -156,13 +156,13 @@ class JSONParameters:
                 bases_all[idx],
                 (
                     f"Error: The value on row {idx+1} of column 'all' in '{filename}' "
-                    "('{bases_all[idx]}') is not a boolean."
+                    f"('{bases_all[idx]}') is not a boolean."
                 ),
             ) or assert_bool(
                 bases_specific[idx],
                 (
                     f"Error: The value on row {idx+1} of column '{water_bomber_type}' in "
-                    "'{filename}' ('{bases_all[idx]}') is not a boolean."
+                    f"'{filename}' ('{bases_all[idx]}') is not a boolean."
                 ),
             ):
                 current_bases.append(base)

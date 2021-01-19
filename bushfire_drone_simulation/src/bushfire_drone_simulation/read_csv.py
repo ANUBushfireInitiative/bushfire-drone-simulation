@@ -1,6 +1,5 @@
 """Functions for reading and writing data to a csv."""
 
-import math
 from typing import List, Union
 
 import pandas as pd
@@ -48,7 +47,7 @@ class CSVFile:
         Returns:
             List[str]: List of column headings
         """
-        return self.csv_dataframe.head()
+        return self.csv_dataframe.columns.values.tolist()
 
     def get_cell(self, column: Union[str, int], cell_idx: int):
         """get_cell.
@@ -76,15 +75,21 @@ def read_locations_with_capacity(filename: str, constructor):
     """Return a list of Locations contained in the first two columns of a given a csv file."""
     location_data = CSVFile(filename)
     to_return = []
+    lats = location_data["latitude"]
+    lons = location_data["longitude"]
     for i, cap in enumerate(location_data["capacity"]):
-        if str(cap) == "inf":
-            cap = math.inf
-        assert isinstance(
-            cap, (float, int)
-        ), f"Error: The capacity on row {i+1} of '{filename}' ('{cap}') is not a number"
-        to_return.append(
-            constructor(location_data["latitude"][i], location_data["longitude"][i], Volume(cap))
+        cap = assert_number(
+            cap, f"Error: The capacity on row {i+1} of '{filename}' ('{cap}') is not a number"
         )
+        lat = assert_number(
+            lats[i],
+            f"Error: The latitude on row {i+1} of '{filename}' ('{lats[i]}') is not a number",
+        )
+        lon = assert_number(
+            lons[i],
+            f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number",
+        )
+        to_return.append(constructor(lat, lon, Volume(cap)))
     return to_return
 
 
