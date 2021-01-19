@@ -45,6 +45,9 @@ class Coordinator:
 
     def lightning_update(self, lightning: Lightning):  # pylint: disable=too-many-branches
         """Coordinator receives lightning strike that just occurred."""
+        for uav in self.uavs:
+            uav.consider_going_to_base(self.uav_bases, lightning.spawn_time)
+
         # Determine nearest base to lightning strike
         base_index = np.argmin(list(map(lightning.distance, self.uav_bases)))
         min_arrival_time = Time("inf")
@@ -101,6 +104,9 @@ class Coordinator:
     ):  # pylint: disable=too-many-branches, too-many-statements
         """Coordinator receives ignition strike that just occurred."""
         assert ignition.inspected_time is not None, "Error: Ignition was not inspected."
+        for water_bomber in self.water_bombers:
+            water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
+            water_bomber.consider_going_to_base(water_bomber_bases, ignition.inspected_time)
         min_arrival_time = Time("inf")
         best_water_bomber: Union[WaterBomber, None] = None
         via_water: Union[WaterTank, None] = None
