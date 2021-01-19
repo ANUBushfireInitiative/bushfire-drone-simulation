@@ -173,6 +173,7 @@ class Aircraft(Location):
             fraction (float, optional): fraction of fuel tank. Defaults to 3.
         """
         if self.status == Status.HOVERING:
+            # TODO(update based on hovering time) pylint: disable=fixme
             index = np.argmin(list(map(self.distance, bases)))
             if (
                 self.distance(bases[index]) * fraction
@@ -227,6 +228,7 @@ class Aircraft(Location):
                 current_fuel -= self.distance(position) / self.get_range()
             else:
                 current_fuel -= positions[index - 1].distance(position) / self.get_range()
+
             if isinstance(position, Lightning):
                 current_fuel -= (
                     self.get_time_at_strike().mul_by_speed(self.flight_speed) / self.get_range()

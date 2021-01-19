@@ -1,8 +1,7 @@
 """Module for the centralized coordinator/HQ controlling the UAVs and aircraft."""
 
 import logging
-from queue import Queue
-from typing import Union
+from typing import Dict, List, Union
 
 import numpy as np
 
@@ -29,10 +28,13 @@ class CoordinatorParamaters:  # pylint: disable=too-few-public-methods
 class Coordinator:
     """Class for centrally coordinating UAVs and water bombers."""
 
-    events: Queue = Queue()
-
     def __init__(
-        self, uavs, uav_bases, water_bombers, water_bomber_bases_dict, water_tanks
+        self,
+        uavs: List[UAV],
+        uav_bases: List[Base],
+        water_bombers: List[WaterBomber],
+        water_bomber_bases_dict: Dict[str, List[Base]],
+        water_tanks: List[WaterTank],
     ):  # pylint: disable=too-many-arguments
         """Initialize coordinator."""
         self.uavs = uavs
@@ -41,15 +43,8 @@ class Coordinator:
         self.water_bomber_bases_dict = water_bomber_bases_dict
         self.water_tanks = water_tanks
 
-    def get_next_event_time(self):
-        """Return next event time."""
-        if not self.events.empty():
-            return self.events.queue[0]
-        return None
-
     def lightning_update(self, lightning: Lightning):  # pylint: disable=too-many-branches
         """Coordinator receives lightning strike that just occurred."""
-        # If lightning None then process next update, otherwise process lightning strike
         # Determine nearest base to lightning strike
         base_index = np.argmin(list(map(lightning.distance, self.uav_bases)))
         min_arrival_time = Time("inf")
@@ -65,6 +60,7 @@ class Coordinator:
                 if temp_arr_time < min_arrival_time:
                     min_arrival_time = temp_arr_time
                     best_uav = uav
+                    via_base = None
             # Need to go via a base to refuel
             else:
                 for uav_base in self.uav_bases:
@@ -90,8 +86,6 @@ class Coordinator:
                 # Update UAV position accordingly
                 best_uav.go_to_base(via_base, lightning.spawn_time)
             # There exists a UAV that has enough fuel, send it to the lightning strike
-            # if best_uav.id_no == 34:
-            #     print("accoring to C: " + str(best_uav.current_fuel_capacity))
             best_uav.go_to_strike(lightning, lightning.spawn_time)
             best_uav.print_past_locations()
         else:
@@ -237,23 +231,3 @@ class Coordinator:
         for water_bomber in self.water_bombers:
             water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
             water_bomber.consider_going_to_base(water_bomber_bases, ignition.inspected_time)
-
-
-class Event:
-    """Class for storing events."""
-
-    time: Time
-    uav: UAV
-
-    def __init__(self, time: Time, uav: UAV):
-        """Initialize Event."""
-        self.time = time
-        self.uav = uav
-
-    def get_time(self):
-        """Return time of event."""
-        return self.time
-
-    def get_uav(self):
-        """Return uav of event."""
-        return self.uav

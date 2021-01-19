@@ -22,14 +22,22 @@ class Lightning(Location):
         super().__init__(latitude, longitude)
 
     def inspected(self, time: Time) -> None:
-        """Lightning strike is updated when inspected."""
+        """Lightning strike is updated when inspected.
+
+        Args:
+            time (Time): time of inspection
+        """
         self.inspected_time = time
 
     def suppressed(self, time: Time):
-        """Lightning strike is updated when suppressed."""
+        """Lightning strike is updated when suppressed.
+
+        Args:
+            time (Time): time of supression
+        """
         self.suppressed_time = time
 
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other: "Lightning") -> bool:
         """Less than operator for Lightning."""
         return self.spawn_time < other.spawn_time
 
