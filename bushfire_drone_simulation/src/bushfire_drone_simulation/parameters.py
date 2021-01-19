@@ -80,7 +80,6 @@ class JSONParameters:
 
         if len(self.scenarios) == 0:
             self.scenarios = [self.parameters]
-            self.scenarios[0]["scenario_name"] = ""
 
         self.output_folder = os.path.join(self.folder, self.scenarios[0]["output_folder_name"])
 
