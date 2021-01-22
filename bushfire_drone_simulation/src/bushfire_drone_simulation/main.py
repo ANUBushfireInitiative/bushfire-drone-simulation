@@ -11,8 +11,10 @@ from bushfire_drone_simulation.coordinator import Coordinator
 from bushfire_drone_simulation.fire_utils import Base, WaterTank
 from bushfire_drone_simulation.gui.gui import start_gui, start_map_gui
 from bushfire_drone_simulation.lightning import Lightning, reduce_lightning_to_ignitions
+from bushfire_drone_simulation.matlab_coordinator import MatlabUAVCoordinator, MatlabWBCoordinator
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.read_csv import read_lightning, read_locations_with_capacity
+from bushfire_drone_simulation.simulator import Simulator
 
 _LOG = logging.getLogger(__name__)
 app = typer.Typer()
@@ -43,9 +45,50 @@ def map_gui():
 
 
 @app.command()
-def run_simulation(
-    parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT,
-):
+def run_simulation_test(parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT):
+    """Run bushfire drone simulation."""
+    # Read parameters
+    params = JSONParameters(parameters_filename)
+
+    for scenario_idx in tqdm(range(0, len(params.scenarios)), unit="scenario"):
+        # Read and initialise data
+        # uav_bases = read_locations_with_capacity(
+        #     params.get_relative_filepath("uav_bases_filename", scenario_idx), Base
+        # )
+        # water_bomber_bases = read_locations_with_capacity(
+        #     params.get_relative_filepath("water_bomber_bases_filename", scenario_idx), Base
+        # )
+        # water_tanks = read_locations_with_capacity(
+        #     params.get_relative_filepath("water_tanks_filename", scenario_idx), WaterTank
+        # )
+
+        # params.process_uavs(scenario_idx)
+        # water_bombers, water_bomber_bases = params.process_water_bombers(
+        #     water_bomber_bases, scenario_idx
+        # )
+
+        # lightning_strikes = read_lightning(
+        #     params.get_relative_filepath("lightning_filename", scenario_idx),
+        #     params.get_attribute("ignition_probability", scenario_idx),
+        # )
+
+        # lightning_strikes.sort()  # By strike time
+        simulator = Simulator(params, scenario_idx)
+        uav_coordinator = MatlabUAVCoordinator(simulator.uavs, simulator.uav_bases)
+        wb_coordinator = MatlabWBCoordinator(
+            simulator.water_bombers, simulator.water_bomber_bases_dict, simulator.water_tanks
+        )
+        simulator.run_simulation(uav_coordinator, wb_coordinator)
+
+        simulator.output_results(params, scenario_idx)
+
+        # to_return.append((coordinator, lightning_strikes))
+
+    return []
+
+
+@app.command()
+def run_simulation(parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT):
     """Run bushfire drone simulation."""
     # Read parameters
     params = JSONParameters(parameters_filename)

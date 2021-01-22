@@ -15,9 +15,9 @@ import matplotlib.pyplot as plt
 
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.coordinator import Coordinator
-from bushfire_drone_simulation.fire_utils import WaterTank, assert_bool, assert_number
+from bushfire_drone_simulation.fire_utils import Base, WaterTank, assert_bool, assert_number
 from bushfire_drone_simulation.lightning import Lightning
-from bushfire_drone_simulation.read_csv import CSVFile
+from bushfire_drone_simulation.read_csv import CSVFile, read_lightning, read_locations_with_capacity
 
 _LOG = logging.getLogger(__name__)
 matplotlib.use("Agg")
@@ -97,6 +97,31 @@ class JSONParameters:
         else:
             os.mkdir(self.output_folder)
 
+    def get_uav_bases(self, scenario_idx: int) -> List[Base]:
+        """Return list of UAV bases."""
+        return read_locations_with_capacity(
+            self.get_relative_filepath("uav_bases_filename", scenario_idx), Base
+        )
+
+    def get_water_bomber_bases_all(self, scenario_idx: int) -> List[Base]:
+        """Return list of all water bomber bases (regardless of which bombers can visit)."""
+        return read_locations_with_capacity(
+            self.get_relative_filepath("water_bomber_bases_filename", scenario_idx), Base
+        )
+
+    def get_water_tanks(self, scenario_idx: int) -> List[WaterTank]:
+        """Return list of water tanks."""
+        return read_locations_with_capacity(
+            self.get_relative_filepath("water_tanks_filename", scenario_idx), WaterTank
+        )
+
+    def get_lightning(self, scenario_idx: int) -> List[Lightning]:
+        """Return list of lightning."""
+        return read_lightning(
+            self.get_relative_filepath("lightning_filename", scenario_idx),
+            self.get_attribute("ignition_probability", scenario_idx),
+        )
+
     def process_water_bombers(self, bases, scenario_idx):
         """Create water bombers from json file."""
         water_bombers = []
@@ -117,7 +142,7 @@ class JSONParameters:
                     lons[i],
                     (
                         f"Error: The longitude on row {i+1} of '{filename}' "
-                        "('{lons[i]}') is not a number."
+                        "('{lons[i]}') isn't a number"
                     ),
                 )
                 water_bombers.append(
@@ -183,7 +208,7 @@ class JSONParameters:
             )
             lon = assert_number(
                 lons[i],
-                f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number",
+                f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') isn't a number.",
             )
             uavs.append(
                 UAV(
@@ -221,19 +246,24 @@ class JSONParameters:
         if "scenario_name" in self.scenarios[scenario_idx]:
             prefix = str(self.get_attribute("scenario_name", scenario_idx)) + "_"
 
+        uavs = coordinator.uavs
+        water_bombers = coordinator.water_bombers
+        water_tanks = coordinator.water_tanks
+
         inspection_times, supression_times_ignitions_only = self.write_to_simulation_output_file(
             lightning_strikes, prefix
         )
-        self.write_to_uav_updates_file(coordinator, prefix)
-        self.write_to_wb_updates_file(coordinator, prefix)
+        self.write_to_uav_updates_file(uavs, prefix)
+        self.write_to_wb_updates_file(water_bombers, prefix)
         self.write_to_input_parameters_folder(scenario_idx)
-        self.create_plots(inspection_times, supression_times_ignitions_only, coordinator, prefix)
+        self.create_plots(
+            inspection_times, supression_times_ignitions_only, water_bombers, water_tanks, prefix
+        )
 
-    def create_plots(self, inspection_times, supression_times_ignitions_only, coordinator, prefix):
+    def create_plots(
+        self, inspection_times, supression_times_ignitions_only, water_bombers, water_tanks, prefix
+    ):  # pylint: disable=too-many-arguments
         """Create plots and write to output."""
-        water_tanks: List[WaterTank] = coordinator.water_tanks
-        water_bombers: List[WaterBomber] = coordinator.water_bombers
-
         fig, axs = plt.subplots(2, 2, figsize=(12, 8), dpi=300)
         axs[0, 0].hist(inspection_times, bins=20)
         axs[0, 0].set_title("Histogram of UAV inspection times")
@@ -315,10 +345,8 @@ class JSONParameters:
                 filewriter.writerow(row)
         return inspection_times, supression_times_ignitions_only
 
-    def write_to_uav_updates_file(self, coordinator, prefix):
+    def write_to_uav_updates_file(self, uavs, prefix):
         """Write UAV event update data to output file."""
-        uavs: List[UAV] = coordinator.uavs
-
         with open(
             os.path.join(
                 self.output_folder,
@@ -361,9 +389,9 @@ class JSONParameters:
                     ]
                 )
 
-    def write_to_wb_updates_file(self, coordinator, prefix):
+    def write_to_wb_updates_file(self, water_bombers, prefix):
         """Write water bomber event update data to output file."""
-        water_bombers: List[WaterBomber] = coordinator.water_bombers
+        # water_bombers: List[WaterBomber] = coordinator.water_bombers
         with open(
             os.path.join(
                 self.output_folder,

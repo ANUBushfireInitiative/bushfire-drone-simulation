@@ -125,6 +125,6 @@ def read_lightning(filename: str, ignition_probability: float) -> List[Lightning
             lons[i],
             f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number.",
         )
-        lightning.append(Lightning(lat, lon, Time(str(times[i])), ignition_probabilities[i]))
+        lightning.append(Lightning(lat, lon, Time(str(times[i])), ignition_probabilities[i], i))
 
     return lightning

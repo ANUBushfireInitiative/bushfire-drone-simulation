@@ -1,6 +1,6 @@
 """Various classes and functions useful to the bushfire_drone_simulation application."""
 
-from math import atan2, cos, inf, radians, sin, sqrt
+from math import atan2, cos, degrees, inf, radians, sin, sqrt
 from typing import Any, Tuple
 
 from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Distance, Duration, Volume
@@ -23,6 +23,20 @@ class Location:
             * sin(radians(other.lon - self.lon) / 2) ** 2
         )
         return Distance(6371 * 2 * atan2(sqrt(temp), sqrt(1 - temp)), units)
+
+    def intermediate_point(self, other: "Location", percentage: float) -> "Location":
+        """Find intermediate point percentage of the way between self and other."""
+        angular = self.distance(other) / Distance(6371)
+        h_1 = sin(radians((1 - percentage) * angular)) / sin(radians(angular))
+        h_2 = sin(radians(percentage * angular)) / sin(radians(angular))
+        x = h_1 * cos(radians(self.lat)) * cos(radians(self.lon)) + h_2 * cos(
+            radians(other.lat)
+        ) * cos(radians(other.lon))
+        y = h_1 * cos(radians(self.lat)) * sin(radians(self.lon)) + h_2 * cos(
+            radians(other.lat)
+        ) * sin(radians(other.lon))
+        z = h_1 * sin(radians(self.lat)) + h_2 * sin(radians(other.lat))
+        return Location(degrees(atan2(z, sqrt(x * x + y * y))), degrees(atan2(y, x)))
 
     def to_coordinates(self) -> Tuple[float, float]:
         """Return pixel coordinates of location."""
@@ -124,13 +138,6 @@ class Time:
                     + Duration(int(time_in[14:16]), "min")
                     + Duration(int(time_in[17:19]), "s")
                 )
-
-    def copy_time(self) -> "Time":
-        """Create new Time."""
-        # TODO(use copy.deepcopy instead) pylint: disable=fixme
-        copy = Time("0")
-        copy.time = self.time
-        return copy
 
     def get(self, units: str = DEFAULT_DURATION_UNITS) -> float:
         """Return time."""
