@@ -8,6 +8,8 @@ from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.fire_utils import Base, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
 
+# from ordered_set import OrderedSet
+
 
 class UAVCoordinator:
     """Class for centrally coordinating UAVs."""
@@ -16,7 +18,7 @@ class UAVCoordinator:
         """Initialize coordinator."""
         self.uavs: List[UAV] = uavs
         self.uav_bases: List[Base] = uav_bases
-        self.uninspected_strikes: Set[Lightning] = set()
+        self.uninspected_strikes: Set[Lightning] = Set()
 
     def new_strike(self, lightning: Lightning) -> None:
         """Decide on uavs movement with new strike."""
@@ -49,8 +51,8 @@ class WBCoordinator:
         self.water_bombers: List[WaterBomber] = water_bombers
         self.water_bomber_bases_dict: Dict[str, List[Base]] = water_bomber_bases
         self.water_tanks: List[WaterTank] = water_tanks
-        self.uninspected_strikes: Set[Lightning] = set()
-        self.unsupressed_strikes: Set[Lightning] = set()
+        self.uninspected_strikes: Set[Lightning] = Set()
+        self.unsupressed_strikes: Set[Lightning] = Set()
 
     def new_strike(self, lightning: Lightning) -> None:
         """Decide on uavs movement with new strike."""

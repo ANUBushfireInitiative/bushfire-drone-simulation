@@ -9,11 +9,18 @@ from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoo
 from bushfire_drone_simulation.aircraft import WaterBomber
 from bushfire_drone_simulation.fire_utils import Base, Time, WaterTank
 
+# from bushfire_drone_simulation.lightning import Lightning
+
 _LOG = logging.getLogger(__name__)
 
 
 class MatlabUAVCoordinator(UAVCoordinator):
     """Matlab UAV Coordinator."""
+
+    # def __init__(self, uavs: List[UAV], uav_bases: List[Base]):
+    #     """Initialize coordinator."""
+    #     super().__init__(uavs, uav_bases)
+    #     self.finishme: Dict[Lightning, int] = {}
 
     def process_new_strike(self) -> None:  # pylint: disable=too-many-branches
         """Receive lightning strike that just occurred and coordinate UAV movements."""
