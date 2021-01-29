@@ -1,97 +1,112 @@
 """Simple coordinator."""
 
 import logging
-from typing import Union
+from queue import Queue
+from typing import Dict, List, Union
 
 import numpy as np
 
 from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoordinator
-from bushfire_drone_simulation.aircraft import WaterBomber
+from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.fire_utils import Base, Time, WaterTank
-
-# from bushfire_drone_simulation.lightning import Lightning
+from bushfire_drone_simulation.lightning import Lightning
 
 _LOG = logging.getLogger(__name__)
 
 
-class MatlabUAVCoordinator(UAVCoordinator):
-    """Matlab UAV Coordinator."""
+class SimpleUAVCoordinator(UAVCoordinator):
+    """Simple UAV Coordinator."""
 
-    # def __init__(self, uavs: List[UAV], uav_bases: List[Base]):
-    #     """Initialize coordinator."""
-    #     super().__init__(uavs, uav_bases)
-    #     self.finishme: Dict[Lightning, int] = {}
+    def __init__(self, uavs: List[UAV], uav_bases: List[Base]):
+        """Initialize coordinator."""
+        super().__init__(uavs, uav_bases)
+        self.assigned_drones: Dict[int, List[Lightning]] = {}
+        self.strikes_to_be_processed: "Queue[Lightning]" = Queue()
 
-    def process_new_strike(self) -> None:  # pylint: disable=too-many-branches
+    def process_new_strike(self, lightning: Lightning) -> None:  # pylint: disable=too-many-branches
         """Receive lightning strike that just occurred and coordinate UAV movements."""
-        for lightning in self.uninspected_strikes:  # pylint: disable=too-many-nested-blocks
-            for uav in self.uavs:
-                uav.consider_going_to_base(self.uav_bases, lightning.spawn_time)
-            # Determine nearest base to lightning strike
-            base_index = np.argmin(list(map(lightning.distance, self.uav_bases)))
-            min_arrival_time = Time("inf")
-            best_uav = None
-            via_base = None
-            for uav in self.uavs:
-                # Check whether the UAV has enough fuel to
-                # go to the lightning strike and then to the nearest base
-                # and if so determine the arrival time at the lightning strike
-                # updating if it is currently the minimum
-                if uav.enough_fuel([lightning, self.uav_bases[base_index]], lightning.spawn_time):
-                    temp_arr_time = uav.arrival_time([lightning], lightning.spawn_time)
-                    if temp_arr_time < min_arrival_time:
-                        min_arrival_time = temp_arr_time
-                        best_uav = uav
-                        via_base = None
-                # Need to go via a base to refuel
-                else:
-                    for uav_base in self.uav_bases:
-                        if uav.enough_fuel(
-                            [uav_base, lightning, self.uav_bases[base_index]],
-                            lightning.spawn_time,
-                        ):
-                            temp_arr_time = uav.arrival_time(
-                                [uav_base, lightning], lightning.spawn_time
-                            )
-                            if temp_arr_time < min_arrival_time:
-                                min_arrival_time = temp_arr_time
-                                best_uav = uav
-                                via_base = uav_base
-            if best_uav is not None:
-                _LOG.debug("Best UAV is: %s", best_uav.id_no)
-                _LOG.debug(
-                    "Which took %s mins to respond",
-                    (min_arrival_time - lightning.spawn_time).get("min"),
-                )
-                if via_base is not None:
-                    # The minimum arrival time was achieved by travelling via a base
-                    # Update UAV position accordingly
-                    best_uav.accept_update(via_base, lightning.spawn_time)
-                # There exists a UAV that has enough fuel, send it to the lightning strike
-                best_uav.accept_update(lightning, lightning.spawn_time)
-                best_uav.print_past_locations()
+        self.strikes_to_be_processed.put(lightning)
+        while not self.strikes_to_be_processed.empty():
+            strike = self.strikes_to_be_processed.get()
+            uav_id = self.process_strike(strike)
+            print(uav_id)
+            # TODO(finish this function!!) #pylint: disable=fixme
+
+    def process_strike(self, lightning: Lightning) -> Union[int, None]:
+        """Process a lightning strike and coordinate UAV movements for that strike.
+
+        Args:
+            lightning (Lightning): lightning strike
+
+        Returns:
+            int: Id number of UAV assigned to strike
+        """
+        base_index = np.argmin(list(map(lightning.distance, self.uav_bases)))
+        min_arrival_time = Time("inf")
+        best_uav = None
+        via_base = None
+        for uav in self.uavs:
+            # Check whether the UAV has enough fuel to
+            # go to the lightning strike and then to the nearest base
+            # and if so determine the arrival time at the lightning strike
+            # updating if it is currently the minimum
+            if uav.enough_fuel([lightning, self.uav_bases[base_index]], lightning.spawn_time):
+                temp_arr_time = uav.arrival_time([lightning], lightning.spawn_time)
+                if temp_arr_time < min_arrival_time:
+                    min_arrival_time = temp_arr_time
+                    best_uav = uav
+                    via_base = None
+            # Need to go via a base to refuel
             else:
-                # There are no UAVs that can reach the lightning strike without refueling
-                # Try going via a base to refuel
-                _LOG.error("No UAVs were available")
+                for uav_base in self.uav_bases:
+                    if uav.enough_fuel(
+                        [uav_base, lightning, self.uav_bases[base_index]],
+                        lightning.spawn_time,
+                    ):
+                        temp_arr_time = uav.arrival_time(
+                            [uav_base, lightning], lightning.spawn_time
+                        )
+                        if temp_arr_time < min_arrival_time:
+                            min_arrival_time = temp_arr_time
+                            best_uav = uav
+                            via_base = uav_base
+        return_id = None
+        if best_uav is not None:
+            return_id = best_uav.id_no
+            _LOG.debug("Best UAV is: %s", best_uav.id_no)
+            _LOG.debug(
+                "Which took %s mins to respond",
+                (min_arrival_time - lightning.spawn_time).get("min"),
+            )
+            if via_base is not None:
+                # The minimum arrival time was achieved by travelling via a base
+                # Update UAV position accordingly
+                best_uav.accept_update(via_base, lightning.spawn_time)
+            # There exists a UAV that has enough fuel, send it to the lightning strike
+            best_uav.accept_update(lightning, lightning.spawn_time)
+            best_uav.print_past_locations()
+        else:
+            _LOG.error("No UAVs were available to process lightning strike %s", lightning.id_no)
 
-            for uav in self.uavs:
-                uav.consider_going_to_base(self.uav_bases, lightning.spawn_time)
+        for uav in self.uavs:
+            uav.consider_going_to_base(self.uav_bases, lightning.spawn_time)
+        return return_id
 
 
-class MatlabWBCoordinator(WBCoordinator):
+class SimpleWBCoordinator(WBCoordinator):
     """Simple water bomber coordinator."""
 
     def process_new_ignition(  # pylint:disable= too-many-branches, too-many-statements
-        self,
+        self, ignition
     ) -> None:
         """Decide on water bombers movement with new ignition."""
         # water bombers already updated to time of strike by simulator
-        for ignition in self.unsupressed_strikes:  # pylint: disable=too-many-nested-blocks
+        # TODO(split into 2 functions! Currently doesn't work!!!) pylint: disable=fixme
+        for _ in self.unsupressed_strikes:  # pylint: disable=too-many-nested-blocks
             assert ignition.inspected_time is not None, "Error: Ignition was not inspected."
-            for water_bomber in self.water_bombers:
-                water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
-                water_bomber.consider_going_to_base(water_bomber_bases, ignition.inspected_time)
+            # for water_bomber in self.water_bombers:
+            #     water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
+            #     water_bomber.consider_going_to_base(water_bomber_bases, ignition.inspected_time)
             min_arrival_time = Time("inf")
             best_water_bomber: Union[WaterBomber, None] = None
             via_water: Union[WaterTank, None] = None
@@ -227,5 +242,5 @@ class MatlabWBCoordinator(WBCoordinator):
                 water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
                 water_bomber.consider_going_to_base(water_bomber_bases, ignition.inspected_time)
 
-    def process_new_strike(self) -> None:
+    def process_new_strike(self, lightning) -> None:
         """Decide on uavs movement with new strike."""

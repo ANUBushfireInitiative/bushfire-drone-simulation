@@ -243,9 +243,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                 supressions.append(event.position)
         return inspections, supressions
 
-    def update_to_time(
-        self, time: Time, bases: List[Base]  # pylint: disable=unused-argument
-    ) -> Tuple[List[Lightning], List[Lightning]]:
+    def update_to_time(self, time: Time) -> Tuple[List[Lightning], List[Lightning]]:
         """Update aircraft to given time and delete all updates beyond this time.
 
         Args:
@@ -295,8 +293,6 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                     )
                     self.update_location(intermediate_point)
                 return strikes_inspected, strikes_suppressed
-        # TODO(Add go to base at end of queue??) #pylint: disable=fixme
-
         return strikes_inspected, strikes_suppressed
 
     def accept_update(self, position: Location, departure_time: Time) -> None:
@@ -423,33 +419,17 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         Args:
             bases (List[Base]): list of avaliable bases
             departure_time (Time): time of triggering event of consider going to base
-            fraction (float, optional): fraction of fuel tank. Defaults to 3.
+            fraction (float, optional): fraction of fuel tank. Defaults to 3, must be >= 1.
         """
-        if (
-            self.get_recent_status() == Status.HOVERING
-            or self.get_recent_status() == Status.GOING_TO_BASE
-        ):
-            # Update fuel loss from hovering
-            current_fuel = self.get_recent_fuel()
-            if (
-                self.get_recent_time() < departure_time
-                and self.get_recent_status() == Status.HOVERING
-            ):
-                current_fuel -= (departure_time - self.get_recent_time()).mul_by_speed(
-                    self.flight_speed
-                ) / self.get_range()
+        if self.get_recent_status() == Status.HOVERING:
             index = np.argmin(list(map(self.get_recent_position().distance, bases)))
-            if (
-                self.get_recent_position().distance(bases[index]) * fraction
-                > self.get_range() * current_fuel
-            ):
-                if self.distance(bases[index]) > self.get_range() * current_fuel:
-                    departure_time = deepcopy(self.get_recent_time())
-                    duration_to_base = (self.get_range() * current_fuel).div_by_speed(
-                        self.flight_speed
-                    )
-                    departure_time.add_duration(duration_to_base)
-                self.accept_update(bases[index], departure_time)
+            dist_to_base = self.get_recent_position().distance(bases[index]) * fraction
+            current_range = self.get_recent_fuel() * self.get_range()
+            time_to_base = (current_range - dist_to_base).div_by_speed(self.flight_speed)
+            departure_time = deepcopy(self.get_recent_time())
+            departure_time.add_duration(time_to_base)
+            departure_time = max(self.get_recent_time(), departure_time)
+            self.accept_update(bases[index], departure_time)
 
     def enough_fuel(self, positions: List[Location], departure_time: Time) -> bool:
         """Return whether an Aircraft has enough fuel to traverse a given array of positions.

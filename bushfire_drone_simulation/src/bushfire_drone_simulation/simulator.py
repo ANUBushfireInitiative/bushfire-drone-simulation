@@ -68,7 +68,7 @@ class Simulator:
             suppressions = self._update_water_bombers_to_time(ignition.inspected_time)
             wb_coordinator.lightning_strike_suppressed(suppressions)
             wb_coordinator.unsupressed_strikes.add(ignition)
-            wb_coordinator.process_new_ignition()
+            wb_coordinator.process_new_ignition(ignition)
             # wb_coordinator.new_ignition(ignition)
             # TODO(get this silly function to work) pylint: disable=fixme
 
@@ -88,7 +88,7 @@ class Simulator:
         # add to priority queue if before next before next lightning strike
         strikes_inspected: List[Lightning] = []
         for uav in self.uavs:
-            inspections, _ = uav.update_to_time(time, self.uav_bases)
+            inspections, _ = uav.update_to_time(time)
             strikes_inspected += inspections
         return strikes_inspected
 
@@ -96,8 +96,7 @@ class Simulator:
         """Update all water bombers to given time, return list of suppressed strikes."""
         strikes_suppressed: List[Lightning] = []
         for water_bomber in self.water_bombers:
-            water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
-            _, suppressions = water_bomber.update_to_time(time, water_bomber_bases)
+            _, suppressions = water_bomber.update_to_time(time)
             strikes_suppressed += suppressions
         return strikes_suppressed
 

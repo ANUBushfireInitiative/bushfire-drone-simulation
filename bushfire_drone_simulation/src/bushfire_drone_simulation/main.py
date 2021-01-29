@@ -11,9 +11,9 @@ from bushfire_drone_simulation.coordinator import Coordinator
 from bushfire_drone_simulation.fire_utils import Base, WaterTank
 from bushfire_drone_simulation.gui.gui import start_gui, start_map_gui
 from bushfire_drone_simulation.lightning import Lightning, reduce_lightning_to_ignitions
-from bushfire_drone_simulation.matlab_coordinator import MatlabUAVCoordinator, MatlabWBCoordinator
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.read_csv import read_lightning, read_locations_with_capacity
+from bushfire_drone_simulation.simple_coordinator import SimpleUAVCoordinator, SimpleWBCoordinator
 from bushfire_drone_simulation.simulator import Simulator
 
 _LOG = logging.getLogger(__name__)
@@ -52,8 +52,8 @@ def run_simulation_test(parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT)
 
     for scenario_idx in tqdm(range(0, len(params.scenarios)), unit="scenario"):
         simulator = Simulator(params, scenario_idx)
-        uav_coordinator = MatlabUAVCoordinator(simulator.uavs, simulator.uav_bases)
-        wb_coordinator = MatlabWBCoordinator(
+        uav_coordinator = SimpleUAVCoordinator(simulator.uavs, simulator.uav_bases)
+        wb_coordinator = SimpleWBCoordinator(
             simulator.water_bombers, simulator.water_bomber_bases_dict, simulator.water_tanks
         )
         simulator.run_simulation(uav_coordinator, wb_coordinator)

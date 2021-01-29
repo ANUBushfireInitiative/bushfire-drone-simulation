@@ -18,15 +18,15 @@ class UAVCoordinator:
         """Initialize coordinator."""
         self.uavs: List[UAV] = uavs
         self.uav_bases: List[Base] = uav_bases
-        self.uninspected_strikes: Set[Lightning] = Set()
+        self.uninspected_strikes: Set[Lightning] = set()
 
     def new_strike(self, lightning: Lightning) -> None:
         """Decide on uavs movement with new strike."""
         self.uninspected_strikes.add(lightning)
-        self.process_new_strike()
+        self.process_new_strike(lightning)
 
     @abstractmethod
-    def process_new_strike(self) -> None:
+    def process_new_strike(self, lightning: Lightning) -> None:
         """Decide on uavs movement with new strike."""
         # Uavs already updated to time of strike by simulator
 
@@ -51,16 +51,16 @@ class WBCoordinator:
         self.water_bombers: List[WaterBomber] = water_bombers
         self.water_bomber_bases_dict: Dict[str, List[Base]] = water_bomber_bases
         self.water_tanks: List[WaterTank] = water_tanks
-        self.uninspected_strikes: Set[Lightning] = Set()
-        self.unsupressed_strikes: Set[Lightning] = Set()
+        self.uninspected_strikes: Set[Lightning] = set()
+        self.unsupressed_strikes: Set[Lightning] = set()
 
     def new_strike(self, lightning: Lightning) -> None:
         """Decide on uavs movement with new strike."""
         self.uninspected_strikes.add(lightning)
-        self.process_new_strike()
+        self.process_new_strike(lightning)
 
     @abstractmethod
-    def process_new_strike(self) -> None:
+    def process_new_strike(self, lightning: Lightning) -> None:
         """Decide on uavs movement with new strike."""
         # Water bombers already updated to time of strike by simulator
 
@@ -69,10 +69,10 @@ class WBCoordinator:
         print("hellooooo")
         self.unsupressed_strikes.add(ignition)
         print("adding " + str(ignition.id_no) + " to unsupressed_strikes")
-        self.process_new_ignition()
+        self.process_new_ignition(ignition)
 
     @abstractmethod
-    def process_new_ignition(self) -> None:
+    def process_new_ignition(self, ignition: Lightning) -> None:
         """Decide on water bombers movement with new ignition."""
         # water bombers already updated to time of strike by simulator
 
