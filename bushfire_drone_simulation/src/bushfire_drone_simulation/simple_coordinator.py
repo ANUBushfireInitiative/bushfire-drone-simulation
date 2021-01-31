@@ -2,7 +2,7 @@
 
 import logging
 from queue import Queue
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 
@@ -18,28 +18,50 @@ class SimpleUAVCoordinator(UAVCoordinator):
     """Simple UAV Coordinator."""
 
     def __init__(self, uavs: List[UAV], uav_bases: List[Base]):
-        """Initialize coordinator."""
+        """Initialize UAV coordinator."""
         super().__init__(uavs, uav_bases)
         self.assigned_drones: Dict[int, List[Lightning]] = {}
         self.strikes_to_be_processed: "Queue[Lightning]" = Queue()
 
-    def process_new_strike(self, lightning: Lightning) -> None:  # pylint: disable=too-many-branches
+    def lightning_strike_inspected(self, lightning_strikes: List[Tuple[Lightning, int]]) -> None:
+        """Lightning has been inspected."""
+        for (strike, uav_id) in lightning_strikes:
+            self.uninspected_strikes.remove(strike)
+            try:
+                self.assigned_drones[uav_id].remove(strike)
+            except ValueError:
+                assert False, (
+                    f"Tried to remove strike {strike.id_no} from "
+                    "uav{uav_id}s list but it was not present."
+                )
+
+    def process_new_strike(self, lightning: Lightning) -> None:
         """Receive lightning strike that just occurred and coordinate UAV movements."""
+        uavs_processed: List[int] = []
         self.strikes_to_be_processed.put(lightning)
         while not self.strikes_to_be_processed.empty():
             strike = self.strikes_to_be_processed.get()
-            uav_id = self.process_strike(strike)
-            print(uav_id)
-            # TODO(finish this function!!) #pylint: disable=fixme
+            current_uav_id = self.process_strike(strike)
+            if current_uav_id is not None:
+                if current_uav_id not in self.assigned_drones:
+                    self.assigned_drones[current_uav_id] = [strike]
+                    uavs_processed.append(current_uav_id)
+                else:
+                    if current_uav_id not in uavs_processed:
+                        uavs_processed.append(current_uav_id)
+                        for old_strike in self.assigned_drones[current_uav_id]:
+                            self.strikes_to_be_processed.put(old_strike)
+                        self.assigned_drones[current_uav_id] = []
+                    self.assigned_drones[current_uav_id].append(strike)
 
     def process_strike(self, lightning: Lightning) -> Union[int, None]:
-        """Process a lightning strike and coordinate UAV movements for that strike.
+        """Assign best uav to given lightning strike.
 
         Args:
-            lightning (Lightning): lightning strike
+            lightning (Lightning): Lightning strike to be processed
 
         Returns:
-            int: Id number of UAV assigned to strike
+            Union[int, None]: id number of best uav or None if none were avaliable
         """
         base_index = np.argmin(list(map(lightning.distance, self.uav_bases)))
         min_arrival_time = Time("inf")
@@ -96,151 +118,192 @@ class SimpleUAVCoordinator(UAVCoordinator):
 class SimpleWBCoordinator(WBCoordinator):
     """Simple water bomber coordinator."""
 
-    def process_new_ignition(  # pylint:disable= too-many-branches, too-many-statements
-        self, ignition
-    ) -> None:
-        """Decide on water bombers movement with new ignition."""
-        # water bombers already updated to time of strike by simulator
-        # TODO(split into 2 functions! Currently doesn't work!!!) pylint: disable=fixme
-        for _ in self.unsupressed_strikes:  # pylint: disable=too-many-nested-blocks
-            assert ignition.inspected_time is not None, "Error: Ignition was not inspected."
-            # for water_bomber in self.water_bombers:
-            #     water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
-            #     water_bomber.consider_going_to_base(water_bomber_bases, ignition.inspected_time)
-            min_arrival_time = Time("inf")
-            best_water_bomber: Union[WaterBomber, None] = None
-            via_water: Union[WaterTank, None] = None
-            via_base: Union[Base, None] = None
-            fuel_first: Union[bool, None] = None
-            for water_bomber in self.water_bombers:  # pylint: disable=too-many-nested-blocks
-                water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
-                base_index = np.argmin(list(map(ignition.distance, water_bomber_bases)))
-                if water_bomber.enough_water():
-                    if water_bomber.enough_fuel(
-                        [ignition, water_bomber_bases[base_index]],
-                        ignition.inspected_time,
-                    ):
-                        temp_arr_time = water_bomber.arrival_time(
-                            [ignition], ignition.inspected_time
-                        )
-                        if temp_arr_time < min_arrival_time:
-                            min_arrival_time = temp_arr_time
-                            best_water_bomber = water_bomber
-                            via_base = None
-                            via_water = None
-                            fuel_first = None
-                    else:  # Need to refuel
-                        _LOG.debug("Water bomber %s needs to refuel", water_bomber.id_no)
-                        for base in water_bomber_bases:
-                            if water_bomber.enough_fuel(
-                                [base, ignition, water_bomber_bases[base_index]],
-                                ignition.inspected_time,
-                            ):
-                                temp_arr_time = water_bomber.arrival_time(
-                                    [base, ignition], ignition.inspected_time
-                                )
-                                if temp_arr_time < min_arrival_time:
-                                    min_arrival_time = temp_arr_time
-                                    best_water_bomber = water_bomber
-                                    via_base = base
-                                    via_water = None
-                                    fuel_first = None
+    def __init__(
+        self,
+        water_bombers: List[WaterBomber],
+        water_bomber_bases: Dict[str, List[Base]],
+        water_tanks: List[WaterTank],
+    ):
+        """Initialize UAV coordinator."""
+        super().__init__(water_bombers, water_bomber_bases, water_tanks)
+        self.assigned_bombers: Dict[str, List[Lightning]] = {}
+        self.strikes_to_be_processed: "Queue[Lightning]" = Queue()
 
+    def lightning_strike_suppressed(self, lightning_strikes: List[Tuple[Lightning, str]]) -> None:
+        """Lightning has been suppressed."""
+        for (strike, bomber_name) in lightning_strikes:
+            self.unsupressed_strikes.remove(strike)
+            try:
+                self.assigned_bombers[bomber_name].remove(strike)
+            except ValueError:
+                assert False, (
+                    f"Tried to remove strike {strike.id_no} from {bomber_name}s"
+                    " list but it was not present."
+                )
+
+    def process_new_ignition(self, ignition: Lightning) -> None:
+        """Decide on water bombers movement with new ignition."""
+        bombers_processed: List[str] = []
+        self.strikes_to_be_processed.put(ignition)
+        while not self.strikes_to_be_processed.empty():
+            strike = self.strikes_to_be_processed.get()
+            current_bomber = self.process_ignition(strike)
+            if current_bomber is not None:
+                if current_bomber not in self.assigned_bombers:
+                    self.assigned_bombers[current_bomber] = [strike]
+                    bombers_processed.append(current_bomber)
                 else:
-                    # Need to go via a water tank
-                    # (assuming if we go via a water tank we have enough water)
-                    _LOG.debug("Water bomber %s needs to go via a water tank", water_bomber.id_no)
-                    for water_tank in self.water_tanks:
-                        if water_bomber.check_water_tank(water_tank) and water_bomber.enough_fuel(
-                            [water_tank, ignition, water_bomber_bases[base_index]],
+                    if current_bomber not in bombers_processed:
+                        bombers_processed.append(current_bomber)
+                        for old_strike in self.assigned_bombers[current_bomber]:
+                            self.strikes_to_be_processed.put(old_strike)
+                        self.assigned_bombers[current_bomber] = []
+                    self.assigned_bombers[current_bomber].append(strike)
+
+    def process_ignition(  # pylint:disable= too-many-branches, too-many-statements
+        self, ignition: Lightning
+    ) -> Union[str, None]:
+        """Assign the best water bomber to given ignition.
+
+        Args:
+            ignition (Lightning): Ignition to be processed
+
+        Returns:
+            Union[str, None]: Name of assigned water bomber
+        """
+        assert ignition.inspected_time is not None, "Error: Ignition was not inspected."
+        min_arrival_time = Time("inf")
+        best_water_bomber: Union[WaterBomber, None] = None
+        via_water: Union[WaterTank, None] = None
+        via_base: Union[Base, None] = None
+        fuel_first: Union[bool, None] = None
+        for water_bomber in self.water_bombers:  # pylint: disable=too-many-nested-blocks
+            water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
+            base_index = np.argmin(list(map(ignition.distance, water_bomber_bases)))
+            if water_bomber.enough_water():
+                if water_bomber.enough_fuel(
+                    [ignition, water_bomber_bases[base_index]],
+                    ignition.inspected_time,
+                ):
+                    temp_arr_time = water_bomber.arrival_time([ignition], ignition.inspected_time)
+                    if temp_arr_time < min_arrival_time:
+                        min_arrival_time = temp_arr_time
+                        best_water_bomber = water_bomber
+                        via_base = None
+                        via_water = None
+                        fuel_first = None
+                else:  # Need to refuel
+                    _LOG.debug("Water bomber %s needs to refuel", water_bomber.id_no)
+                    for base in water_bomber_bases:
+                        if water_bomber.enough_fuel(
+                            [base, ignition, water_bomber_bases[base_index]],
                             ignition.inspected_time,
                         ):
                             temp_arr_time = water_bomber.arrival_time(
-                                [water_tank, ignition], ignition.inspected_time
+                                [base, ignition], ignition.inspected_time
                             )
                             if temp_arr_time < min_arrival_time:
                                 min_arrival_time = temp_arr_time
                                 best_water_bomber = water_bomber
-                                via_water = water_tank
-                                via_base = None
+                                via_base = base
+                                via_water = None
                                 fuel_first = None
-                    if via_water is None:
-                        # Need to also refuel
-                        for water_tank in self.water_tanks:
-                            for base in water_bomber_bases:
-                                if water_bomber.check_water_tank(
-                                    water_tank
-                                ) and water_bomber.enough_fuel(
-                                    [
-                                        water_tank,
-                                        base,
-                                        ignition,
-                                        water_bomber_bases[base_index],
-                                    ],
-                                    ignition.inspected_time,
-                                ):
-                                    temp_arr_time = water_bomber.arrival_time(
-                                        [water_tank, base, ignition],
-                                        ignition.inspected_time,
-                                    )
-                                    if temp_arr_time < min_arrival_time:
-                                        min_arrival_time = temp_arr_time
-                                        best_water_bomber = water_bomber
-                                        via_water = water_tank
-                                        via_base = base
-                                        fuel_first = False
-                                if water_bomber.check_water_tank(
-                                    water_tank
-                                ) and water_bomber.enough_fuel(
-                                    [
-                                        base,
-                                        water_tank,
-                                        ignition,
-                                        water_bomber_bases[base_index],
-                                    ],
-                                    ignition.inspected_time,
-                                ):
-                                    temp_arr_time = water_bomber.arrival_time(
-                                        [base, water_tank, ignition],
-                                        ignition.inspected_time,
-                                    )
-                                    if temp_arr_time < min_arrival_time:
-                                        min_arrival_time = temp_arr_time
-                                        best_water_bomber = water_bomber
-                                        via_water = water_tank
-                                        via_base = base
-                                        fuel_first = True
 
-            if best_water_bomber is not None:
-                _LOG.debug("Best water bomber is: %s", best_water_bomber.id_no)
-                _LOG.debug(
-                    "Which took %s mins to respond",
-                    (min_arrival_time - ignition.inspected_time).get("min"),
-                )
-                if fuel_first is not None:
-                    assert (
-                        via_base is not None
-                    ), "Error: Base not provided despite requiring refueling."
-                    assert (
-                        via_water is not None
-                    ), "Error: Water tank not provided despite requiring refilling."
-                    if fuel_first:
-                        best_water_bomber.accept_update(via_base, ignition.inspected_time)
-                        best_water_bomber.accept_update(via_water, ignition.inspected_time)
-                    else:
-                        best_water_bomber.accept_update(via_water, ignition.inspected_time)
-                        best_water_bomber.accept_update(via_base, ignition.inspected_time)
-                elif via_base is not None:
-                    best_water_bomber.accept_update(via_base, ignition.inspected_time)
-                elif via_water is not None:
-                    best_water_bomber.accept_update(via_water, ignition.inspected_time)
-                best_water_bomber.accept_update(ignition, ignition.inspected_time)
-                best_water_bomber.print_past_locations()
             else:
-                _LOG.error("No water bombers were available")
-            for water_bomber in self.water_bombers:
-                water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
-                water_bomber.consider_going_to_base(water_bomber_bases, ignition.inspected_time)
+                # Need to go via a water tank
+                # (assuming if we go via a water tank we have enough water)
+                _LOG.debug("Water bomber %s needs to go via a water tank", water_bomber.id_no)
+                for water_tank in self.water_tanks:
+                    if water_bomber.check_water_tank(water_tank) and water_bomber.enough_fuel(
+                        [water_tank, ignition, water_bomber_bases[base_index]],
+                        ignition.inspected_time,
+                    ):
+                        temp_arr_time = water_bomber.arrival_time(
+                            [water_tank, ignition], ignition.inspected_time
+                        )
+                        if temp_arr_time < min_arrival_time:
+                            min_arrival_time = temp_arr_time
+                            best_water_bomber = water_bomber
+                            via_water = water_tank
+                            via_base = None
+                            fuel_first = None
+                if via_water is None:
+                    # Need to also refuel
+                    for water_tank in self.water_tanks:
+                        for base in water_bomber_bases:
+                            if water_bomber.check_water_tank(
+                                water_tank
+                            ) and water_bomber.enough_fuel(
+                                [
+                                    water_tank,
+                                    base,
+                                    ignition,
+                                    water_bomber_bases[base_index],
+                                ],
+                                ignition.inspected_time,
+                            ):
+                                temp_arr_time = water_bomber.arrival_time(
+                                    [water_tank, base, ignition],
+                                    ignition.inspected_time,
+                                )
+                                if temp_arr_time < min_arrival_time:
+                                    min_arrival_time = temp_arr_time
+                                    best_water_bomber = water_bomber
+                                    via_water = water_tank
+                                    via_base = base
+                                    fuel_first = False
+                            if water_bomber.check_water_tank(
+                                water_tank
+                            ) and water_bomber.enough_fuel(
+                                [
+                                    base,
+                                    water_tank,
+                                    ignition,
+                                    water_bomber_bases[base_index],
+                                ],
+                                ignition.inspected_time,
+                            ):
+                                temp_arr_time = water_bomber.arrival_time(
+                                    [base, water_tank, ignition],
+                                    ignition.inspected_time,
+                                )
+                                if temp_arr_time < min_arrival_time:
+                                    min_arrival_time = temp_arr_time
+                                    best_water_bomber = water_bomber
+                                    via_water = water_tank
+                                    via_base = base
+                                    fuel_first = True
+        ret_name: Union[str, None] = None
+        if best_water_bomber is not None:
+            ret_name = best_water_bomber.get_name()
+            _LOG.debug("Best water bomber is: %s", best_water_bomber.id_no)
+            _LOG.debug(
+                "Which took %s mins to respond",
+                (min_arrival_time - ignition.inspected_time).get("min"),
+            )
+            if fuel_first is not None:
+                assert via_base is not None, "Error: Base not provided despite requiring refueling."
+                assert (
+                    via_water is not None
+                ), "Error: Water tank not provided despite requiring refilling."
+                if fuel_first:
+                    best_water_bomber.accept_update(via_base, ignition.inspected_time)
+                    best_water_bomber.accept_update(via_water, ignition.inspected_time)
+                else:
+                    best_water_bomber.accept_update(via_water, ignition.inspected_time)
+                    best_water_bomber.accept_update(via_base, ignition.inspected_time)
+            elif via_base is not None:
+                best_water_bomber.accept_update(via_base, ignition.inspected_time)
+            elif via_water is not None:
+                best_water_bomber.accept_update(via_water, ignition.inspected_time)
+            best_water_bomber.accept_update(ignition, ignition.inspected_time)
+            best_water_bomber.print_past_locations()
+        else:
+            _LOG.error("No water bombers were available")
+        for water_bomber in self.water_bombers:
+            water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
+            water_bomber.consider_going_to_base(water_bomber_bases, ignition.inspected_time)
+        return ret_name
 
     def process_new_strike(self, lightning) -> None:
         """Decide on uavs movement with new strike."""

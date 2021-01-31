@@ -2,7 +2,7 @@
 
 # from queue import Queue
 from abc import abstractmethod
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Tuple
 
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.fire_utils import Base, WaterTank
@@ -30,11 +30,9 @@ class UAVCoordinator:
         """Decide on uavs movement with new strike."""
         # Uavs already updated to time of strike by simulator
 
-    def lightning_strike_inspected(self, lightning_strikes: List[Lightning]) -> None:
-        """Lightning has been inspected."""
-        # remove from uninspected strikes
-        # add to unsupressed strikes
-        for strike in lightning_strikes:
+    def lightning_strike_inspected(self, lightning_strikes: List[Tuple[Lightning, int]]) -> None:
+        """Lightning has been inspected, remove from uninspected strikes."""
+        for (strike, _) in lightning_strikes:
             self.uninspected_strikes.remove(strike)
 
 
@@ -76,8 +74,7 @@ class WBCoordinator:
         """Decide on water bombers movement with new ignition."""
         # water bombers already updated to time of strike by simulator
 
-    def lightning_strike_suppressed(self, lightning_strikes: List[Lightning]) -> None:
+    def lightning_strike_suppressed(self, lightning_strikes: List[Tuple[Lightning, str]]) -> None:
         """Lightning has been suppressed."""
-        # remove from inspected strikes
-        for strike in lightning_strikes:
+        for (strike, _) in lightning_strikes:
             self.unsupressed_strikes.remove(strike)

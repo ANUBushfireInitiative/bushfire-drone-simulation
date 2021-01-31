@@ -13,14 +13,14 @@ PARAMS_LOC = os.path.join(os.path.dirname(FILE_LOC), "parameters.json")
 def test_times_chronological(monkeypatch):
     """Are the Aircrafts movements chronological."""
     monkeypatch.setattr("builtins.input", lambda _: "Y")
-    for coordinator, _ in run_simulation(PARAMS_LOC):
-        for uav in coordinator.uavs:
+    for simulator in run_simulation(PARAMS_LOC):
+        for uav in simulator.uavs:
             for idx, update in enumerate(uav.past_locations):
                 if idx != 0:
                     assert (
                         update.time >= uav.past_locations[idx - 1].time
                     ), f"The event updates of uav {uav.id_no} were not in chronological order"
-        for water_bomber in coordinator.water_bombers:
+        for water_bomber in simulator.water_bombers:
             for idx, update in enumerate(water_bomber.past_locations):
                 if idx != 0:
                     assert update.time >= water_bomber.past_locations[idx - 1].time, (
@@ -32,8 +32,8 @@ def test_times_chronological(monkeypatch):
 def test_reasonable_fuel_refill(monkeypatch):
     """Does the Aircraft refill often enough."""
     monkeypatch.setattr("builtins.input", lambda _: "Y")
-    for coordinator, _ in run_simulation(PARAMS_LOC):
-        for uav in coordinator.uavs:
+    for simulator in run_simulation(PARAMS_LOC):
+        for uav in simulator.uavs:
             time_full = uav.past_locations[0].time
             for idx, update in enumerate(uav.past_locations):
                 if idx != 0:
@@ -45,7 +45,7 @@ def test_reasonable_fuel_refill(monkeypatch):
                         ) <= uav.get_range().div_by_speed(
                             uav.flight_speed
                         ), f"UAV {uav.id_no} should have run out of fuel"
-        for water_bomber in coordinator.water_bombers:
+        for water_bomber in simulator.water_bombers:
             time_full = water_bomber.past_locations[0].time
             for idx, update in enumerate(water_bomber.past_locations):
                 if idx != 0:
@@ -64,8 +64,8 @@ def test_reasonable_fuel_refill(monkeypatch):
 def test_aricraft_status(monkeypatch):  # pylint: disable=too-many-branches
     """Does the aircraft status alter reasonably."""
     monkeypatch.setattr("builtins.input", lambda _: "Y")
-    for coordinator, _ in run_simulation(PARAMS_LOC):  # pylint: disable=too-many-nested-blocks
-        for uav in coordinator.uavs:
+    for simulator in run_simulation(PARAMS_LOC):  # pylint: disable=too-many-nested-blocks
+        for uav in simulator.uavs:
             for idx, update in enumerate(uav.past_locations):
                 if idx != 0:
                     if update.status == Status.WAITING_AT_BASE:
@@ -76,7 +76,7 @@ def test_aricraft_status(monkeypatch):  # pylint: disable=too-many-branches
                         assert (
                             uav.past_locations[idx - 1].status == Status.GOING_TO_STRIKE
                         ), "UAV {uav.id_no} should have previously been going to strike"
-        for water_bomber in coordinator.water_bombers:
+        for water_bomber in simulator.water_bombers:
             for idx, update in enumerate(water_bomber.past_locations):
                 if idx != 0:
                     if update.status == Status.WAITING_AT_BASE:

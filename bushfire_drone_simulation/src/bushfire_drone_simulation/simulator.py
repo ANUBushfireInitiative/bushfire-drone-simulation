@@ -51,12 +51,12 @@ class Simulator:
             inspections = self._update_uavs_to_time(strike.spawn_time)
             uav_coordinator.lightning_strike_inspected(inspections)
             uav_coordinator.new_strike(strike)
-            for inspected in inspections:
+            for (inspected, _) in inspections:
                 if inspected.ignition:
                     self.ignitions.put(inspected)
 
         inspections = self._update_uavs_to_time(Time("inf"))
-        for inspected in inspections:
+        for (inspected, _) in inspections:
             if inspected.ignition:
                 self.ignitions.put(inspected)
 
@@ -74,30 +74,30 @@ class Simulator:
 
         suppressions = self._update_water_bombers_to_time(Time("inf"))
 
-    def _update_to_time(self, time: Time) -> Tuple[List[Lightning], List[Lightning]]:
+    def _update_to_time(
+        self, time: Time
+    ) -> Tuple[List[Tuple[Lightning, int]], List[Tuple[Lightning, str]]]:
         """Update all aircraft to given time."""
-        # Recurse through priority queue until empty
-        # then send lightning strike to coordinator
         inspections = self._update_uavs_to_time(time)
         suppressions = self._update_water_bombers_to_time(time)
         return inspections, suppressions
 
-    def _update_uavs_to_time(self, time: Time) -> List[Lightning]:
+    def _update_uavs_to_time(self, time: Time) -> List[Tuple[Lightning, int]]:
         """Update all UAVs to given time, return list of inspected strikes."""
-        # all uavs to return their next update
-        # add to priority queue if before next before next lightning strike
-        strikes_inspected: List[Lightning] = []
+        strikes_inspected: List[Tuple[Lightning, int]] = []
         for uav in self.uavs:
             inspections, _ = uav.update_to_time(time)
-            strikes_inspected += inspections
+            for inspection in inspections:
+                strikes_inspected.append((inspection, uav.id_no))
         return strikes_inspected
 
-    def _update_water_bombers_to_time(self, time) -> List[Lightning]:
+    def _update_water_bombers_to_time(self, time) -> List[Tuple[Lightning, str]]:
         """Update all water bombers to given time, return list of suppressed strikes."""
-        strikes_suppressed: List[Lightning] = []
+        strikes_suppressed: List[Tuple[Lightning, str]] = []
         for water_bomber in self.water_bombers:
             _, suppressions = water_bomber.update_to_time(time)
-            strikes_suppressed += suppressions
+            for suppression in suppressions:
+                strikes_suppressed.append((suppression, water_bomber.get_name()))
         return strikes_suppressed
 
     def output_results(self, params: JSONParameters, scenario_idx: int) -> None:

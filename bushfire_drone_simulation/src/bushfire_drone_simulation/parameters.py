@@ -14,7 +14,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
-from bushfire_drone_simulation.coordinator import Coordinator
 from bushfire_drone_simulation.fire_utils import Base, WaterTank, assert_bool, assert_number
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.read_csv import CSVFile, read_lightning, read_locations_with_capacity
@@ -234,31 +233,6 @@ class JSONParameters:
     def get_relative_filepath(self, key: str, scenario_idx):
         """Return relative file path to given key."""
         return os.path.join(self.folder, self.get_attribute(key, scenario_idx))
-
-    def write_to_output_folder(
-        self,
-        lightning_strikes: List[Lightning],
-        coordinator: Coordinator,
-        scenario_idx: int,
-    ):
-        """Write results of simulation to output folder."""
-        prefix = ""
-        if "scenario_name" in self.scenarios[scenario_idx]:
-            prefix = str(self.get_attribute("scenario_name", scenario_idx)) + "_"
-
-        uavs = coordinator.uavs
-        water_bombers = coordinator.water_bombers
-        water_tanks = coordinator.water_tanks
-
-        inspection_times, supression_times_ignitions_only = self.write_to_simulation_output_file(
-            lightning_strikes, prefix
-        )
-        self.write_to_uav_updates_file(uavs, prefix)
-        self.write_to_wb_updates_file(water_bombers, prefix)
-        self.write_to_input_parameters_folder(scenario_idx)
-        self.create_plots(
-            inspection_times, supression_times_ignitions_only, water_bombers, water_tanks, prefix
-        )
 
     def create_plots(
         self, inspection_times, supression_times_ignitions_only, water_bombers, water_tanks, prefix

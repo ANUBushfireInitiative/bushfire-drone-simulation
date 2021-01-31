@@ -57,7 +57,7 @@ def update(var_whaaaaaaaaaaaaaaat, canvas_name, water_bomber_base_points):
         print("hi")
 
 
-def start_gui(coordinator, lightning):  # pylint: disable = too-many-locals
+def start_gui(simulator):  # pylint: disable = too-many-locals
     """Start a basic GUI version of the drone simulation."""
     window = tk.Tk()
 
@@ -65,26 +65,26 @@ def start_gui(coordinator, lightning):  # pylint: disable = too-many-locals
     canvas = tk.Canvas(window, width=800, height=800)
 
     lightning_points = []
-    for strike in lightning:
+    for strike in simulator.lightning_strikes:
         create_point_from_elm(canvas, strike, lightning_points)
     tank_points = []
-    for tank in coordinator.water_tanks:
+    for tank in simulator.water_tanks:
         create_point_from_elm(canvas, tank, tank_points)
     uav_points = []
-    for uav in coordinator.uavs:
+    for uav in simulator.uavs:
         for (idx, past_loc) in enumerate(uav.past_locations):
             if idx != 0:
                 connect_points(canvas, past_loc, uav.past_locations[idx - 1])
         create_point_from_elm(canvas, uav, uav_points, rad=3)
     uav_base_points = []
-    for base in coordinator.uav_bases:
+    for base in simulator.uav_bases:
         create_point_from_elm(canvas, base, uav_base_points, rad=2)
     water_bomber_base_points = []
     water_bomber_points = []
-    for water_bomber_type in coordinator.water_bomber_bases_dict:
-        for base in coordinator.water_bomber_bases_dict[water_bomber_type]:
+    for water_bomber_type in simulator.water_bomber_bases_dict:
+        for base in simulator.water_bomber_bases_dict[water_bomber_type]:
             create_point_from_elm(canvas, base, water_bomber_base_points, rad=2)
-    for water_bomber in coordinator.water_bombers:
+    for water_bomber in simulator.water_bombers:
         for (idx, past_loc) in enumerate(water_bomber.past_locations):
             if idx != 0:
                 connect_points(canvas, past_loc, water_bomber.past_locations[idx - 1])
