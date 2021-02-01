@@ -88,6 +88,7 @@ class Simulator:
         for uav in self.uavs:
             inspections, _ = uav.update_to_time(time)
             for inspection in inspections:
+                print("strike " + str(inspection.id_no) + " inspected!")
                 strikes_inspected.append((inspection, uav.id_no))
         return strikes_inspected
 

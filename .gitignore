@@ -142,6 +142,7 @@ bushfire_drone_simulation/csv_data
 bushfire_drone_simulation/image_data
 bushfire_drone_simulation/input
 bushfire_drone_simulation/matt_input
+bushfire_drone_simulation/matt_input2
 csv_data
 *.nvimlog
 bushfire_drone_simulation/src/bushfire_drone_simulation/gui/map_tile_cache

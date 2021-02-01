@@ -25,7 +25,7 @@ class SimpleUAVCoordinator(UAVCoordinator):
 
     def lightning_strike_inspected(self, lightning_strikes: List[Tuple[Lightning, int]]) -> None:
         """Lightning has been inspected."""
-        for (strike, uav_id) in lightning_strikes:
+        for strike, uav_id in lightning_strikes:
             self.uninspected_strikes.remove(strike)
             try:
                 self.assigned_drones[uav_id].remove(strike)
@@ -38,9 +38,13 @@ class SimpleUAVCoordinator(UAVCoordinator):
     def process_new_strike(self, lightning: Lightning) -> None:
         """Receive lightning strike that just occurred and coordinate UAV movements."""
         uavs_processed: List[int] = []
+        strikes_processed: List[int] = []
+        no_of_strikes = 0
         self.strikes_to_be_processed.put(lightning)
         while not self.strikes_to_be_processed.empty():
+            no_of_strikes += 1
             strike = self.strikes_to_be_processed.get()
+            strikes_processed.append(strike.id_no)
             current_uav_id = self.process_strike(strike)
             if current_uav_id is not None:
                 if current_uav_id not in self.assigned_drones:
@@ -53,6 +57,13 @@ class SimpleUAVCoordinator(UAVCoordinator):
                             self.strikes_to_be_processed.put(old_strike)
                         self.assigned_drones[current_uav_id] = []
                     self.assigned_drones[current_uav_id].append(strike)
+        for uav in self.uavs:
+            if uav.id_no in self.assigned_drones:
+                for strike in self.assigned_drones[uav.id_no]:
+                    if strike.id_no not in strikes_processed:
+                        uav.accept_update(strike, strike.spawn_time)
+
+        print("reprocessed " + str(no_of_strikes) + " strikes")
 
     def process_strike(self, lightning: Lightning) -> Union[int, None]:
         """Assign best uav to given lightning strike.
@@ -144,9 +155,11 @@ class SimpleWBCoordinator(WBCoordinator):
     def process_new_ignition(self, ignition: Lightning) -> None:
         """Decide on water bombers movement with new ignition."""
         bombers_processed: List[str] = []
+        strikes_processed: List[int] = []
         self.strikes_to_be_processed.put(ignition)
         while not self.strikes_to_be_processed.empty():
             strike = self.strikes_to_be_processed.get()
+            strikes_processed.append(strike.id_no)
             current_bomber = self.process_ignition(strike)
             if current_bomber is not None:
                 if current_bomber not in self.assigned_bombers:
@@ -159,6 +172,11 @@ class SimpleWBCoordinator(WBCoordinator):
                             self.strikes_to_be_processed.put(old_strike)
                         self.assigned_bombers[current_bomber] = []
                     self.assigned_bombers[current_bomber].append(strike)
+        for water_bomber in self.water_bombers:
+            if water_bomber.get_name() in self.assigned_bombers:
+                for strike in self.assigned_bombers[water_bomber.get_name()]:
+                    if strike.id_no not in strikes_processed:
+                        water_bomber.accept_update(strike, strike.spawn_time)
 
     def process_ignition(  # pylint:disable= too-many-branches, too-many-statements
         self, ignition: Lightning
