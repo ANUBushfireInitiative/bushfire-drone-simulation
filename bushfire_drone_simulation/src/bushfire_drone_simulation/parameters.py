@@ -235,18 +235,28 @@ class JSONParameters:
         return os.path.join(self.folder, self.get_attribute(key, scenario_idx))
 
     def create_plots(
-        self, inspection_times, supression_times_ignitions_only, water_bombers, water_tanks, prefix
+        self, inspection_times, suppression_times, water_bombers, water_tanks, prefix
     ):  # pylint: disable=too-many-arguments
         """Create plots and write to output."""
+        title = ""
+        if len(inspection_times) != 0:
+            mean_inspection_time = sum(inspection_times) / len(inspection_times)
+            title = f"Mean inspection time of {mean_inspection_time} hrs"
+        if len(suppression_times) != 0:
+            mean_suppression_time = sum(suppression_times) / len(suppression_times)
+            title += f"\nMean supression time of {mean_suppression_time} hrs"
         fig, axs = plt.subplots(2, 2, figsize=(12, 8), dpi=300)
+
+        fig.suptitle(title)
+
         axs[0, 0].hist(inspection_times, bins=20)
         axs[0, 0].set_title("Histogram of UAV inspection times")
         axs[0, 0].set(xlabel="Inspection time (Hours)", ylabel="Frequency")
         axs[0, 0].set_xlim(left=0)
         axs[0, 0].set_ylim(bottom=0)
 
-        axs[0, 1].hist(supression_times_ignitions_only, bins=20)
-        axs[0, 1].set_title("Histogram of supression times")
+        axs[0, 1].hist(suppression_times, bins=20)
+        axs[0, 1].set_title("Histogram of suppression times")
         axs[0, 1].set(xlabel="Suppression time (Hours)", ylabel="Frequency")
         axs[0, 1].set_xlim(left=0)
         axs[0, 1].set_ylim(bottom=0)

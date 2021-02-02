@@ -5,6 +5,8 @@
     "lightning_filename": "input_data/lightning.csv",
     "scenario_parameters_filename": "input_data/scenario_parameters.csv",
     "output_folder_name": "output",
+    "uav_coordinator": "MatlabUAVCoordinator",
+    "wb_coordinator": "MatlabWBCoordinator",
     "ignition_probability": "?",
 
     "uavs": {"spawn_loc_file": "input_data/uav_spawn_locations.csv",

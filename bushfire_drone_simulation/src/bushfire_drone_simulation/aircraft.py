@@ -430,6 +430,33 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             fraction (float, optional): fraction of fuel tank. Defaults to 3, must be >= 1.
         """
         if self.get_recent_status() == Status.HOVERING:
+            current_fuel = self.get_recent_fuel()
+            # Update fuel loss from hovering
+            if self.get_recent_time() < departure_time:
+                current_fuel -= (departure_time - self.get_recent_time()).mul_by_speed(
+                    self.flight_speed
+                ) / self.get_range()
+            # Find nearest base and go to if necessary
+            index = np.argmin(list(map(self.get_recent_position().distance, bases)))
+            if (
+                self.get_recent_position().distance(bases[index]) * fraction
+                > self.get_range() * current_fuel
+            ):
+                self.accept_update(bases[index], departure_time)
+
+    def go_to_base_when_necessary(
+        self, bases: List[Base], departure_time: Time, fraction: float = 3
+    ) -> None:
+        """Aircraft will return to base.
+
+        when it takes more than 1/fraction of its fuel tank to return to the nearest base
+
+        Args:
+            bases (List[Base]): list of avaliable bases
+            departure_time (Time): time of triggering event of consider going to base
+            fraction (float, optional): fraction of fuel tank. Defaults to 3, must be >= 1.
+        """
+        if self.get_recent_status() == Status.HOVERING:
             index = np.argmin(list(map(self.get_recent_position().distance, bases)))
             dist_to_base = self.get_recent_position().distance(bases[index]) * fraction
             current_range = self.get_recent_fuel() * self.get_range()

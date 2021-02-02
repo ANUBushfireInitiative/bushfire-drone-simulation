@@ -1,4 +1,4 @@
-"""Simple coordinator."""
+"""Coordinator that prioritises new strikes and only processes remaining strikes if nessesary."""
 
 import logging
 from queue import Queue
@@ -14,8 +14,8 @@ from bushfire_drone_simulation.lightning import Lightning
 _LOG = logging.getLogger(__name__)
 
 
-class SimpleUAVCoordinator(UAVCoordinator):
-    """Simple UAV Coordinator."""
+class NewStrikesFirstUAVCoordinator(UAVCoordinator):
+    """New Strikes First UAV Coordinator."""
 
     def __init__(self, uavs: List[UAV], uav_bases: List[Base]):
         """Initialize UAV coordinator."""
@@ -60,6 +60,8 @@ class SimpleUAVCoordinator(UAVCoordinator):
                             self.strikes_to_be_processed.put(old_strike)
                         self.assigned_drones[current_uav_id] = []
                     self.assigned_drones[current_uav_id].append(strike)
+        for uav in self.uavs:
+            uav.go_to_base_when_necessary(self.uav_bases, lightning.spawn_time)
         print("reprocessed " + str(no_of_strikes))
 
     def process_strike(self, lightning: Lightning) -> Union[int, None]:
@@ -117,13 +119,11 @@ class SimpleUAVCoordinator(UAVCoordinator):
             best_uav.print_past_locations()
         else:
             _LOG.error("No UAVs were available to process lightning strike %s", lightning.id_no)
-        for uav in self.uavs:
-            uav.consider_going_to_base(self.uav_bases, lightning.spawn_time)
         return return_id
 
 
-class SimpleWBCoordinator(WBCoordinator):
-    """Simple water bomber coordinator."""
+class NewStrikesFirstWBCoordinator(WBCoordinator):
+    """New strikes first water bomber coordinator."""
 
     def __init__(
         self,
@@ -314,7 +314,7 @@ class SimpleWBCoordinator(WBCoordinator):
             _LOG.error("No water bombers were available")
         for water_bomber in self.water_bombers:
             water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
-            water_bomber.consider_going_to_base(water_bomber_bases, ignition.inspected_time)
+            water_bomber.go_to_base_when_necessary(water_bomber_bases, ignition.inspected_time)
         return ret_name
 
     def process_new_strike(self, lightning) -> None:
