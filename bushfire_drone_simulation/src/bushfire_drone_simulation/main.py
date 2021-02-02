@@ -8,8 +8,8 @@ import typer
 from tqdm import tqdm
 
 from bushfire_drone_simulation.gui.gui import start_gui, start_map_gui
+from bushfire_drone_simulation.matlab_coordinator import MatlabUAVCoordinator, MatlabWBCoordinator
 from bushfire_drone_simulation.parameters import JSONParameters
-from bushfire_drone_simulation.simple_coordinator import SimpleUAVCoordinator, SimpleWBCoordinator
 from bushfire_drone_simulation.simulator import Simulator
 
 _LOG = logging.getLogger(__name__)
@@ -47,8 +47,8 @@ def run_simulation(parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT) -> L
     to_return = []
     for scenario_idx in tqdm(range(0, len(params.scenarios)), unit="scenario"):
         simulator = Simulator(params, scenario_idx)
-        uav_coordinator = SimpleUAVCoordinator(simulator.uavs, simulator.uav_bases)
-        wb_coordinator = SimpleWBCoordinator(
+        uav_coordinator = MatlabUAVCoordinator(simulator.uavs, simulator.uav_bases)
+        wb_coordinator = MatlabWBCoordinator(
             simulator.water_bombers, simulator.water_bomber_bases_dict, simulator.water_tanks
         )
         simulator.run_simulation(uav_coordinator, wb_coordinator)

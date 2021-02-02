@@ -120,6 +120,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         self.past_locations: List[UpdateEvent] = []
         self.strikes_visited: List[Tuple[Lightning, Time]] = []
         self.event_queue: "Queue[Event]" = Queue()
+        self.use_current_status: bool = False
 
     def fuel_refill(self, base: Base) -> None:  # pylint: disable=unused-argument
         """Update time and range of aircraft after fuel refill.
@@ -146,34 +147,41 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
     def get_range(self) -> Distance:
         """Return total range of Aircraft."""
 
+    def use_event_queue(self) -> None:
+        """For each aircraft, use queue to return status."""
+        self.use_current_status = False
+
+    def use_current_state(self) -> None:
+        """For each aircraft, use current state to return current status."""
+        self.use_current_status = True
+
     def get_recent_time(self) -> Time:
         """Return time as if all elements of the event queue have been completed."""
-        if self.event_queue.empty():
+        if self.event_queue.empty() or self.use_current_status:
             return self.time
         return self.event_queue.queue[-1].arrival_time
 
     def get_recent_position(self) -> Location:
         """Return position as if all elements of the event queue have been completed."""
-        if self.event_queue.empty():
+        if self.event_queue.empty() or self.use_current_status:
             return Location(self.lat, self.lon)
         return self.event_queue.queue[-1].position
 
     def get_recent_fuel(self) -> float:
         """Return fuel capacity as if all elements of the event queue have been completed."""
-        if self.event_queue.empty():
+        if self.event_queue.empty() or self.use_current_status:
             return self.current_fuel_capacity
         return self.event_queue.queue[-1].fuel
 
     def get_recent_water(self) -> Volume:
         """Return water on board as if all elements of the event queue have been completed."""
-        # assert isinstance(self, WaterBomber), "UAV tried to access water on board"
-        if self.event_queue.empty():
+        if self.event_queue.empty() or self.use_current_status:
             return self.get_water_on_board()
         return self.event_queue.queue[-1].water_on_board
 
     def get_recent_status(self) -> Status:
         """Return water on board as if all elements of the event queue have been completed."""
-        if self.event_queue.empty():
+        if self.event_queue.empty() or self.use_current_status:
             return self.status
         return self.event_queue.queue[-1].status
 
@@ -248,15 +256,14 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
 
         Args:
             time (Time): Time to update to
-            base (List[Base]): List of aircrafts bases
 
         Returns:
-            List[Lightning]: list of strikes visited
+            List[Lightning]: list of strikes inspected
             List[Lightning]]: list of ignitions supressed
         """
-        # If we can get to the next position then complete update, otherwise make it half way there
         strikes_inspected: List[Lightning] = []
         strikes_suppressed: List[Lightning] = []
+        # If we can get to the next position then complete update, otherwise make it half way there
         while not self.event_queue.empty():
             next_event = self.event_queue.queue[0]
             self.time = max(self.time, next_event.time)
@@ -269,8 +276,6 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                 strikes_inspected += inspected
                 strikes_suppressed += supressed
             else:
-                # delete everything else from queue
-                self.event_queue.queue.clear()
                 if self.time <= time:  # The uav time is still less than the time to update to
                     # add update and update status
                     if isinstance(next_event.position, Base):
@@ -297,6 +302,9 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
 
     def accept_update(self, position: Location, departure_time: Time) -> None:
         """Add update to queue."""
+        if self.use_current_status:
+            self.event_queue.queue.clear()
+            self.use_event_queue()
         current_fuel = self.get_recent_fuel()
         if self.get_recent_status() == Status.HOVERING and self.get_recent_time() < departure_time:
             current_fuel -= (departure_time - self.get_recent_time()).mul_by_speed(
@@ -689,7 +697,7 @@ class WaterBomber(Aircraft):
 
     def enough_water(self, no_of_fires: int = 1) -> bool:
         """Return whether the water bomber has enough water to extinguish desired fires."""
-        return self.water_on_board >= self.water_per_delivery * no_of_fires
+        return self.get_recent_water() >= self.water_per_delivery * no_of_fires
 
     def get_water_refill_time(self) -> Duration:
         """Return water refill time of Aircraft. Should be 0 if does not exist."""

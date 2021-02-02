@@ -1,8 +1,7 @@
 """Simple coordinator."""
 
 import logging
-from queue import Queue
-from typing import Dict, List, Tuple, Union
+from typing import Union
 
 import numpy as np
 
@@ -14,67 +13,15 @@ from bushfire_drone_simulation.lightning import Lightning
 _LOG = logging.getLogger(__name__)
 
 
-class SimpleUAVCoordinator(UAVCoordinator):
-    """Simple UAV Coordinator."""
-
-    def __init__(self, uavs: List[UAV], uav_bases: List[Base]):
-        """Initialize UAV coordinator."""
-        super().__init__(uavs, uav_bases)
-        self.assigned_drones: Dict[int, List[Lightning]] = {}
-        self.strikes_to_be_processed: "Queue[Lightning]" = Queue()
-        self.assigned_this_round: List[bool] = [False for _ in self.uavs]
-
-    def lightning_strike_inspected(self, lightning_strikes: List[Tuple[Lightning, int]]) -> None:
-        """Lightning has been inspected."""
-        for strike, uav_id in lightning_strikes:
-            self.uninspected_strikes.remove(strike)
-            try:
-                self.assigned_drones[uav_id].remove(strike)
-            except ValueError:
-                assert False, (
-                    f"Tried to remove strike {strike.id_no} from "
-                    "uav{uav_id}s list but it was not present."
-                )
+class MatlabUAVCoordinator(UAVCoordinator):
+    """Matlab UAV Coordinator."""
 
     def process_new_strike(self, lightning: Lightning) -> None:
-        """Receive lightning strike that just occurred and coordinate UAV movements."""
-        for uav in self.uavs:
-            uav.use_current_state()
-        uavs_processed: List[int] = []
-        strikes_processed: List[int] = []
-        no_of_strikes = 0
-        self.strikes_to_be_processed.put(lightning)
-        while not self.strikes_to_be_processed.empty():
-            no_of_strikes += 1
-            strike = self.strikes_to_be_processed.get()
-            strikes_processed.append(strike.id_no)
-            current_uav_id = self.process_strike(strike)
-            if current_uav_id is not None:
-                if current_uav_id not in self.assigned_drones:
-                    self.assigned_drones[current_uav_id] = [strike]
-                    uavs_processed.append(current_uav_id)
-                else:
-                    if current_uav_id not in uavs_processed:
-                        uavs_processed.append(current_uav_id)
-                        for old_strike in self.assigned_drones[current_uav_id]:
-                            self.strikes_to_be_processed.put(old_strike)
-                        self.assigned_drones[current_uav_id] = []
-                    self.assigned_drones[current_uav_id].append(strike)
-        print("reprocessed " + str(no_of_strikes))
-
-    def process_strike(self, lightning: Lightning) -> Union[int, None]:
-        """Assign best uav to given lightning strike.
-
-        Args:
-            lightning (Lightning): Lightning strike to be processed
-
-        Returns:
-            Union[int, None]: id number of best uav or None if none were avaliable
-        """
+        """Receive lightning strike that just occurred and assign best uav."""
         base_index = np.argmin(list(map(lightning.distance, self.uav_bases)))
-        min_arrival_time = Time("inf")
-        best_uav = None
-        via_base = None
+        min_arrival_time: Time = Time("inf")
+        best_uav: Union[UAV, None] = None
+        via_base: Union[Base, None] = None
         for uav in self.uavs:
             # Check whether the UAV has enough fuel to
             # go to the lightning strike and then to the nearest base
@@ -100,9 +47,7 @@ class SimpleUAVCoordinator(UAVCoordinator):
                             min_arrival_time = temp_arr_time
                             best_uav = uav
                             via_base = uav_base
-        return_id = None
         if best_uav is not None:
-            return_id = best_uav.id_no
             _LOG.debug("Best UAV is: %s", best_uav.get_name)
             _LOG.debug(
                 "Which took %s mins to respond",
@@ -117,72 +62,18 @@ class SimpleUAVCoordinator(UAVCoordinator):
             best_uav.print_past_locations()
         else:
             _LOG.error("No UAVs were available to process lightning strike %s", lightning.id_no)
+
         for uav in self.uavs:
             uav.consider_going_to_base(self.uav_bases, lightning.spawn_time)
-        return return_id
 
 
-class SimpleWBCoordinator(WBCoordinator):
-    """Simple water bomber coordinator."""
+class MatlabWBCoordinator(WBCoordinator):
+    """Matlab water bomber coordinator."""
 
-    def __init__(
-        self,
-        water_bombers: List[WaterBomber],
-        water_bomber_bases: Dict[str, List[Base]],
-        water_tanks: List[WaterTank],
-    ):
-        """Initialize UAV coordinator."""
-        super().__init__(water_bombers, water_bomber_bases, water_tanks)
-        self.assigned_bombers: Dict[str, List[Lightning]] = {}
-        self.strikes_to_be_processed: "Queue[Lightning]" = Queue()
-
-    def lightning_strike_suppressed(self, lightning_strikes: List[Tuple[Lightning, str]]) -> None:
-        """Lightning has been suppressed."""
-        for strike, bomber_name in lightning_strikes:
-            self.unsupressed_strikes.remove(strike)
-            try:
-                self.assigned_bombers[bomber_name].remove(strike)
-            except ValueError:
-                assert False, (
-                    f"Tried to remove strike {strike.id_no} from {bomber_name}s"
-                    " list but it was not present."
-                )
-
-    def process_new_ignition(self, ignition: Lightning) -> None:
-        """Decide on water bombers movement with new ignition."""
-        for water_bomber in self.water_bombers:
-            water_bomber.use_current_state()
-        bombers_processed: List[str] = []
-        strikes_processed: List[int] = []
-        self.strikes_to_be_processed.put(ignition)
-        while not self.strikes_to_be_processed.empty():
-            strike = self.strikes_to_be_processed.get()
-            strikes_processed.append(strike.id_no)
-            current_bomber = self.process_ignition(strike)
-            # Add strike to assigned_bombers
-            if current_bomber is not None:
-                if current_bomber not in self.assigned_bombers:
-                    self.assigned_bombers[current_bomber] = [strike]
-                    bombers_processed.append(current_bomber)
-                else:
-                    if current_bomber not in bombers_processed:
-                        bombers_processed.append(current_bomber)
-                        for old_strike in self.assigned_bombers[current_bomber]:
-                            self.strikes_to_be_processed.put(old_strike)
-                        self.assigned_bombers[current_bomber] = []
-                    self.assigned_bombers[current_bomber].append(strike)
-
-    def process_ignition(  # pylint:disable= too-many-branches, too-many-statements
+    def process_new_ignition(  # pylint: disable=too-many-branches, too-many-statements
         self, ignition: Lightning
-    ) -> Union[str, None]:
-        """Assign the best water bomber to given ignition.
-
-        Args:
-            ignition (Lightning): Ignition to be processed
-
-        Returns:
-            Union[str, None]: Name of assigned water bomber
-        """
+    ) -> None:
+        """Decide on water bombers movement with new ignition."""
         assert ignition.inspected_time is not None, "Error: Ignition was not inspected."
         min_arrival_time = Time("inf")
         best_water_bomber: Union[WaterBomber, None] = None
@@ -285,9 +176,7 @@ class SimpleWBCoordinator(WBCoordinator):
                                     via_water = water_tank
                                     via_base = base
                                     fuel_first = True
-        ret_name: Union[str, None] = None
         if best_water_bomber is not None:
-            ret_name = best_water_bomber.get_name()
             _LOG.debug("Best water bomber is: %s", best_water_bomber.get_name())
             _LOG.debug(
                 "Which took %s mins to respond",
@@ -315,7 +204,6 @@ class SimpleWBCoordinator(WBCoordinator):
         for water_bomber in self.water_bombers:
             water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
             water_bomber.consider_going_to_base(water_bomber_bases, ignition.inspected_time)
-        return ret_name
 
     def process_new_strike(self, lightning) -> None:
         """Decide on uavs movement with new strike."""
