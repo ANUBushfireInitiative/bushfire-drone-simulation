@@ -67,7 +67,7 @@ class Simulator:
             ), f"Ignition {ignition.id_no} was not inspected"
             suppressions = self._update_water_bombers_to_time(ignition.inspected_time)
             wb_coordinator.lightning_strike_suppressed(suppressions)
-            wb_coordinator.unsupressed_strikes.add(ignition)
+            wb_coordinator.unsuppressed_strikes.add(ignition)
             wb_coordinator.process_new_ignition(ignition)
             # wb_coordinator.new_ignition(ignition)
             # TODO(get this silly function to work) pylint: disable=fixme
@@ -106,7 +106,7 @@ class Simulator:
         if "scenario_name" in params.scenarios[scenario_idx]:
             prefix = str(params.get_attribute("scenario_name", scenario_idx)) + "_"
 
-        inspection_times, supression_times_ignitions_only = params.write_to_simulation_output_file(
+        inspection_times, suppression_times = params.write_to_simulation_output_file(
             self.lightning_strikes, prefix
         )
         params.write_to_uav_updates_file(self.uavs, prefix)
@@ -114,7 +114,7 @@ class Simulator:
         params.write_to_input_parameters_folder(scenario_idx)
         params.create_plots(
             inspection_times,
-            supression_times_ignitions_only,
+            suppression_times,
             self.water_bombers,
             self.water_tanks,
             prefix,

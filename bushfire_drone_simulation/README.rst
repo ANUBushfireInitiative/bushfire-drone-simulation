@@ -66,6 +66,32 @@ The JSON parameters file should contain the following information formatted as i
     If this folder already exists and is not empty, the user will be prompted as to whether they wish to
     overwrite the current contents of the folder or respecify the output destination.
 
+*  The coordinator class of the UAVs and water bombers
+
+    .. code-block:: json
+
+        {
+            "uav_coordinator": "Name of uav coordinator class",
+            "wb_coordinator": "Name of water bomber coordinator class"
+        }
+
+    The coordinators are stored in two dictionaries in main.py which are as follows:
+
+    .. code-block:: python
+
+        UAV_COORDINATORS = {
+            "MatlabUAVCoordinator": MatlabUAVCoordinator,
+            "NewStrikesFirstUAVCoordinator": NewStrikesFirstUAVCoordinator,
+        }
+
+        WB_COORDINATORS = {
+            "MatlabWBCoordinator": MatlabWBCoordinator,
+            "NewStrikesFirstWBCoordinator": NewStrikesFirstWBCoordinator,
+        }
+
+    The provided name of the coordinator in the JSON file should be the key to the desired coordinator
+    in the appropriate dictionary.
+
 *  The following generic variables:
 
     .. code-block:: json
@@ -259,7 +285,8 @@ please see bushfire_drone_simulation/example_input.
         "lightning_filename": "lightning.csv",
         "scenario_parameters_filename": "scenario_parameters.csv",
         "output_folder_name": "output",
-        "scenarios_to_run": "all",
+        "uav_coordinator": "NewStrikesFirstUAVCoordinator",
+        "wb_coordinator": "NewStrikesFirstWBCoordinator",
         "ignition_probability": 0.072,
         "uavs": {
             "spawn_loc_file": "uav_spawn_locations.csv",

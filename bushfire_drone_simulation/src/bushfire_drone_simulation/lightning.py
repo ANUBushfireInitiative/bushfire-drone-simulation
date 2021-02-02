@@ -40,7 +40,7 @@ class Lightning(Location):
         """Lightning strike is updated when suppressed.
 
         Args:
-            time (Time): time of supression
+            time (Time): time of suppression
         """
         self.suppressed_time = deepcopy(time)
 

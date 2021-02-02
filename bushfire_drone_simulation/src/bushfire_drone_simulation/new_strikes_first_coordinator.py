@@ -41,13 +41,11 @@ class NewStrikesFirstUAVCoordinator(UAVCoordinator):
         for uav in self.uavs:
             uav.use_current_state()
         uavs_processed: List[int] = []
-        strikes_processed: List[int] = []
         no_of_strikes = 0
         self.strikes_to_be_processed.put(lightning)
         while not self.strikes_to_be_processed.empty():
             no_of_strikes += 1
             strike = self.strikes_to_be_processed.get()
-            strikes_processed.append(strike.id_no)
             current_uav_id = self.process_strike(strike)
             if current_uav_id is not None:
                 if current_uav_id not in self.assigned_drones:
@@ -61,6 +59,7 @@ class NewStrikesFirstUAVCoordinator(UAVCoordinator):
                         self.assigned_drones[current_uav_id] = []
                     self.assigned_drones[current_uav_id].append(strike)
         for uav in self.uavs:
+            uav.use_event_queue()
             uav.go_to_base_when_necessary(self.uav_bases, lightning.spawn_time)
         print("reprocessed " + str(no_of_strikes))
 
@@ -139,7 +138,7 @@ class NewStrikesFirstWBCoordinator(WBCoordinator):
     def lightning_strike_suppressed(self, lightning_strikes: List[Tuple[Lightning, str]]) -> None:
         """Lightning has been suppressed."""
         for strike, bomber_name in lightning_strikes:
-            self.unsupressed_strikes.remove(strike)
+            self.unsuppressed_strikes.remove(strike)
             try:
                 self.assigned_bombers[bomber_name].remove(strike)
             except ValueError:
@@ -153,11 +152,9 @@ class NewStrikesFirstWBCoordinator(WBCoordinator):
         for water_bomber in self.water_bombers:
             water_bomber.use_current_state()
         bombers_processed: List[str] = []
-        strikes_processed: List[int] = []
         self.strikes_to_be_processed.put(ignition)
         while not self.strikes_to_be_processed.empty():
             strike = self.strikes_to_be_processed.get()
-            strikes_processed.append(strike.id_no)
             current_bomber = self.process_ignition(strike)
             # Add strike to assigned_bombers
             if current_bomber is not None:

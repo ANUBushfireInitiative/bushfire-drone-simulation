@@ -244,7 +244,7 @@ class JSONParameters:
             title = f"Mean inspection time of {mean_inspection_time} hrs"
         if len(suppression_times) != 0:
             mean_suppression_time = sum(suppression_times) / len(suppression_times)
-            title += f"\nMean supression time of {mean_suppression_time} hrs"
+            title += f"\nMean suppression time of {mean_suppression_time} hrs"
         fig, axs = plt.subplots(2, 2, figsize=(12, 8), dpi=300)
 
         fig.suptitle(title)
@@ -306,28 +306,35 @@ class JSONParameters:
             lats = []
             lons = []
             inspection_times = []
-            supression_times = []
-            supression_times_ignitions_only = []
+            suppression_times = []
+            inspection_times_to_return = []
+            suppression_times_to_return = []
             for strike in lightning_strikes:
                 lats.append(strike.lat)
                 lons.append(strike.lon)
                 if strike.inspected_time is not None:
                     inspection_times.append((strike.inspected_time - strike.spawn_time).get("hr"))
+                    inspection_times_to_return.append(
+                        (strike.inspected_time - strike.spawn_time).get("hr")
+                    )
                 else:
+                    _LOG.error("strike %s was not inspected", str(strike.id_no))
                     inspection_times.append("N/A")
                 if strike.suppressed_time is not None:
-                    supression_times.append((strike.suppressed_time - strike.spawn_time).get("hr"))
-                    supression_times_ignitions_only.append(
+                    suppression_times.append((strike.suppressed_time - strike.spawn_time).get("hr"))
+                    suppression_times_to_return.append(
                         (strike.suppressed_time - strike.spawn_time).get("hr")
                     )
                 else:
-                    supression_times.append("N/A")
+                    suppression_times.append("N/A")
+                    if strike.ignition:
+                        _LOG.error("strike %s ignited but was not suppresed", str(strike.id_no))
             filewriter.writerow(
-                ["Latitude", "Longitude", "Inspection time (hr)", "Supression time (hr)"]
+                ["Latitude", "Longitude", "Inspection time (hr)", "Suppression time (hr)"]
             )
-            for row in zip(*[lats, lons, inspection_times, supression_times]):
+            for row in zip(*[lats, lons, inspection_times, suppression_times]):
                 filewriter.writerow(row)
-        return inspection_times, supression_times_ignitions_only
+        return inspection_times_to_return, suppression_times_to_return
 
     def write_to_uav_updates_file(self, uavs, prefix):
         """Write UAV event update data to output file."""

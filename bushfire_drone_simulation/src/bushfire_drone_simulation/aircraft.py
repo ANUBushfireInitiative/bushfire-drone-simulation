@@ -187,7 +187,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
 
     @abstractmethod
     def get_time_at_strike(self) -> Duration:
-        """Return duration an aircraft spends inspecting or supressing a strike."""
+        """Return duration an aircraft spends inspecting or suppressing a strike."""
 
     @abstractmethod
     def get_name(self) -> str:
@@ -232,11 +232,11 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         return current_time
 
     def complete_event(self) -> Tuple[List[Lightning], List[Lightning]]:
-        """Completes next event in queue and returns list of strikes inspected and supressed."""
+        """Completes next event in queue and returns list of strikes inspected and suppressed."""
         assert not self.event_queue.empty(), "Complete event was called on empty queue"
         event = self.event_queue.get()
         inspections = []
-        supressions = []
+        suppressions = []
         assert isinstance(event, Event), "event_queue contained a non event"
         if isinstance(event.position, WaterTank):
             assert isinstance(self, WaterBomber), "A UAV was sent to a water tank"
@@ -248,8 +248,8 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             if isinstance(self, UAV):
                 inspections.append(event.position)
             else:
-                supressions.append(event.position)
-        return inspections, supressions
+                suppressions.append(event.position)
+        return inspections, suppressions
 
     def update_to_time(self, time: Time) -> Tuple[List[Lightning], List[Lightning]]:
         """Update aircraft to given time and delete all updates beyond this time.
@@ -259,7 +259,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
 
         Returns:
             List[Lightning]: list of strikes inspected
-            List[Lightning]]: list of ignitions supressed
+            List[Lightning]]: list of ignitions suppressed
         """
         strikes_inspected: List[Lightning] = []
         strikes_suppressed: List[Lightning] = []
@@ -272,9 +272,9 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                 self.distance(next_event.position).div_by_speed(self.flight_speed)
             )
             if current_time <= time:
-                inspected, supressed = self.complete_event()
+                inspected, suppressed = self.complete_event()
                 strikes_inspected += inspected
-                strikes_suppressed += supressed
+                strikes_suppressed += suppressed
             else:
                 if self.time <= time:  # The uav time is still less than the time to update to
                     # add update and update status
@@ -677,10 +677,10 @@ class WaterBomber(Aircraft):
         return str(self.name)
 
     def go_to_strike(self, lightning: Lightning, departure_time: Time) -> None:
-        """Water Bomber go to and supress strike.
+        """Water Bomber go to and suppress strike.
 
         Args:
-            lightning (Lightning): ignition being supressed
+            lightning (Lightning): ignition being suppressed
             departure_time (Time): time of water bombers departure
         """
         self.update_position(lightning, departure_time, Status.HOVERING)
