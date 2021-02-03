@@ -144,6 +144,9 @@ bushfire_drone_simulation/input
 bushfire_drone_simulation/matt_input
 bushfire_drone_simulation/matt_input2
 csv_data
+data
+out-fast.txt
+out.txt
 *.nvimlog
 bushfire_drone_simulation/src/bushfire_drone_simulation/gui/map_tile_cache
 *out

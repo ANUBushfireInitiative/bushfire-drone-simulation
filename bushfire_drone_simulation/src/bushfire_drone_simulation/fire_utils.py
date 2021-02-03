@@ -1,5 +1,6 @@
 """Various classes and functions useful to the bushfire_drone_simulation application."""
 
+from copy import deepcopy
 from math import atan2, cos, degrees, inf, radians, sin, sqrt
 from typing import Any, Tuple
 
@@ -160,6 +161,19 @@ class Time:
     def __sub__(self, other: "Time") -> Duration:
         """Subtraction operator for Time, returns a Duration."""
         return Duration(self.get() - other.get())
+
+    def __add__(self, other: Duration) -> "Time":
+        """Add a duration to a time.
+
+        Args:
+            other (Duration): Duration to add
+
+        Returns:
+            Time: New time instance
+        """
+        new_time = deepcopy(self)
+        new_time.add_duration(other)
+        return new_time
 
     def add_duration(self, duration: Duration) -> None:
         """Add a given duration to time."""
