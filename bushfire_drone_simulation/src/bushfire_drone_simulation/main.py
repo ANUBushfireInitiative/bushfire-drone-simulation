@@ -7,7 +7,7 @@ from typing import Dict, List, Type, Union
 import typer
 from tqdm import tqdm
 
-from bushfire_drone_simulation.gui.gui import GUI, start_map_gui
+from bushfire_drone_simulation.gui.gui import start_gui, start_map_gui
 from bushfire_drone_simulation.matlab_coordinator import MatlabUAVCoordinator, MatlabWBCoordinator
 from bushfire_drone_simulation.new_strikes_first_coordinator import (
     NewStrikesFirstUAVCoordinator,
@@ -41,13 +41,11 @@ def main():
 
 
 @app.command()
-def gui(
-    parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT,
-):
+def gui(parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT):
     """Start a GUI version of the drone simulation."""
     simulator = run_simulation(parameters_filename)[0]
     if simulator is not None:
-        GUI(simulator)
+        start_gui(simulator)
 
 
 @app.command()

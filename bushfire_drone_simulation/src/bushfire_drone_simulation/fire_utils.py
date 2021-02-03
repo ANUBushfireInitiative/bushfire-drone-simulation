@@ -41,7 +41,7 @@ class Location:
     def to_coordinates(self) -> Tuple[float, float]:
         """Return pixel coordinates of location."""
         # FIXME(not converting lat lon to coordinates)  # pylint: disable=fixme
-        return (self.lon - 144) * 100, (-34 - self.lat) * 100
+        return (self.lon - 144) * 100, (-34 - self.lat) * 150
 
     def copy_loc(self) -> "Location":
         """Create a new instance of Location."""

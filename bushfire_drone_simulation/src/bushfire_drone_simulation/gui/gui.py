@@ -10,12 +10,6 @@ from bushfire_drone_simulation.gui.map_image import MapImage
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.simulator import Simulator
 
-WIDTH = 800
-HEIGHT = 600
-ZOOM = 15
-LATITUDE = 37.79
-LONGITUDE = -79.44
-
 
 class GUI:
     """GUI class for bushfire drone simulation."""
@@ -38,16 +32,20 @@ class GUI:
 
         checkbox_dict = self.create_checkboxes()
 
+        y = 2
         for key in checkbox_dict:
             checkbox_dict[key][1].select()
-            checkbox_dict[key][1].pack(anchor="w")
+            # self.canvas.create_window(10, 10, anchor="w", window=checkbox_dict[key][1])
+            checkbox_dict[key][1].place(x=20, y=y)
+            y += 20
 
         self.update(checkbox_dict)
 
         update_button = tk.Button(
             self.canvas, text="Update", fg="red", command=lambda: self.update(checkbox_dict)
         )
-        self.canvas.create_window(10, 50, anchor="w", window=update_button)
+        # self.canvas.create_window(20, y+20, anchor="w", window=update_button)
+        update_button.place(x=20, y=y + 20)
 
         self.canvas.pack()
 
@@ -194,7 +192,7 @@ class GUI:
     def connect_points(self, p_1: Location, p_2: Location, list_name):
         """Connect two points with a line."""
         line = self.canvas.create_line(
-            p_1.to_coordinates(), p_2.to_coordinates(), fill=type_to_colour(p_1), width=2
+            p_1.to_coordinates(), p_2.to_coordinates(), fill=type_to_colour(p_1), width=1
         )
         list_name.append(line)
 
@@ -230,6 +228,18 @@ def type_to_colour(element: Location):
     if isinstance(element, UAV):
         return "brown"
     return "black"
+
+
+def start_gui(simulation: Simulator):
+    """Start GUI of simulation."""
+    GUI(simulation)
+
+
+WIDTH = 800
+HEIGHT = 600
+ZOOM = 7
+LATITUDE = -36.25
+LONGITUDE = 147.9
 
 
 class MapUI(tk.Tk):
