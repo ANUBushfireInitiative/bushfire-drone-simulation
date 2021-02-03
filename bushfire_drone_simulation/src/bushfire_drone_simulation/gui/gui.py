@@ -8,24 +8,213 @@ from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.fire_utils import Location, WaterTank
 from bushfire_drone_simulation.gui.map_image import MapImage
 from bushfire_drone_simulation.lightning import Lightning
+from bushfire_drone_simulation.simulator import Simulator
+
+WIDTH = 800
+HEIGHT = 600
+ZOOM = 15
+LATITUDE = 37.79
+LONGITUDE = -79.44
 
 
-def create_point_from_elm(
-    canvas_name, element: Location, list_name, rad=5
-):  # center coordinates, radius
-    """Create a point given an element extending Location."""
-    x, y = element.to_coordinates()
-    point = canvas_name.create_oval(
-        x - rad, y - rad, x + rad, y + rad, fill=type_to_colour(element)
-    )
-    list_name.append(point)
+class GUI:
+    """GUI class for bushfire drone simulation."""
 
+    def __init__(self, simulator: Simulator):
+        """Run GUI from simulator."""
+        self.window = tk.Tk()
+        self.window.title("ANU Bushfire Initiative Drone Simulation")
+        self.canvas = tk.Canvas(self.window, width=800, height=800)
+        self.simulator = simulator
 
-def connect_points(canvas_name, p_1: Location, p_2: Location):
-    """Connect two points with a line."""
-    canvas_name.create_line(
-        p_1.to_coordinates(), p_2.to_coordinates(), fill=type_to_colour(p_1), width=2
-    )
+        self.lightning_points, self.ignition_points = self.create_lightning()
+        self.uav_points, self.uav_paths, self.uav_base_points = self.create_uavs()
+        self.water_tank_points = self.create_water_tanks()
+        (
+            self.water_bomber_base_points,
+            self.water_bomber_points,
+            self.water_bomber_paths,
+        ) = self.create_water_bombers()
+
+        checkbox_dict = self.create_checkboxes()
+
+        for key in checkbox_dict:
+            checkbox_dict[key][1].select()
+            checkbox_dict[key][1].pack(anchor="w")
+
+        self.update(checkbox_dict)
+
+        update_button = tk.Button(
+            self.canvas, text="Update", fg="red", command=lambda: self.update(checkbox_dict)
+        )
+        self.canvas.create_window(10, 50, anchor="w", window=update_button)
+
+        self.canvas.pack()
+
+        title = tk.Label(self.window, text="ANU Bushfire Initiative Drone Simulation")
+        title.pack()
+
+        self.window.mainloop()
+
+    def create_lightning(self):
+        """Create lists of points of lightning and ignitions and add to canvas."""
+        lightning_points = []
+        ignition_points = []
+        for strike in self.simulator.lightning_strikes:
+            if strike.ignition:
+                self.create_point_from_elm(strike, ignition_points)
+            else:
+                self.create_point_from_elm(strike, lightning_points)
+        return lightning_points, ignition_points
+
+    def create_uavs(self):
+        """Create lists of uav points, paths and bases and add to canvas."""
+        uav_points = []
+        uav_paths = []
+        for uav in self.simulator.uavs:
+            for idx, past_loc in enumerate(uav.past_locations):
+                if idx != 0:
+                    self.connect_points(past_loc, uav.past_locations[idx - 1], uav_paths)
+            self.create_point_from_elm(uav, uav_points, rad=4)
+        uav_base_points = []
+        for base in self.simulator.uav_bases:
+            self.create_point_from_elm(base, uav_base_points, rad=2)
+        return uav_points, uav_paths, uav_base_points
+
+    def create_water_bombers(self):
+        """Create lists of water bomber points, paths and bases and add to canvas."""
+        water_bomber_base_points = []
+        water_bomber_points = []
+        water_bomber_paths = []
+        for water_bomber_type in self.simulator.water_bomber_bases_dict:
+            for base in self.simulator.water_bomber_bases_dict[water_bomber_type]:
+                self.create_point_from_elm(base, water_bomber_base_points, rad=2)
+        for water_bomber in self.simulator.water_bombers:
+            for (idx, past_loc) in enumerate(water_bomber.past_locations):
+                if idx != 0:
+                    self.connect_points(
+                        past_loc, water_bomber.past_locations[idx - 1], water_bomber_paths
+                    )
+                self.create_point_from_elm(water_bomber, water_bomber_points, rad=4)
+        return water_bomber_base_points, water_bomber_points, water_bomber_paths
+
+    def create_water_tanks(self):
+        """Create list of water tanks and add to canvas."""
+        water_tank_points = []
+        for tank in self.simulator.water_tanks:
+            self.create_point_from_elm(tank, water_tank_points, rad=2)
+        return water_tank_points
+
+    def create_checkboxes(self):
+        """Create check boxes for interating with GUI."""
+        return_dict = {}
+
+        toggle_uav_bases = tk.IntVar()
+        uav_base_checkbox = tk.Checkbutton(
+            self.window, text="Show UAV Bases", variable=toggle_uav_bases, onvalue=1, offvalue=0
+        )
+        return_dict["uav bases"] = (toggle_uav_bases, uav_base_checkbox, self.uav_base_points)
+
+        toggle_uavs = tk.IntVar()
+        uav_checkbox = tk.Checkbutton(
+            self.window, text="Show UAVs", variable=toggle_uavs, onvalue=1, offvalue=0
+        )
+        return_dict["uavs"] = (toggle_uavs, uav_checkbox, self.uav_points)
+
+        toggle_uav_paths = tk.IntVar()
+        uav_path_checkbox = tk.Checkbutton(
+            self.window, text="Show UAV Paths", variable=toggle_uav_paths, onvalue=1, offvalue=0
+        )
+        return_dict["uav paths"] = (toggle_uav_paths, uav_path_checkbox, self.uav_paths)
+
+        toggle_water_bombers = tk.IntVar()
+        water_bomber_checkbox = tk.Checkbutton(
+            self.window,
+            text="Show Water Bombers",
+            variable=toggle_water_bombers,
+            onvalue=1,
+            offvalue=0,
+        )
+        return_dict["wbs"] = (toggle_water_bombers, water_bomber_checkbox, self.water_bomber_points)
+
+        toggle_wb_bases = tk.IntVar()
+        wb_base_checkbox = tk.Checkbutton(
+            self.window,
+            text="Show Water Bomber Bases",
+            variable=toggle_wb_bases,
+            onvalue=1,
+            offvalue=0,
+        )
+        return_dict["wb bases"] = (toggle_wb_bases, wb_base_checkbox, self.water_bomber_base_points)
+
+        toggle_wb_paths = tk.IntVar()
+        wb_path_checkbox = tk.Checkbutton(
+            self.window,
+            text="Show Water Bomber Paths",
+            variable=toggle_wb_paths,
+            onvalue=1,
+            offvalue=0,
+        )
+        return_dict["wb paths"] = (toggle_wb_paths, wb_path_checkbox, self.water_bomber_paths)
+
+        toggle_water_tanks = tk.IntVar()
+        water_tank_checkbox = tk.Checkbutton(
+            self.window, text="Show Water Tanks", variable=toggle_water_tanks, onvalue=1, offvalue=0
+        )
+        return_dict["water tanks"] = (
+            toggle_water_tanks,
+            water_tank_checkbox,
+            self.water_tank_points,
+        )
+
+        toggle_lightning = tk.IntVar()
+        lightning_checkbox = tk.Checkbutton(
+            self.window, text="Show Lightning", variable=toggle_lightning, onvalue=1, offvalue=0
+        )
+        return_dict["lightning"] = (toggle_lightning, lightning_checkbox, self.lightning_points)
+
+        toggle_ignitions = tk.IntVar()
+        ignition_checkbox = tk.Checkbutton(
+            self.window, text="Show Ignitions", variable=toggle_ignitions, onvalue=1, offvalue=0
+        )
+        return_dict["ignitions"] = (toggle_ignitions, ignition_checkbox, self.ignition_points)
+
+        return return_dict
+
+    def create_point_from_elm(
+        self, element: Location, list_name, rad=5
+    ):  # center coordinates, radius
+        """Create a point given an element extending Location."""
+        x, y = element.to_coordinates()
+        point = self.canvas.create_oval(
+            x - rad, y - rad, x + rad, y + rad, fill=type_to_colour(element)
+        )
+        list_name.append(point)
+
+    def connect_points(self, p_1: Location, p_2: Location, list_name):
+        """Connect two points with a line."""
+        line = self.canvas.create_line(
+            p_1.to_coordinates(), p_2.to_coordinates(), fill=type_to_colour(p_1), width=2
+        )
+        list_name.append(line)
+
+    def delete(self, points_list):
+        """Hide list of points from canvas_name."""
+        for point in points_list:
+            self.canvas.itemconfigure(point, state="hidden")
+
+    def show(self, points_list):
+        """Hide list of points from canvas_name."""
+        for point in points_list:
+            self.canvas.itemconfigure(point, state="normal")
+
+    def update(self, checkbox_dict):
+        """Update whether a set of points is displayed on the canvas."""
+        for key in checkbox_dict:
+            if checkbox_dict[key][0].get() == 0:
+                self.delete(checkbox_dict[key][2])
+            else:
+                self.show(checkbox_dict[key][2])
 
 
 def type_to_colour(element: Location):
@@ -41,81 +230,6 @@ def type_to_colour(element: Location):
     if isinstance(element, UAV):
         return "brown"
     return "black"
-
-
-def delete(canvas_name, points_list):
-    """Delete list of points from canvas_name."""
-    for point in points_list:
-        canvas_name.delete(point)
-
-
-def update(var_whaaaaaaaaaaaaaaat, canvas_name, water_bomber_base_points):
-    """Update whether a set of points is displayed on the canvas."""
-    if var_whaaaaaaaaaaaaaaat.get() == 1:
-        delete(canvas_name, water_bomber_base_points)
-    else:
-        print("hi")
-
-
-def start_gui(simulator):  # pylint: disable = too-many-locals
-    """Start a basic GUI version of the drone simulation."""
-    window = tk.Tk()
-
-    window.title("ANU Bushfire Initiative Drone Simulation")
-    canvas = tk.Canvas(window, width=800, height=800)
-
-    lightning_points = []
-    for strike in simulator.lightning_strikes:
-        create_point_from_elm(canvas, strike, lightning_points)
-    tank_points = []
-    for tank in simulator.water_tanks:
-        create_point_from_elm(canvas, tank, tank_points)
-    uav_points = []
-    for uav in simulator.uavs:
-        for (idx, past_loc) in enumerate(uav.past_locations):
-            if idx != 0:
-                connect_points(canvas, past_loc, uav.past_locations[idx - 1])
-        create_point_from_elm(canvas, uav, uav_points, rad=3)
-    uav_base_points = []
-    for base in simulator.uav_bases:
-        create_point_from_elm(canvas, base, uav_base_points, rad=2)
-    water_bomber_base_points = []
-    water_bomber_points = []
-    for water_bomber_type in simulator.water_bomber_bases_dict:
-        for base in simulator.water_bomber_bases_dict[water_bomber_type]:
-            create_point_from_elm(canvas, base, water_bomber_base_points, rad=2)
-    for water_bomber in simulator.water_bombers:
-        for (idx, past_loc) in enumerate(water_bomber.past_locations):
-            if idx != 0:
-                connect_points(canvas, past_loc, water_bomber.past_locations[idx - 1])
-            create_point_from_elm(canvas, water_bomber, water_bomber_points, rad=3)
-
-    # delete(canvas, water_bomber_base_points)
-    int_var = tk.IntVar()
-    c_1 = tk.Checkbutton(window, text="Remove UAV Bases", variable=int_var, onvalue=1, offvalue=0)
-    canvas.create_window(10, 10, anchor="nw", window=c_1)
-
-    button = tk.Button(
-        canvas,
-        text="Update",
-        fg="red",
-        command=lambda: update(int_var, canvas, water_bomber_base_points),
-    )
-    canvas.create_window(10, 50, anchor="nw", window=button)
-
-    canvas.pack()
-
-    title = tk.Label(window, text="ANU Bushfire Initiative Drone Simulation")
-    title.pack()
-
-    window.mainloop()
-
-
-WIDTH = 800
-HEIGHT = 600
-ZOOM = 15
-LATITUDE = 37.79
-LONGITUDE = -79.44
 
 
 class MapUI(tk.Tk):

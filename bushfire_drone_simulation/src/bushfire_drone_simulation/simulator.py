@@ -11,7 +11,7 @@ from bushfire_drone_simulation.parameters import JSONParameters
 
 
 class AircraftEvent:  # pylint: disable=too-few-public-methods
-    """Event assoicated to an aircraft."""
+    """Event associated to an aircraft."""
 
     def __init__(self, time: Time, aircraft: Aircraft):
         """Init AircraftEvent class."""
