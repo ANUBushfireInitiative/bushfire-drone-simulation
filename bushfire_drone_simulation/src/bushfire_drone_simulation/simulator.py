@@ -48,6 +48,7 @@ class Simulator:
         """Run bushfire drone simulation."""
         while not self.lightning_queue.empty():
             strike = self.lightning_queue.get()
+            # print("UPDATING UAVS TO TIME " + str(strike.spawn_time.get()))
             inspections = self._update_uavs_to_time(strike.spawn_time)
             uav_coordinator.lightning_strike_inspected(inspections)
             uav_coordinator.new_strike(strike)
@@ -55,6 +56,7 @@ class Simulator:
                 if inspected.ignition:
                     self.ignitions.put(inspected)
 
+        # print("UPDATING UAVS TO TIME INF")
         inspections = self._update_uavs_to_time(Time("inf"))
         for (inspected, _) in inspections:
             if inspected.ignition:
@@ -65,6 +67,7 @@ class Simulator:
             assert (
                 ignition.inspected_time is not None
             ), f"Ignition {ignition.id_no} was not inspected"
+            # print("UPDATING WBS TO TIME " + str(ignition.inspected_time.get()))
             suppressions = self._update_water_bombers_to_time(ignition.inspected_time)
             wb_coordinator.lightning_strike_suppressed(suppressions)
             wb_coordinator.unsuppressed_strikes.add(ignition)
@@ -72,6 +75,7 @@ class Simulator:
             # wb_coordinator.new_ignition(ignition)
             # TODO(get this silly function to work) pylint: disable=fixme
 
+        # print("UPDATING WBS TO TIME INF")
         suppressions = self._update_water_bombers_to_time(Time("inf"))
 
     def _update_to_time(

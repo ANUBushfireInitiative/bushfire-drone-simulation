@@ -262,7 +262,7 @@ class JSONParameters:
         axs[0, 1].set_ylim(bottom=0)
 
         water_bomber_names = [wb.name for wb in water_bombers]
-        num_suppressed = [wb.num_strikes_visited() for wb in water_bombers]
+        num_suppressed = [len(wb.strikes_visited) for wb in water_bombers]
         axs[1, 0].set_title("Lightning strikes suppressed per helicopter")
         axs[1, 0].bar(water_bomber_names, num_suppressed)
         axs[1, 0].tick_params(labelrotation=90)

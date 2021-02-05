@@ -19,14 +19,13 @@ def test_times_chronological(monkeypatch):
                 if idx != 0:
                     assert (
                         update.time >= uav.past_locations[idx - 1].time
-                    ), f"The event updates of uav {uav.id_no} were not in chronological order"
+                    ), f"The event updates of {uav.get_name()} were not in chronological order"
         for water_bomber in simulator.water_bombers:
             for idx, update in enumerate(water_bomber.past_locations):
                 if idx != 0:
-                    assert update.time >= water_bomber.past_locations[idx - 1].time, (
-                        f"The event updates of water bomber {water_bomber.name} were not"
-                        " in chronological order"
-                    )
+                    assert (
+                        update.time >= water_bomber.past_locations[idx - 1].time
+                    ), f"The event updates of {water_bomber.name} were not in chronological order"
 
 
 def test_reasonable_fuel_refill(monkeypatch):
@@ -44,7 +43,7 @@ def test_reasonable_fuel_refill(monkeypatch):
                             1
                         ) <= uav.get_range().div_by_speed(
                             uav.flight_speed
-                        ), f"UAV {uav.id_no} should have run out of fuel"
+                        ), f"{uav.get_name()} should have run out of fuel"
         for water_bomber in simulator.water_bombers:
             time_full = water_bomber.past_locations[0].time
             for idx, update in enumerate(water_bomber.past_locations):
@@ -57,7 +56,7 @@ def test_reasonable_fuel_refill(monkeypatch):
                         ) <= water_bomber.get_range().div_by_speed(water_bomber.flight_speed)
                         assert (
                             has_adequate_fuel
-                        ), f"Water bomber {water_bomber.name} should have run out of fuel"
+                        ), f"{water_bomber.get_name()} should have run out of fuel"
                         time_full = update.time
 
 
@@ -67,36 +66,35 @@ def test_aricraft_status(monkeypatch):  # pylint: disable=too-many-branches
     for simulator in run_simulation(PARAMS_LOC):  # pylint: disable=too-many-nested-blocks
         for uav in simulator.uavs:
             for idx, update in enumerate(uav.past_locations):
+                assert update.status not in [
+                    Status.GOING_TO_WATER,
+                    Status.WAITING_AT_WATER,
+                ], f"{uav.get_name()} should not be waiting at or going to water"
                 if idx != 0:
                     if update.status == Status.WAITING_AT_BASE:
                         assert (
                             uav.past_locations[idx - 1].status == Status.GOING_TO_BASE
-                        ), f"UAV {uav.id_no} should have previously been going to base"
+                            or Status.WAITING_AT_BASE
+                        ), f"{uav.get_name()} should have previously been going to base"
                     if update.status == Status.HOVERING:
                         assert (
-                            uav.past_locations[idx - 1].status == Status.GOING_TO_STRIKE
-                        ), "UAV {uav.id_no} should have previously been going to strike"
+                            uav.past_locations[idx - 1].status != Status.WAITING_AT_BASE
+                        ), f"{uav.get_name()} should have previously been going to strike"
         for water_bomber in simulator.water_bombers:
             for idx, update in enumerate(water_bomber.past_locations):
                 if idx != 0:
                     if update.status == Status.WAITING_AT_BASE:
                         assert (
                             water_bomber.past_locations[idx - 1].status == Status.GOING_TO_BASE
-                        ), (
-                            "Water Bomber {water_bomber.name} "
-                            "should have previously been going to base"
-                        )
+                            or Status.WAITING_AT_BASE
+                        ), f"{water_bomber.name} should have previously been going to base"
                     if update.status == Status.HOVERING:
-                        assert (
-                            water_bomber.past_locations[idx - 1].status == Status.GOING_TO_STRIKE
-                        ), (
-                            "Water Bomber {water_bomber.name} "
-                            "should have previously been going to strike"
-                        )
+                        assert water_bomber.past_locations[idx - 1].status not in [
+                            Status.WAITING_AT_BASE,
+                            Status.WAITING_AT_WATER,
+                        ], f"{water_bomber.name} should have previously been going to strike"
                     if update.status == Status.WAITING_AT_WATER:
-                        assert (
-                            water_bomber.past_locations[idx - 1].status == Status.GOING_TO_WATER
-                        ), (
-                            "Water Bomber {water_bomber.name} "
-                            "should have previously been going to water"
-                        )
+                        assert water_bomber.past_locations[idx - 1].status in [
+                            Status.GOING_TO_WATER,
+                            Status.WAITING_AT_WATER,
+                        ], f"{water_bomber.name} should have previously been going to water"

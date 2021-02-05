@@ -1,10 +1,13 @@
 """Various classes and functions useful to the bushfire_drone_simulation application."""
 
+import logging
 from copy import deepcopy
 from math import atan2, cos, degrees, inf, radians, sin, sqrt
 from typing import Any, Tuple
 
 from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Distance, Duration, Volume
+
+_LOG = logging.getLogger(__name__)
 
 
 class Location:
@@ -56,11 +59,35 @@ class WaterTank(Location):
         """Initialise watertank from location and capacity."""
         super().__init__(latitude, longitude)
         self.capacity: Volume = capacity
-        self.initial_capacity: Volume = self.capacity
+        self.unallocated_capacity: Volume = capacity
+        self.initial_capacity = capacity
 
     def remove_water(self, volume: Volume) -> None:
         """Remove a given volume from the water tank."""
         self.capacity -= volume
+        if self.capacity < Volume(0):
+            _LOG.error("Water tank ran out of water")
+
+    def remove_unallocated_water(self, volume: Volume) -> None:
+        """Remove a given volume from the water tank."""
+        self.unallocated_capacity -= volume
+
+    def get_water_capacity(self, future_capacity: bool = False) -> Volume:
+        """Return water capacity of tank.
+
+        The actual capacity (self.capacity) by default or the future capacity if future_capacity
+        is True
+
+        Args:
+            future_capacity (bool): Select whether to return current or future capacity.
+            Defaults to False
+
+        Returns:
+            Volume: Water capacity
+        """
+        if future_capacity:
+            return self.unallocated_capacity
+        return self.capacity
 
 
 class Base(Location):
