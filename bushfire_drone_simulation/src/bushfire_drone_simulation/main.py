@@ -72,3 +72,7 @@ def run_simulation(parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT) -> L
         simulator.output_results(params, scenario_idx)
         to_return.append(simulator)
     return to_return
+
+
+if __name__ == "__main__":
+    main()

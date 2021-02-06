@@ -81,11 +81,8 @@ class NewStrikesFirstUAVCoordinator(UAVCoordinator):
             # go to the lightning strike and then to the nearest base
             # and if so determine the arrival time at the lightning strike
             # updating if it is currently the minimum
-            temp_arr_time = uav.enough_fuel(
-                [lightning, self.uav_bases[base_index]], lightning.spawn_time
-            )
+            temp_arr_time = uav.enough_fuel([lightning, self.uav_bases[base_index]])
             if temp_arr_time is not None:
-                # temp_arr_time = uav.arrival_time([lightning], lightning.spawn_time)
                 if temp_arr_time < min_arrival_time:
                     min_arrival_time = temp_arr_time
                     best_uav = uav
@@ -94,13 +91,9 @@ class NewStrikesFirstUAVCoordinator(UAVCoordinator):
             else:
                 for uav_base in self.uav_bases:
                     temp_arr_time = uav.enough_fuel(
-                        [uav_base, lightning, self.uav_bases[base_index]],
-                        lightning.spawn_time,
+                        [uav_base, lightning, self.uav_bases[base_index]]
                     )
                     if temp_arr_time is not None:
-                        # temp_arr_time = uav.arrival_time(
-                        #     [uav_base, lightning], lightning.spawn_time
-                        # )
                         if temp_arr_time < min_arrival_time:
                             min_arrival_time = temp_arr_time
                             best_uav = uav
@@ -199,12 +192,8 @@ class NewStrikesFirstWBCoordinator(WBCoordinator):
             water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
             base_index = np.argmin(list(map(ignition.distance, water_bomber_bases)))
             if water_bomber.enough_water():
-                temp_arr_time = water_bomber.enough_fuel(
-                    [ignition, water_bomber_bases[base_index]],
-                    ignition.inspected_time,
-                )
+                temp_arr_time = water_bomber.enough_fuel([ignition, water_bomber_bases[base_index]])
                 if temp_arr_time is not None:
-                    # temp_arr_time = water_bomber.arrival_time([ignition], ignition.inspected_time)
                     if temp_arr_time < min_arrival_time:
                         min_arrival_time = temp_arr_time
                         best_water_bomber = water_bomber
@@ -215,13 +204,9 @@ class NewStrikesFirstWBCoordinator(WBCoordinator):
                     _LOG.debug("%s needs to refuel", water_bomber.get_name())
                     for base in water_bomber_bases:
                         temp_arr_time = water_bomber.enough_fuel(
-                            [base, ignition, water_bomber_bases[base_index]],
-                            ignition.inspected_time,
+                            [base, ignition, water_bomber_bases[base_index]]
                         )
                         if temp_arr_time is not None:
-                            # temp_arr_time = water_bomber.arrival_time(
-                            #     [base, ignition], ignition.inspected_time
-                            # )
                             if temp_arr_time < min_arrival_time:
                                 min_arrival_time = temp_arr_time
                                 best_water_bomber = water_bomber
@@ -235,13 +220,9 @@ class NewStrikesFirstWBCoordinator(WBCoordinator):
                 _LOG.debug("%s needs to go via a water tank", water_bomber.get_name())
                 for water_tank in self.water_tanks:
                     temp_arr_time = water_bomber.enough_fuel(
-                        [water_tank, ignition, water_bomber_bases[base_index]],
-                        ignition.inspected_time,
+                        [water_tank, ignition, water_bomber_bases[base_index]]
                     )
                     if water_bomber.check_water_tank(water_tank) and temp_arr_time is not None:
-                        # temp_arr_time = water_bomber.arrival_time(
-                        #     [water_tank, ignition], ignition.inspected_time
-                        # )
                         if temp_arr_time < min_arrival_time:
                             min_arrival_time = temp_arr_time
                             best_water_bomber = water_bomber
@@ -258,17 +239,12 @@ class NewStrikesFirstWBCoordinator(WBCoordinator):
                                     base,
                                     ignition,
                                     water_bomber_bases[base_index],
-                                ],
-                                ignition.inspected_time,
+                                ]
                             )
                             if (
                                 water_bomber.check_water_tank(water_tank)
                                 and temp_arr_time is not None
                             ):
-                                # temp_arr_time = water_bomber.arrival_time(
-                                #     [water_tank, base, ignition],
-                                #     ignition.inspected_time,
-                                # )
                                 if temp_arr_time < min_arrival_time:
                                     min_arrival_time = temp_arr_time
                                     best_water_bomber = water_bomber
@@ -281,17 +257,12 @@ class NewStrikesFirstWBCoordinator(WBCoordinator):
                                     water_tank,
                                     ignition,
                                     water_bomber_bases[base_index],
-                                ],
-                                ignition.inspected_time,
+                                ]
                             )
                             if (
                                 water_bomber.check_water_tank(water_tank)
                                 and temp_arr_time is not None
                             ):
-                                # temp_arr_time = water_bomber.arrival_time(
-                                #     [base, water_tank, ignition],
-                                #     ignition.inspected_time,
-                                # )
                                 if temp_arr_time < min_arrival_time:
                                     min_arrival_time = temp_arr_time
                                     best_water_bomber = water_bomber

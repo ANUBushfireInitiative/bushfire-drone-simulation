@@ -89,7 +89,7 @@ def read_locations_with_capacity(filename: str, constructor):
             lons[i],
             f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number",
         )
-        to_return.append(constructor(lat, lon, Volume(cap)))
+        to_return.append(constructor(lat, lon, Volume(cap), i))
     return to_return
 
 

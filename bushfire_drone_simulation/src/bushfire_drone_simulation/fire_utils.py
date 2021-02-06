@@ -55,12 +55,13 @@ class Location:
 class WaterTank(Location):
     """Class containing a water tank's location and capacity."""
 
-    def __init__(self, latitude: float, longitude: float, capacity: Volume):
+    def __init__(self, latitude: float, longitude: float, capacity: Volume, id_no: int):
         """Initialise watertank from location and capacity."""
         super().__init__(latitude, longitude)
         self.capacity: Volume = capacity
         self.unallocated_capacity: Volume = capacity
         self.initial_capacity = capacity
+        self.id_no = id_no
 
     def remove_water(self, volume: Volume) -> None:
         """Remove a given volume from the water tank."""
@@ -93,10 +94,11 @@ class WaterTank(Location):
 class Base(Location):
     """Class containing a base's location and fuel capacity."""
 
-    def __init__(self, latitude: float, longitude: float, capacity: Volume):
+    def __init__(self, latitude: float, longitude: float, capacity: Volume, id_no: int):
         """Initialise aircraft base from location and fuel capacity."""
         super().__init__(latitude, longitude)
         self.capacity = capacity
+        self.id_no = id_no
 
     def remove_fuel(self, volume: Volume) -> None:
         """Remove a given volume of fuel from the base."""
