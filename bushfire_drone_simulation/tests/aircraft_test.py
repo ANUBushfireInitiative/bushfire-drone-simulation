@@ -4,7 +4,6 @@ import os
 
 from bushfire_drone_simulation.aircraft import Status
 from bushfire_drone_simulation.main import run_simulation
-from bushfire_drone_simulation.units import Duration
 
 FILE_LOC = os.path.realpath(__file__)
 PARAMS_LOC = os.path.join(os.path.dirname(FILE_LOC), "parameters.json")
@@ -39,11 +38,11 @@ def test_reasonable_fuel_refill(monkeypatch):
                     if uav.past_locations[idx - 1].status == Status.WAITING_AT_BASE:
                         time_full = update.time
                     if update.status == Status.WAITING_AT_BASE:
-                        assert (update.time - time_full) - Duration(
-                            1
-                        ) <= uav.get_range().div_by_speed(
-                            uav.flight_speed
-                        ), f"{uav.get_name()} should have run out of fuel"
+                        assert (
+                            update.time - time_full
+                        ) - 1 <= uav.get_range() / uav.flight_speed, (
+                            f"{uav.get_name()} should have run out of fuel"
+                        )
         for water_bomber in simulator.water_bombers:
             time_full = water_bomber.past_locations[0].time
             for idx, update in enumerate(water_bomber.past_locations):
@@ -53,7 +52,7 @@ def test_reasonable_fuel_refill(monkeypatch):
                     if update.status == Status.WAITING_AT_BASE:
                         has_adequate_fuel = (
                             update.time - time_full
-                        ) <= water_bomber.get_range().div_by_speed(water_bomber.flight_speed)
+                        ) <= water_bomber.get_range() / water_bomber.flight_speed
                         assert (
                             has_adequate_fuel
                         ), f"{water_bomber.get_name()} should have run out of fuel"

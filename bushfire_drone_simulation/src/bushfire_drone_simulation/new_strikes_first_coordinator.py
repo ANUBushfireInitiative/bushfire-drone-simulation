@@ -1,6 +1,7 @@
 """Coordinator that prioritises new strikes and only processes remaining strikes if nessesary."""
 
 import logging
+from math import inf
 from queue import Queue
 from typing import Dict, List, Tuple, Union
 
@@ -8,7 +9,7 @@ import numpy as np
 
 from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoordinator
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
-from bushfire_drone_simulation.fire_utils import Base, Time, WaterTank
+from bushfire_drone_simulation.fire_utils import Base, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
 
 _LOG = logging.getLogger(__name__)
@@ -73,7 +74,7 @@ class NewStrikesFirstUAVCoordinator(UAVCoordinator):
             Union[int, None]: id number of best uav or None if none were avaliable
         """
         base_index = np.argmin(list(map(lightning.distance, self.uav_bases)))
-        min_arrival_time = Time("inf")
+        min_arrival_time: float = inf
         best_uav = None
         via_base = None
         for uav in self.uavs:
@@ -101,18 +102,13 @@ class NewStrikesFirstUAVCoordinator(UAVCoordinator):
         return_id = None
         if best_uav is not None:
             return_id = best_uav.id_no
-            _LOG.debug("Best UAV is: %s", best_uav.get_name)
-            _LOG.debug(
-                "Which took %s mins to respond",
-                (min_arrival_time - lightning.spawn_time).get("min"),
-            )
+            _LOG.debug("Best UAV is: %s", best_uav.get_name())
             if via_base is not None:
                 # The minimum arrival time was achieved by travelling via a base
                 # Update UAV position accordingly
                 best_uav.add_location_to_queue(via_base, lightning.spawn_time)
             # There exists a UAV that has enough fuel, send it to the lightning strike
             best_uav.add_location_to_queue(lightning, lightning.spawn_time)
-            best_uav.print_past_locations()
         else:
             _LOG.error("No UAVs were available to process lightning strike %s", lightning.id_no)
         return return_id
@@ -183,7 +179,7 @@ class NewStrikesFirstWBCoordinator(WBCoordinator):
             Union[str, None]: Name of assigned water bomber
         """
         assert ignition.inspected_time is not None, "Error: Ignition was not inspected."
-        min_arrival_time = Time("inf")
+        min_arrival_time: float = inf
         best_water_bomber: Union[WaterBomber, None] = None
         via_water: Union[WaterTank, None] = None
         via_base: Union[Base, None] = None
@@ -273,10 +269,6 @@ class NewStrikesFirstWBCoordinator(WBCoordinator):
         if best_water_bomber is not None:
             ret_name = best_water_bomber.get_name()
             _LOG.debug("Best water bomber is: %s", best_water_bomber.get_name())
-            _LOG.debug(
-                "Which took %s mins to respond",
-                (min_arrival_time - ignition.inspected_time).get("min"),
-            )
             if fuel_first is not None:
                 assert via_base is not None, "Error: Base not provided despite requiring refueling."
                 assert (
@@ -293,7 +285,6 @@ class NewStrikesFirstWBCoordinator(WBCoordinator):
             elif via_water is not None:
                 best_water_bomber.add_location_to_queue(via_water, ignition.inspected_time)
             best_water_bomber.add_location_to_queue(ignition, ignition.inspected_time)
-            best_water_bomber.print_past_locations()
         else:
             _LOG.error("No water bombers were available")
         return ret_name

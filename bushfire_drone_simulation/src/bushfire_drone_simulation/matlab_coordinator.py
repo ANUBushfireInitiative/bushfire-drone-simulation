@@ -1,13 +1,14 @@
 """Simple coordinator."""
 
 import logging
+from math import inf
 from typing import Union
 
 import numpy as np
 
 from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoordinator
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
-from bushfire_drone_simulation.fire_utils import Base, Time, WaterTank
+from bushfire_drone_simulation.fire_utils import Base, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
 
 _LOG = logging.getLogger(__name__)
@@ -19,7 +20,7 @@ class MatlabUAVCoordinator(UAVCoordinator):
     def process_new_strike(self, lightning: Lightning) -> None:
         """Receive lightning strike that just occurred and assign best uav."""
         base_index = np.argmin(list(map(lightning.distance, self.uav_bases)))
-        min_arrival_time: Time = Time("inf")
+        min_arrival_time: float = inf
         best_uav: Union[UAV, None] = None
         via_base: Union[Base, None] = None
         for uav in self.uavs:
@@ -45,18 +46,17 @@ class MatlabUAVCoordinator(UAVCoordinator):
                             best_uav = uav
                             via_base = uav_base
         if best_uav is not None:
-            _LOG.debug("Best UAV is: %s", best_uav.get_name)
+            _LOG.debug("Best UAV is: %s", best_uav.get_name())
             if via_base is not None:
                 # The minimum arrival time was achieved by travelling via a base
                 # Update UAV position accordingly
                 best_uav.add_location_to_queue(via_base, lightning.spawn_time)
             # There exists a UAV that has enough fuel, send it to the lightning strike
             best_uav.add_location_to_queue(lightning, lightning.spawn_time)
-            best_uav.print_past_locations()
         else:
             _LOG.error("No UAVs were available to process lightning strike %s", lightning.id_no)
         for uav in self.uavs:
-            uav.consider_going_to_base(self.uav_bases, lightning.spawn_time)
+            uav.go_to_base_when_necessary(self.uav_bases, lightning.spawn_time)
 
 
 class MatlabWBCoordinator(WBCoordinator):
@@ -67,7 +67,7 @@ class MatlabWBCoordinator(WBCoordinator):
     ) -> None:
         """Decide on water bombers movement with new ignition."""
         assert ignition.inspected_time is not None, "Error: Ignition was not inspected."
-        min_arrival_time = Time("inf")
+        min_arrival_time: float = inf
         best_water_bomber: Union[WaterBomber, None] = None
         via_water: Union[WaterTank, None] = None
         via_base: Union[Base, None] = None
@@ -172,7 +172,6 @@ class MatlabWBCoordinator(WBCoordinator):
             elif via_water is not None:
                 best_water_bomber.add_location_to_queue(via_water, ignition.inspected_time)
             best_water_bomber.add_location_to_queue(ignition, ignition.inspected_time)
-            best_water_bomber.print_past_locations()
         else:
             _LOG.error("No water bombers were available")
         for water_bomber in self.water_bombers:

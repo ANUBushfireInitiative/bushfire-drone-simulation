@@ -1,11 +1,10 @@
 """Various classes and functions useful to the bushfire_drone_simulation application."""
 
 import logging
-from copy import deepcopy
 from math import atan2, cos, degrees, inf, radians, sin, sqrt
 from typing import Any, Tuple
 
-from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Distance, Duration, Volume
+from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Duration, Volume
 
 _LOG = logging.getLogger(__name__)
 
@@ -18,19 +17,19 @@ class Location:
         self.lat = latitude
         self.lon = longitude
 
-    def distance(self, other: "Location", units: str = "km") -> Distance:
-        """Find Euclidian distance between two locations."""
+    def distance(self, other: "Location") -> float:
+        """Find Euclidian distance in km between two locations."""
         temp = (
             sin(radians(other.lat - self.lat) / 2) ** 2
             + cos(radians(self.lat))
             * cos(radians(other.lat))
             * sin(radians(other.lon - self.lon) / 2) ** 2
         )
-        return Distance(6371 * 2 * atan2(sqrt(temp), sqrt(1 - temp)), units)
+        return 6371 * 2 * atan2(sqrt(temp), sqrt(1 - temp))
 
     def intermediate_point(self, other: "Location", percentage: float) -> "Location":
         """Find intermediate point percentage of the way between self and other."""
-        angular = self.distance(other) / Distance(6371)
+        angular = self.distance(other) / 6371
         h_1 = sin(radians((1 - percentage) * angular)) / sin(radians(angular))
         h_2 = sin(radians(percentage * angular)) / sin(radians(angular))
         x = h_1 * cos(radians(self.lat)) * cos(radians(self.lon)) + h_2 * cos(
@@ -55,25 +54,25 @@ class Location:
 class WaterTank(Location):
     """Class containing a water tank's location and capacity."""
 
-    def __init__(self, latitude: float, longitude: float, capacity: Volume, id_no: int):
+    def __init__(self, latitude: float, longitude: float, capacity: float, id_no: int):
         """Initialise watertank from location and capacity."""
         super().__init__(latitude, longitude)
-        self.capacity: Volume = capacity
-        self.unallocated_capacity: Volume = capacity
-        self.initial_capacity = capacity
+        self.capacity: float = capacity
+        self.unallocated_capacity: float = capacity
+        self.initial_capacity: float = capacity
         self.id_no = id_no
 
-    def remove_water(self, volume: Volume) -> None:
+    def remove_water(self, volume: float) -> None:
         """Remove a given volume from the water tank."""
         self.capacity -= volume
-        if self.capacity < Volume(0):
+        if self.capacity < 0:
             _LOG.error("Water tank ran out of water")
 
-    def remove_unallocated_water(self, volume: Volume) -> None:
+    def remove_unallocated_water(self, volume: float) -> None:
         """Remove a given volume from the water tank."""
         self.unallocated_capacity -= volume
 
-    def get_water_capacity(self, future_capacity: bool = False) -> Volume:
+    def get_water_capacity(self, future_capacity: bool = False) -> float:
         """Return water capacity of tank.
 
         The actual capacity (self.capacity) by default or the future capacity if future_capacity
@@ -169,9 +168,22 @@ class Time:
                     + Duration(int(time_in[17:19]), "s")
                 )
 
+    @classmethod
+    def from_time(cls, time: float):
+        """Initialise time from float, assume float is in DEFAULT_DURATION_UNITS."""
+        ret_time = Time("0")
+        ret_time.time = Duration(time)
+        return ret_time
+
     def get(self, units: str = DEFAULT_DURATION_UNITS) -> float:
         """Return time."""
         return self.time.get(units)
+
+    def copy(self) -> "Time":
+        """Create a new equivalent instance of Time."""
+        ret_time = Time("inf")
+        ret_time.time = self.time
+        return ret_time
 
     def __eq__(self, other: object) -> bool:
         """Equality for Time."""
@@ -200,7 +212,7 @@ class Time:
         Returns:
             Time: New time instance
         """
-        new_time = deepcopy(self)
+        new_time = self.copy()
         new_time.add_duration(other)
         return new_time
 

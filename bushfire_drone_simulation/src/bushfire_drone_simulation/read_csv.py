@@ -6,7 +6,7 @@ import pandas as pd
 
 from bushfire_drone_simulation.fire_utils import Time, assert_bool, assert_number
 from bushfire_drone_simulation.lightning import Lightning
-from bushfire_drone_simulation.units import Volume
+from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS
 
 
 class ColumnNotFoundException(Exception):
@@ -89,7 +89,7 @@ def read_locations_with_capacity(filename: str, constructor):
             lons[i],
             f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number",
         )
-        to_return.append(constructor(lat, lon, Volume(cap), i))
+        to_return.append(constructor(lat, lon, cap, i))
     return to_return
 
 
@@ -125,6 +125,14 @@ def read_lightning(filename: str, ignition_probability: float) -> List[Lightning
             lons[i],
             f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number.",
         )
-        lightning.append(Lightning(lat, lon, Time(str(times[i])), ignition_probabilities[i], i))
+        lightning.append(
+            Lightning(
+                lat,
+                lon,
+                Time(str(times[i])).get(DEFAULT_DURATION_UNITS),
+                ignition_probabilities[i],
+                i,
+            )
+        )
 
     return lightning

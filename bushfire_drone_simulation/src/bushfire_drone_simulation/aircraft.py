@@ -10,13 +10,21 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-from bushfire_drone_simulation.fire_utils import Base, Location, Time, WaterTank
+from bushfire_drone_simulation.fire_utils import Base, Location, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
-from bushfire_drone_simulation.units import Distance, Duration, Speed, Volume
+from bushfire_drone_simulation.units import (
+    DEFAULT_DISTANCE_UNITS,
+    DEFAULT_DURATION_UNITS,
+    DEFAULT_VOLUME_UNITS,
+    Distance,
+    Duration,
+    Speed,
+    Volume,
+)
 
 _LOG = logging.getLogger(__name__)
 
-EPSILON: float = 0.01
+EPSILON: float = 0.001
 
 
 class Status(Enum):
@@ -38,13 +46,13 @@ class UpdateEvent(Location):  # pylint: disable=too-few-public-methods
         name: str,
         latitude: float,
         longitude: float,
-        time: Time,
+        time: float,
         status: Status,
-        distance_travelled: Distance,
+        distance_travelled: float,
         current_fuel: float,
-        current_range: Distance,
-        distance_hovered: Distance,
-        current_water: Optional[Volume] = None,
+        current_range: float,
+        distance_hovered: float,
+        current_water: float,
     ):  # pylint: disable=too-many-arguments
         """Initialize UpdateEvent class.
 
@@ -52,13 +60,13 @@ class UpdateEvent(Location):  # pylint: disable=too-few-public-methods
             name (str): name of aircraft
             latitude (float): latitude of aircraft
             longitude (float): logitude of aircraft
-            time (Time): time of event
+            time (float): time of event
             status (Status): status of aircraft
-            distance_travelled (Distance): distance travelled by aircraft since last event update
+            distance_travelled (float): distance travelled by aircraft since last event update
             current_fuel (float): percentage of current fuel remaining
-            current_range (Distance): current range of aircraft
-            distance_hovered (Distance): distance hovered by aircraft since last event update
-            current_water (Optional[Volume], optional): Current water on board aircraft.
+            current_range (float): current range of aircraft
+            distance_hovered (float): distance hovered by aircraft since last event update
+            current_water (float): Current water on board aircraft.
         """
         self.name = name
         self.distance_travelled = distance_travelled  # since previous update
@@ -66,7 +74,7 @@ class UpdateEvent(Location):  # pylint: disable=too-few-public-methods
         self.current_range = current_range
         self.distance_hovered = distance_hovered
         self.water = current_water
-        self.time = deepcopy(time)
+        self.time = time
         self.status = status
         super().__init__(latitude, longitude)
 
@@ -81,14 +89,14 @@ class Event:  # pylint: disable=too-few-public-methods
     def __init__(
         self,
         position: Location,
-        departure_time: Time,
-        arrival_time: Time,
+        departure_time: float,
+        arrival_time: float,
         arrival_fuel: float,
         completion_fuel: float,
-        water: Volume,
+        water: float,
         arrival_status: Status,
         completion_status: Status,
-        completion_time: Time,
+        completion_time: float,
     ):  # pylint: disable = too-many-arguments
         """Initalise event."""
         self.position = position
@@ -113,24 +121,24 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         self,
         latitude: float,
         longitude: float,
-        flight_speed: Speed,
-        fuel_refill_time: Duration,
+        flight_speed: float,
+        fuel_refill_time: float,
         id_no: int,
     ):  # pylint: disable=too-many-arguments
         """Initialize aircraft."""
         self.flight_speed = flight_speed
         self.fuel_refill_time = fuel_refill_time
-        self.time = Time("0")
-        self.id_no = id_no
+        self.time: float = 0.0
+        self.id_no: int = id_no
         super().__init__(latitude, longitude)
         self.current_fuel_capacity: float = 1.0
         self.status = Status.WAITING_AT_BASE
         self.past_locations: List[UpdateEvent] = []
-        self.strikes_visited: List[Tuple[Lightning, Time]] = []
+        self.strikes_visited: List[Tuple[Lightning, float]] = []
         self.event_queue: "Queue[Event]" = Queue()
         self.use_current_status: bool = False
         self.closest_base: Optional[Base] = None
-        self.required_departure_time: Optional[Time] = None
+        self.required_departure_time: Optional[float] = None
 
     def fuel_refill(self, base: Base) -> None:  # pylint: disable=unused-argument
         """Update time and range of aircraft after fuel refill.
@@ -140,7 +148,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         """
         # base.empty()
         self.current_fuel_capacity = 1.0
-        self.time.add_duration(self.fuel_refill_time)
+        self.time += self.fuel_refill_time
 
     def _update_location(self, position: Location) -> None:
         """Update location of aircraft."""
@@ -154,10 +162,10 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             _LOG.error("%s ran out of fuel", self.get_name())
 
     @abstractmethod
-    def get_range(self) -> Distance:
+    def get_range(self) -> float:
         """Return total range of Aircraft."""
 
-    def _get_future_time(self) -> Time:
+    def _get_future_time(self) -> float:
         """Return time as if all elements of the event queue have been completed."""
         if self.event_queue.empty() or self.use_current_status:
             return self.time
@@ -175,7 +183,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             return self.current_fuel_capacity
         return self.event_queue.queue[-1].completion_fuel
 
-    def _get_future_water(self) -> Volume:
+    def _get_future_water(self) -> float:
         """Return water on board as if all elements of the event queue have been completed."""
         if self.event_queue.empty() or self.use_current_status:
             return self._get_water_on_board()
@@ -187,36 +195,36 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             return self.status
         return self.event_queue.queue[-1].completion_status
 
-    def _get_water_per_delivery(self) -> Volume:
+    def _get_water_per_delivery(self) -> float:
         """Return water per delivery time of Aircraft."""
         assert isinstance(
             self, WaterBomber
         ), f"{self.get_name()} is trying to measure water per delivery"
-        return Volume(0)
+        return 0
 
-    def _get_water_capacity(self) -> Volume:
+    def _get_water_capacity(self) -> float:
         """Return water capcaity of Aircraft."""
         assert isinstance(
             self, WaterBomber
         ), f"{self.get_name()} is trying to measure it's water capacity"
-        return Volume(0)
+        return 0
 
-    def _get_water_refill_time(self) -> Duration:
+    def _get_water_refill_time(self) -> float:
         """Return water refill time of Aircraft."""
         assert isinstance(self, WaterBomber), f"{self.get_name()} is trying to visit a water tank"
-        return Duration(0)
+        return 0
 
     # pylint: disable=R0201
-    def _get_water_on_board(self) -> Volume:
+    def _get_water_on_board(self) -> float:
         """Return water on board of Aircraft."""
-        return Volume(0)
+        return 0
 
-    def _set_water_on_board(self, water: Volume) -> None:  # pylint: disable=unused-argument
+    def _set_water_on_board(self, water: float) -> None:  # pylint: disable=unused-argument
         """Set water on board of Aircraft."""
         assert isinstance(self, WaterBomber), f"{self.get_name()} is trying to set water on board"
 
     @abstractmethod
-    def _get_time_at_strike(self) -> Duration:
+    def _get_time_at_strike(self) -> float:
         """Return duration an aircraft spends inspecting or suppressing a strike."""
 
     @abstractmethod
@@ -245,11 +253,11 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         elif isinstance(event.position, Lightning):
             if isinstance(self, UAV):
                 event.position.inspected(self.time)
-                self.strikes_visited.append((event.position, deepcopy(self.time)))
+                self.strikes_visited.append((event.position, self.time))
                 inspection = event.position
             else:
                 event.position.suppressed(self.time)
-                self.strikes_visited.append((event.position, deepcopy(self.time)))
+                self.strikes_visited.append((event.position, self.time))
                 suppression = event.position
         # elif isinstance(event.position, Base):
         # base.empty()
@@ -258,7 +266,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         return inspection, suppression
 
     def update_to_time(  # pylint: disable=too-many-branches
-        self, update_time: Time
+        self, update_time: float
     ) -> Tuple[List[Lightning], List[Lightning]]:
         """Update aircraft to given time and delete all updates beyond this time.
 
@@ -269,6 +277,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             List[Lightning]: list of strikes inspected
             List[Lightning]]: list of ignitions suppressed
         """
+        assert isinstance(update_time, float)
         strikes_inspected: List[Lightning] = []
         strikes_suppressed: List[Lightning] = []
         # If we can get to the next position then complete update, otherwise make it half way there
@@ -277,10 +286,11 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             if next_event.departure_time > self.time:
                 if self.status == Status.HOVERING:
                     self._reduce_current_fuel(
-                        (next_event.departure_time - self.time).mul_by_speed(self.flight_speed)
+                        (next_event.departure_time - self.time)
+                        * self.flight_speed
                         / self.get_range()
                     )
-                self.time = deepcopy(next_event.departure_time)
+                self.time = next_event.departure_time
             if next_event.arrival_time <= update_time:
                 inspected, suppressed = self._complete_event()
                 if inspected is not None:
@@ -300,32 +310,33 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                         self.status = Status.GOING_TO_WATER
                         self._add_update()
                     # update to midpoint
-                    percentage = (update_time - self.time) / self.distance(
-                        next_event.position
-                    ).div_by_speed(self.flight_speed)
+                    percentage = (
+                        (update_time - self.time)
+                        * self.flight_speed
+                        / self.distance(next_event.position)
+                    )
                     intermediate_point = self.intermediate_point(next_event.position, percentage)
                     self._reduce_current_fuel(self.distance(intermediate_point) / self.get_range())
-                    self.time.add_duration(
-                        self.distance(intermediate_point).div_by_speed(self.flight_speed)
-                    )
+                    self.time += self.distance(intermediate_point) / self.flight_speed
                     self._update_location(intermediate_point)
                 break
         # Lose fuel if hovering and update self.time to update_time
         if (
             self.required_departure_time is not None
-            and (update_time - self.required_departure_time).get() > -EPSILON
+            and update_time - self.required_departure_time > -EPSILON
         ):
             assert self.closest_base is not None
             self.go_to_base(self.closest_base, self.required_departure_time)
-        if update_time > self.time and not math.isinf(update_time.get()):
+        assert isinstance(update_time, float)
+        if update_time > self.time and not math.isinf(update_time):
             if self.status == Status.HOVERING:
                 self._reduce_current_fuel(
-                    (update_time - self.time).mul_by_speed(self.flight_speed) / self.get_range()
+                    (update_time - self.time) * self.flight_speed / self.get_range()
                 )
-            self.time = deepcopy(update_time)
+            self.time = update_time
         return strikes_inspected, strikes_suppressed
 
-    def add_location_to_queue(self, position: Location, departure_time: Time) -> None:
+    def add_location_to_queue(self, position: Location, departure_time: float) -> None:
         """Add location to queue departing at the earliest at the given time.
 
         The arrival time, fuel level, water level and status are calculated and appended to the
@@ -341,11 +352,11 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             self.use_current_status = False
         fuel = self._get_future_fuel()
         assert self._get_future_time() >= departure_time
-        departure_time = deepcopy(self._get_future_time())
+        departure_time = self._get_future_time()
         dist_to_position = self._get_future_position().distance(position)
         arrival_fuel = fuel - dist_to_position / self.get_range()
 
-        event_arrival_time = departure_time + dist_to_position.div_by_speed(self.flight_speed)
+        event_arrival_time = departure_time + dist_to_position / (self.flight_speed)
         water = deepcopy(self._get_future_water())
 
         if isinstance(position, WaterTank):
@@ -387,8 +398,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         elif isinstance(position, Lightning):
             event_completion_time = event_arrival_time + self._get_time_at_strike()
             completion_fuel = (
-                arrival_fuel
-                - self._get_time_at_strike().mul_by_speed(self.flight_speed) / self.get_range()
+                arrival_fuel - self._get_time_at_strike() * self.flight_speed / self.get_range()
             )
             if isinstance(self, WaterBomber):
                 water -= self._get_water_per_delivery()
@@ -408,7 +418,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         else:
             _LOG.error("Input to accept update should be a base, strike or water tank")
 
-    def _update_position(self, position: Location, departure_time: Time) -> None:
+    def _update_position(self, position: Location, departure_time: float) -> None:
         """Update position, range and time of an aircraft.
 
         Args:
@@ -416,12 +426,12 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             departure_time (Time): time of triggering event of update position
             final_status (Status): status of aircraft after position update
         """
-        if (departure_time - self.time).get() > EPSILON:
+        if departure_time - self.time > EPSILON:
             assert self.status == Status.HOVERING  # Must have been called from consider
             self._reduce_current_fuel(
-                (departure_time - self.time).mul_by_speed(self.flight_speed) / self.get_range()
+                (departure_time - self.time) * (self.flight_speed) / self.get_range()
             )
-            self.time = deepcopy(departure_time)
+            self.time = departure_time
         if isinstance(position, Base):
             self.status = Status.GOING_TO_BASE
             self._add_update()
@@ -436,21 +446,21 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             self._add_update()
             self.status = Status.WAITING_AT_WATER
         self._reduce_current_fuel(self.distance(position) / self.get_range())
-        self.time.add_duration(self.distance(position).div_by_speed(self.flight_speed))
+        self.time += self.distance(position) / self.flight_speed
         self._update_location(position)
         self._add_update()
 
     @abstractmethod
-    def go_to_strike(self, lightning: Lightning, departure_time: Time) -> None:
+    def go_to_strike(self, lightning: Lightning, departure_time: float) -> None:
         """Send aircraft to strike."""
 
     def go_to_water(
-        self, water_tank: WaterTank, departure_time: Time  # pylint: disable=unused-argument
+        self, water_tank: WaterTank, departure_time: float  # pylint: disable=unused-argument
     ) -> None:
         """Send water bomber to water."""
         assert False, f"{self.get_name()} is trying to visit a water tank"
 
-    def go_to_base(self, base: Base, time: Time) -> None:
+    def go_to_base(self, base: Base, time: float) -> None:
         """Go to and refill Aircraft at base."""
         self._update_position(base, time)
         self.fuel_refill(base)
@@ -458,7 +468,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
     def consider_going_to_base(
         self,
         bases: List[Base],
-        departure_time: Time,
+        departure_time: float,
         percentage: float = 0.3,
     ) -> None:
         """Aircraft will return to base.
@@ -475,9 +485,11 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             # Update fuel loss from hovering [necessary incase we're given a funcy departure time
             # but doesn't affect current implementation]
             if self._get_future_time() < departure_time:
-                current_fuel -= (departure_time - self._get_future_time()).mul_by_speed(
-                    self.flight_speed
-                ) / self.get_range()
+                current_fuel -= (
+                    (departure_time - self._get_future_time())
+                    * self.flight_speed
+                    / self.get_range()
+                )
             # Calculate distance that if a base is within we can break
             required_distance = self.get_range() * current_fuel * percentage
             best_base = bases[0]
@@ -496,7 +508,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
     def go_to_base_when_necessary(
         self,
         bases: List[Base],
-        departure_time: Time,
+        departure_time: float,
         percentage: float = 0.3,
     ) -> None:
         """Aircraft will return to base.
@@ -512,21 +524,21 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             base_index = np.argmin(list(map(self._get_future_position().distance, bases)))
             dist_to_base = self._get_future_position().distance(bases[base_index])
             percentage_range = self._get_future_fuel() * self.get_range() * percentage
-            time_to_base = (percentage_range - dist_to_base).div_by_speed(self.flight_speed)
+            time_to_base = (percentage_range - dist_to_base) / self.flight_speed
             # time to base could be negative becuase current range is a percentage of actual range
             # we want departure time to be the current time if this is the case or the current time
             # plus the time_to_base if not
-            if time_to_base.get() > 0:
+            if time_to_base > 0:
                 departure_time = self._get_future_time() + time_to_base
             else:
-                departure_time = deepcopy(self._get_future_time())
+                departure_time = self._get_future_time()
             self.closest_base = bases[base_index]
             self.required_departure_time = departure_time
         else:
             self.closest_base = None
             self.required_departure_time = None
 
-    def enough_fuel2(self, positions: List[Location]) -> Optional[Time]:
+    def enough_fuel2(self, positions: List[Location]) -> Optional[float]:
         """Return whether an Aircraft has enough fuel to traverse a given array of positions.
 
         The fuel is tested when the positions are added to the targets queue with the given
@@ -543,32 +555,30 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             or None if not enough fuel
         """
         current_fuel = self._get_future_fuel()
-        current_time = deepcopy(self._get_future_time())
+        current_time = self._get_future_time()
         for index, position in enumerate(positions):
             if index == 0:
                 dist = self._get_future_position().distance(position)
                 current_fuel -= dist / self.get_range()
-                current_time.add_duration(dist.div_by_speed(self.flight_speed))
+                current_time += dist / self.flight_speed
             else:
                 dist = positions[index - 1].distance(position)
                 current_fuel -= dist / self.get_range()
-                current_time.add_duration(dist.div_by_speed(self.flight_speed))
+                current_time += dist / self.flight_speed
 
             if isinstance(position, Lightning):
-                current_fuel -= (
-                    self._get_time_at_strike().mul_by_speed(self.flight_speed) / self.get_range()
-                )
-                current_time.add_duration(self._get_time_at_strike())
+                current_fuel -= self._get_time_at_strike() * (self.flight_speed) / self.get_range()
+                current_time += self._get_time_at_strike()
             if current_fuel < 0:
                 return None
             if isinstance(position, WaterTank):
-                current_time.add_duration(self._get_water_refill_time())
+                current_time += self._get_water_refill_time()
             if isinstance(position, Base):
-                current_time.add_duration(self.fuel_refill_time)
+                current_time += self.fuel_refill_time
                 current_fuel = 1.0
         return current_time
 
-    def enough_fuel(self, positions: List[Location]) -> Optional[Time]:
+    def enough_fuel(self, positions: List[Location]) -> Optional[float]:
         """Return whether an Aircraft has enough fuel to traverse a given array of positions.
 
         The fuel is tested when the positions are added to the targets queue with the given
@@ -585,45 +595,31 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             or None if not enough fuel
         """
         current_fuel = self._get_future_fuel()
-        current_time = deepcopy(self._get_future_time())
+        current_time = self._get_future_time()
         departure_position = self._get_future_position()
         for position in positions:
             dist = departure_position.distance(position)
             current_fuel -= dist / self.get_range()
-            current_time.add_duration(dist.div_by_speed(self.flight_speed))
+            current_time += dist / self.flight_speed
             if isinstance(position, Lightning):
-                current_fuel -= (
-                    self._get_time_at_strike().mul_by_speed(self.flight_speed) / self.get_range()
-                )
-                current_time.add_duration(self._get_time_at_strike())
+                current_fuel -= self._get_time_at_strike() * self.flight_speed / self.get_range()
+                current_time += self._get_time_at_strike()
             if current_fuel < 0:
                 return None
             if isinstance(position, WaterTank):
-                current_time.add_duration(self._get_water_refill_time())
+                current_time += self._get_water_refill_time()
             if isinstance(position, Base):
-                current_time.add_duration(self.fuel_refill_time)
+                current_time += self.fuel_refill_time
                 current_fuel = 1.0
             departure_position = position
         return current_time
 
-    def print_past_locations(self) -> None:
-        """Print the past locations of the aircraft."""
-        _LOG.debug("Locations of aircraft %s:", self.id_no)
-        for update in self.past_locations:
-            _LOG.debug(
-                "position: %s, %s, time: %s, status: %s",
-                update.lat,
-                update.lon,
-                update.time.get(),
-                update.status,
-            )
-
     def _add_update(self) -> None:
         """Add update to past locations."""
         previous_update = self.past_locations[-1]
-        distance_hovered = Distance(0)
+        distance_hovered = 0.0
         if previous_update.status == Status.HOVERING:
-            distance_hovered = (self.time - previous_update.time).mul_by_speed(self.flight_speed)
+            distance_hovered = (self.time - previous_update.time) * self.flight_speed
         self.past_locations.append(
             UpdateEvent(
                 self.get_name(),
@@ -655,14 +651,17 @@ class UAV(Aircraft):
         super().__init__(
             latitude,
             longitude,
-            Speed(int(attributes["flight_speed"]), "km", "hr"),
-            Duration(int(attributes["fuel_refill_time"]), "min"),
+            Speed(int(attributes["flight_speed"]), "km", "hr").get(
+                DEFAULT_DISTANCE_UNITS, DEFAULT_DURATION_UNITS
+            ),
+            Duration(int(attributes["fuel_refill_time"]), "min").get(DEFAULT_DURATION_UNITS),
             id_no,
         )
-        self.total_range: Distance = Distance(int(attributes["range"]), "km")
-        self.inspection_time: Duration = Duration(
-            1, "min"
-        )  # TODO(read from csv) pylint: disable=fixme
+        self.total_range: float = Distance(int(attributes["range"]), "km").get(
+            DEFAULT_DISTANCE_UNITS
+        )
+        self.inspection_time: float = Duration(1.0, "min").get(DEFAULT_DURATION_UNITS)
+        # TODO(read from csv) pylint: disable=fixme
         self.past_locations = [
             UpdateEvent(
                 self.get_name(),
@@ -670,14 +669,15 @@ class UAV(Aircraft):
                 self.lon,
                 self.time,
                 self.status,
-                Distance(0),
+                0,
                 self.current_fuel_capacity,
                 self.get_range(),
-                Distance(0),
+                0,
+                0,
             )
         ]
 
-    def go_to_strike(self, lightning: Lightning, departure_time: Time) -> None:
+    def go_to_strike(self, lightning: Lightning, departure_time: float) -> None:
         """UAV go to and inspect strike.
 
         Args:
@@ -686,12 +686,12 @@ class UAV(Aircraft):
             arrival_time (Time): time of UAVs arrival at strike
         """
         self._update_position(lightning, departure_time)
-        self.time.add_duration(self._get_time_at_strike())
+        self.time += self._get_time_at_strike()
         self._reduce_current_fuel(
-            (self._get_time_at_strike().mul_by_speed(self.flight_speed) / self.get_range())
+            (self._get_time_at_strike() * self.flight_speed / self.get_range())
         )
         lightning.inspected(self.time)
-        self.strikes_visited.append((lightning, deepcopy(self.time)))
+        self.strikes_visited.append((lightning, self.time))
 
     def get_range(self):
         """Return total range of UAV."""
@@ -701,7 +701,7 @@ class UAV(Aircraft):
         """Return name of UAV."""
         return f"uav {self.id_no}"
 
-    def _get_time_at_strike(self) -> Duration:
+    def _get_time_at_strike(self) -> float:
         """Return inspection time of UAV."""
         return self.inspection_time
 
@@ -729,17 +729,33 @@ class WaterBomber(Aircraft):
         super().__init__(
             latitude,
             longitude,
-            Speed(int(attributes["flight_speed"]), "km", "hr"),
-            Duration(int(attributes["fuel_refill_time"]), "min"),
+            Speed(int(attributes["flight_speed"]), "km", "hr").get(
+                DEFAULT_DISTANCE_UNITS, DEFAULT_DURATION_UNITS
+            ),
+            Duration(int(attributes["fuel_refill_time"]), "min").get(DEFAULT_DURATION_UNITS),
             id_no,
         )
-        self.range_empty: Distance = Distance(int(attributes["range_empty"]), "km")
-        self.range_under_load: Distance = Distance(int(attributes["range_under_load"]), "km")
-        self.water_refill_time: Duration = Duration(int(attributes["water_refill_time"]), "min")
-        self.bombing_time: Duration = Duration(int(attributes["bombing_time"]), "min")
-        self.water_per_delivery: Volume = Volume(int(attributes["water_per_delivery"]), "L")
-        self.water_capacity: Volume = Volume(int(attributes["water_capacity"]), "L")
-        self.water_on_board: Volume = Volume(int(attributes["water_capacity"]), "L")
+        self.range_empty: float = Distance(int(attributes["range_empty"]), "km").get(
+            DEFAULT_DISTANCE_UNITS
+        )
+        self.range_under_load: float = Distance(int(attributes["range_under_load"]), "km").get(
+            DEFAULT_DISTANCE_UNITS
+        )
+        self.water_refill_time: float = Duration(int(attributes["water_refill_time"]), "min").get(
+            DEFAULT_DURATION_UNITS
+        )
+        self.bombing_time: float = Duration(int(attributes["bombing_time"]), "min").get(
+            DEFAULT_DURATION_UNITS
+        )
+        self.water_per_delivery: float = Volume(int(attributes["water_per_delivery"]), "L").get(
+            DEFAULT_VOLUME_UNITS
+        )
+        self.water_capacity: float = Volume(int(attributes["water_capacity"]), "L").get(
+            DEFAULT_VOLUME_UNITS
+        )
+        self.water_on_board: float = Volume(int(attributes["water_capacity"]), "L").get(
+            DEFAULT_VOLUME_UNITS
+        )
         self.type: str = bomber_type
         self.name: str = f"{bomber_type} {id_no+1}"
         self.past_locations = [
@@ -749,10 +765,10 @@ class WaterBomber(Aircraft):
                 self.lon,
                 self.time,
                 self.status,
-                Distance(0),
+                0,
                 self.current_fuel_capacity,
                 self.get_range(),
-                Distance(0),
+                0,
                 self.water_on_board,
             )
         ]
@@ -763,7 +779,7 @@ class WaterBomber(Aircraft):
             self.water_on_board / self.water_capacity
         ) + self.range_empty
 
-    def _get_time_at_strike(self) -> Duration:
+    def _get_time_at_strike(self) -> float:
         """Return bombing time of water bomber."""
         return self.bombing_time
 
@@ -771,7 +787,7 @@ class WaterBomber(Aircraft):
         """Return name of Water Bomber."""
         return str(self.name)
 
-    def go_to_strike(self, lightning: Lightning, departure_time: Time) -> None:
+    def go_to_strike(self, lightning: Lightning, departure_time: float) -> None:
         """Water Bomber go to and suppress strike.
 
         Args:
@@ -780,14 +796,14 @@ class WaterBomber(Aircraft):
         """
         self._update_position(lightning, departure_time)
         self.water_on_board -= self.water_per_delivery
-        self.time.add_duration(self._get_time_at_strike())
+        self.time += self._get_time_at_strike()
         self.current_fuel_capacity -= (
-            self._get_time_at_strike().mul_by_speed(self.flight_speed) / self.get_range()
+            self._get_time_at_strike() * self.flight_speed / self.get_range()
         )
         lightning.suppressed(self.time)
-        self.strikes_visited.append((lightning, deepcopy(self.time)))
+        self.strikes_visited.append((lightning, self.time))
 
-    def go_to_water(self, water_tank: WaterTank, departure_time: Time) -> None:
+    def go_to_water(self, water_tank: WaterTank, departure_time: float) -> None:
         """Water bomber goes and fills up water.
 
         Args:
@@ -816,28 +832,28 @@ class WaterBomber(Aircraft):
         """Update time and range of water bomber after water refill."""
         water_tank.remove_water(self.water_capacity - self.water_on_board)
         self.water_on_board = self.water_capacity
-        self.time.add_duration(self.water_refill_time)
+        self.time += self.water_refill_time
 
     def enough_water(self, no_of_fires: int = 1) -> bool:
         """Return whether the water bomber has enough water to extinguish desired fires."""
         return self._get_future_water() >= self.water_per_delivery * no_of_fires
 
-    def _get_water_refill_time(self) -> Duration:
+    def _get_water_refill_time(self) -> float:
         """Return water refill time of Aircraft. Should be 0 if does not exist."""
         return self.water_refill_time
 
-    def _get_water_on_board(self) -> Volume:
+    def _get_water_on_board(self) -> float:
         """Return water refill time of Aircraft. Should be 0 if does not exist."""
         return self.water_on_board
 
-    def _get_water_per_delivery(self) -> Volume:
+    def _get_water_per_delivery(self) -> float:
         """Return water per delivery time of Aircraft."""
         return self.water_per_delivery
 
-    def _get_water_capacity(self) -> Volume:
+    def _get_water_capacity(self) -> float:
         """Return water capcaity of Aircraft."""
         return self.water_capacity
 
-    def _set_water_on_board(self, water: Volume) -> None:
+    def _set_water_on_board(self, water: float) -> None:
         """Set water on board of Aircraft."""
         self.water_on_board = water

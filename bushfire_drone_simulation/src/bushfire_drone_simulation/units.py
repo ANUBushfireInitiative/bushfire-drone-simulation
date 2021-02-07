@@ -55,17 +55,6 @@ class Units:
         to_return.value *= other
         return to_return
 
-    def __rmul__(self: UnitsType, lhs: Union[int, float]) -> UnitsType:
-        """__rmul__.
-
-        Args:
-            lhs (float): lhs
-
-        Returns:
-            UnitsType:
-        """
-        return self * lhs
-
     def __add__(self: UnitsType, other: UnitsType) -> UnitsType:
         """Addition operator of Duration."""
         to_return = deepcopy(self)

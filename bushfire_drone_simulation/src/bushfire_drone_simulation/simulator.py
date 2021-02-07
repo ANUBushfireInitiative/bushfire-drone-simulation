@@ -1,26 +1,14 @@
 """Simulation of bushfire drone simulation."""
 
+from math import inf
 from queue import PriorityQueue, Queue
 from typing import List, Tuple
 
 from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoordinator
-from bushfire_drone_simulation.aircraft import UAV, Aircraft, WaterBomber
-from bushfire_drone_simulation.fire_utils import Base, Time
+from bushfire_drone_simulation.aircraft import UAV, WaterBomber
+from bushfire_drone_simulation.fire_utils import Base
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.parameters import JSONParameters
-
-
-class AircraftEvent:  # pylint: disable=too-few-public-methods
-    """Event associated to an aircraft."""
-
-    def __init__(self, time: Time, aircraft: Aircraft):
-        """Init AircraftEvent class."""
-        self.time = time
-        self.aircraft = aircraft
-
-    def __lt__(self, other: "AircraftEvent") -> bool:
-        """Less than operator for AircraftEvent."""
-        return self.time < other.time
 
 
 class Simulator:
@@ -48,7 +36,7 @@ class Simulator:
         """Run bushfire drone simulation."""
         while not self.lightning_queue.empty():
             strike = self.lightning_queue.get()
-            # print("UPDATING UAVS TO TIME " + str(strike.spawn_time.get()))
+            # print("UPDATING UAVS TO TIME " + str(strike.spawn_time))
             inspections = self._update_uavs_to_time(strike.spawn_time)
             uav_coordinator.lightning_strike_inspected(inspections)
             uav_coordinator.new_strike(strike)
@@ -57,7 +45,7 @@ class Simulator:
                     self.ignitions.put(inspected)
 
         # print("UPDATING UAVS TO TIME INF")
-        inspections = self._update_uavs_to_time(Time("inf"))
+        inspections = self._update_uavs_to_time(inf)
         for (inspected, _) in inspections:
             if inspected.ignition:
                 self.ignitions.put(inspected)
@@ -76,17 +64,17 @@ class Simulator:
             # TODO(get this silly function to work) pylint: disable=fixme
 
         # print("UPDATING WBS TO TIME INF")
-        suppressions = self._update_water_bombers_to_time(Time("inf"))
+        suppressions = self._update_water_bombers_to_time(inf)
 
     def _update_to_time(
-        self, time: Time
+        self, time: float
     ) -> Tuple[List[Tuple[Lightning, int]], List[Tuple[Lightning, str]]]:
         """Update all aircraft to given time."""
         inspections = self._update_uavs_to_time(time)
         suppressions = self._update_water_bombers_to_time(time)
         return inspections, suppressions
 
-    def _update_uavs_to_time(self, time: Time) -> List[Tuple[Lightning, int]]:
+    def _update_uavs_to_time(self, time: float) -> List[Tuple[Lightning, int]]:
         """Update all UAVs to given time, return list of inspected strikes."""
         strikes_inspected: List[Tuple[Lightning, int]] = []
         for uav in self.uavs:
@@ -95,7 +83,7 @@ class Simulator:
                 strikes_inspected.append((inspection, uav.id_no))
         return strikes_inspected
 
-    def _update_water_bombers_to_time(self, time) -> List[Tuple[Lightning, str]]:
+    def _update_water_bombers_to_time(self, time: float) -> List[Tuple[Lightning, str]]:
         """Update all water bombers to given time, return list of suppressed strikes."""
         strikes_suppressed: List[Tuple[Lightning, str]] = []
         for water_bomber in self.water_bombers:

@@ -14,9 +14,10 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
-from bushfire_drone_simulation.fire_utils import Base, WaterTank, assert_bool, assert_number
+from bushfire_drone_simulation.fire_utils import Base, Time, WaterTank, assert_bool, assert_number
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.read_csv import CSVFile, read_lightning, read_locations_with_capacity
+from bushfire_drone_simulation.units import Distance, Volume
 
 _LOG = logging.getLogger(__name__)
 matplotlib.use("Agg")
@@ -271,13 +272,13 @@ class JSONParameters:
         axs[1, 1].set_title("Water tank levels after suppression")
         axs[1, 1].bar(
             water_tank_ids,
-            [wt.initial_capacity.get(units="kL") for wt in water_tanks],
+            [Volume(wt.initial_capacity).get(units="kL") for wt in water_tanks],
             label="Full Capacity",
             color="orange",
         )
         axs[1, 1].bar(
             water_tank_ids,
-            [wt.capacity.get(units="kL") for wt in water_tanks],
+            [Volume(wt.capacity).get(units="kL") for wt in water_tanks],
             label="Final Level",
             color="blue",
         )
@@ -313,17 +314,21 @@ class JSONParameters:
                 lats.append(strike.lat)
                 lons.append(strike.lon)
                 if strike.inspected_time is not None:
-                    inspection_times.append((strike.inspected_time - strike.spawn_time).get("hr"))
+                    inspection_times.append(
+                        Time.from_time(strike.inspected_time - strike.spawn_time).get("hr")
+                    )
                     inspection_times_to_return.append(
-                        (strike.inspected_time - strike.spawn_time).get("hr")
+                        Time.from_time(strike.inspected_time - strike.spawn_time).get("hr")
                     )
                 else:
                     _LOG.error("strike %s was not inspected", str(strike.id_no))
                     inspection_times.append("N/A")
                 if strike.suppressed_time is not None:
-                    suppression_times.append((strike.suppressed_time - strike.spawn_time).get("hr"))
+                    suppression_times.append(
+                        Time.from_time(strike.suppressed_time - strike.spawn_time).get("hr")
+                    )
                     suppression_times_to_return.append(
-                        (strike.suppressed_time - strike.spawn_time).get("hr")
+                        Time.from_time(strike.suppressed_time - strike.spawn_time).get("hr")
                     )
                 else:
                     suppression_times.append("N/A")
@@ -371,11 +376,11 @@ class JSONParameters:
                         uav_update.name,
                         uav_update.lat,
                         uav_update.lon,
-                        uav_update.time.get("min"),
-                        uav_update.distance_travelled.get("km"),
-                        uav_update.distance_hovered.get("km"),
+                        Time.from_time(uav_update.time).get("min"),
+                        Distance(uav_update.distance_travelled).get("km"),
+                        Distance(uav_update.distance_hovered).get("km"),
                         uav_update.fuel * 100,
-                        uav_update.current_range.get("km"),
+                        Distance(uav_update.current_range).get("km"),
                         str(uav_update.status),
                     ]
                 )
@@ -417,12 +422,12 @@ class JSONParameters:
                         wb_update.name,
                         wb_update.lat,
                         wb_update.lon,
-                        wb_update.time.get(),
-                        wb_update.distance_travelled.get("km"),
-                        wb_update.distance_hovered.get("km"),
+                        Time.from_time(wb_update.time).get("min"),
+                        Distance(wb_update.distance_travelled).get("km"),
+                        Distance(wb_update.distance_hovered).get("km"),
                         wb_update.fuel * 100,
-                        wb_update.current_range.get("km"),
-                        wb_update.water.get("L"),
+                        Distance(wb_update.current_range).get("km"),
+                        Volume(wb_update.water).get("L"),
                         str(wb_update.status),
                     ]
                 )

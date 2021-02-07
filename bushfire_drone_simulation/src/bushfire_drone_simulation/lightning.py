@@ -1,24 +1,19 @@
 """Module containing lightning class for bushfire_drone_simulation."""
 
 import random
-from copy import deepcopy
 from typing import List, Union
 
-from bushfire_drone_simulation.fire_utils import Location, Time
+from bushfire_drone_simulation.fire_utils import Location
 
 
 class Lightning(Location):
     """Class for individual lightning strikes."""
 
-    inspected_time: Union[Time, None] = None
-    suppressed_time: Union[Time, None] = None
-    nearest_base: Union[int, None] = None
-
     def __init__(
         self,
         latitude: float,
         longitude: float,
-        spawn_time: Time,
+        spawn_time: float,
         ignition_probability: float,
         id_no: int,
     ):  # pylint: disable=too-many-arguments
@@ -27,22 +22,25 @@ class Lightning(Location):
         self.ignition = random.random() < ignition_probability
         super().__init__(latitude, longitude)
         self.id_no = id_no
+        self.inspected_time: Union[float, None] = None
+        self.suppressed_time: Union[float, None] = None
+        self.nearest_base: Union[int, None] = None
 
-    def inspected(self, time: Time) -> None:
+    def inspected(self, time: float) -> None:
         """Lightning strike is updated when inspected.
 
         Args:
             time (Time): time of inspection
         """
-        self.inspected_time = deepcopy(time)
+        self.inspected_time = time
 
-    def suppressed(self, time: Time):
+    def suppressed(self, time: float):
         """Lightning strike is updated when suppressed.
 
         Args:
             time (Time): time of suppression
         """
-        self.suppressed_time = deepcopy(time)
+        self.suppressed_time = time
 
     def __lt__(self, other: "Lightning") -> bool:
         """Less than operator for Lightning."""
