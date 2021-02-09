@@ -60,21 +60,21 @@ class Simulator:
             if inspected.ignition:
                 self.ignitions.put(inspected)
 
-        # while not self.ignitions.empty():
-        #     ignition = self.ignitions.get()
-        #     assert (
-        #         ignition.inspected_time is not None
-        #     ), f"Ignition {ignition.id_no} was not inspected"
-        #     # print("UPDATING WBS TO TIME " + str(ignition.inspected_time.get()))
-        #     suppressions = self._update_water_bombers_to_time(ignition.inspected_time)
-        #     wb_coordinator.lightning_strike_suppressed(suppressions)
-        #     wb_coordinator.unsuppressed_strikes.add(ignition)
-        #     wb_coordinator.process_new_ignition(ignition)
-        #     # wb_coordinator.new_ignition(ignition)
-        #     # TODO(get this silly function to work) pylint: disable=fixme
+        while not self.ignitions.empty():
+            ignition = self.ignitions.get()
+            assert (
+                ignition.inspected_time is not None
+            ), f"Ignition {ignition.id_no} was not inspected"
+            # print("UPDATING WBS TO TIME " + str(ignition.inspected_time.get()))
+            suppressions = self._update_water_bombers_to_time(ignition.inspected_time)
+            wb_coordinator.lightning_strike_suppressed(suppressions)
+            wb_coordinator.unsuppressed_strikes.add(ignition)
+            wb_coordinator.process_new_ignition(ignition)
+            # wb_coordinator.new_ignition(ignition)
+            # TODO(get this silly function to work) pylint: disable=fixme
 
-        # # print("UPDATING WBS TO TIME INF")
-        # suppressions = self._update_water_bombers_to_time(inf)
+        # print("UPDATING WBS TO TIME INF")
+        suppressions = self._update_water_bombers_to_time(inf)
 
     def _update_to_time(
         self, time: float
