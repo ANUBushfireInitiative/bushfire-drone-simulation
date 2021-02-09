@@ -64,7 +64,7 @@ class PreComputedDistances:
             self.closest_wb_base_dict[water_bomber_name] = np.empty(len(ignitions), int)
             for idx, strike in enumerate(ignitions):
                 self.closest_wb_base_dict[water_bomber_name][idx] = np.argmin(
-                    self.ignition_to_base_dict[water_bomber_name][strike.id_no]
+                    self.ignition_to_base_dict[water_bomber_name][self.to_ignition_id[strike.id_no]]
                 )
 
         self.ignition_to_water_array = create_distance_array(ignitions, water_tanks)
