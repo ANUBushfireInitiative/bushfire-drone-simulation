@@ -133,6 +133,8 @@ class JSONParameters:
             water_bomber_spawn_locs = CSVFile(filename)
             lats = water_bomber_spawn_locs["latitude"]
             lons = water_bomber_spawn_locs["longitude"]
+            start_locs = water_bomber_spawn_locs["starting at base"]
+            fuel = water_bomber_spawn_locs["initial fuel"]
             attributes = water_bomber["attributes"]
             for i, lat in enumerate(lats):
                 lat = assert_number(
@@ -146,6 +148,15 @@ class JSONParameters:
                         "('{lons[i]}') isn't a number"
                     ),
                 )
+                starting_at_base = assert_bool(
+                    start_locs[i],
+                    f"Error: Row {i+1} of column 'starting at base' in '{filename}' "
+                    f"('{start_locs[i]}') isn't a boolean.",
+                )
+                initial_fuel = assert_number(
+                    fuel[i],
+                    f"Error: The fuel on row {i+1} of '{filename}' ('{lons[i]}') isn't a number.",
+                )
                 water_bombers = np.append(
                     water_bombers,
                     WaterBomber(
@@ -154,6 +165,8 @@ class JSONParameters:
                         longitude=lon,
                         attributes=attributes,
                         bomber_type=water_bomber_type,
+                        starting_at_base=starting_at_base,
+                        initial_fuel=initial_fuel,
                     ),
                 )
             water_bombers_bases_dict[water_bomber_type] = self.get_water_bomber_bases(
@@ -202,6 +215,8 @@ class JSONParameters:
         uav_spawn_locs = CSVFile(filename)
         lats = uav_spawn_locs["latitude"]
         lons = uav_spawn_locs["longitude"]
+        start_locs = uav_spawn_locs["starting at base"]
+        fuel = uav_spawn_locs["initial fuel"]
         uavs = np.array([])
         attributes = uav_data["attributes"]
         for i, lat in enumerate(lats):
@@ -213,14 +228,24 @@ class JSONParameters:
                 lons[i],
                 f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') isn't a number.",
             )
+            starting_at_base = assert_bool(
+                start_locs[i],
+                f"Error: Row {i+1} of column 'starting at base' in '{filename}' "
+                f"('{start_locs[i]}') isn't a boolean.",
+            )
+            initial_fuel = assert_number(
+                fuel[i],
+                f"Error: The fuel on row {i+1} of '{filename}' ('{lons[i]}') isn't a number.",
+            )
             uavs = np.append(
                 uavs,
                 UAV(
                     id_no=i,
                     latitude=lat,
                     longitude=lon,
-                    attributes=attributes
-                    # TODO(Inspection time) Incorporate inspection time pylint: disable=fixme
+                    attributes=attributes,
+                    starting_at_base=starting_at_base,
+                    initial_fuel=initial_fuel,
                 ),
             )
         return uavs

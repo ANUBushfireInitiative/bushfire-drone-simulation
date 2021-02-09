@@ -77,7 +77,10 @@ class MatlabWBCoordinator(WBCoordinator):
         fuel_first: Union[bool, None] = None
         for water_bomber in self.water_bombers:  # pylint: disable=too-many-nested-blocks
             water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
-            base_index = np.argmin(list(map(ignition.distance, water_bomber_bases)))
+            if self.precomputed is None:
+                base_index = np.argmin(list(map(ignition.distance, water_bomber_bases)))
+            else:
+                base_index = self.precomputed.closest_wb_base(ignition, water_bomber.get_type())
             if water_bomber.enough_water():
                 temp_arr_time = water_bomber.enough_fuel([ignition, water_bomber_bases[base_index]])
                 if temp_arr_time is not None:

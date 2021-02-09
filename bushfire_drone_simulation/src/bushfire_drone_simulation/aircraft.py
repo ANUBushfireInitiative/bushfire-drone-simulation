@@ -141,6 +141,8 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         flight_speed: float,
         fuel_refill_time: float,
         id_no: int,
+        starting_at_base: bool,
+        initial_fuel: float,
     ):  # pylint: disable=too-many-arguments
         """Initialize aircraft."""
         self.flight_speed = flight_speed
@@ -148,8 +150,11 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         self.time: float = 0.0
         self.id_no: int = id_no
         super().__init__(latitude, longitude)
-        self.current_fuel_capacity: float = 1.0
-        self.status = Status.WAITING_AT_BASE
+        self.current_fuel_capacity: float = initial_fuel
+        if starting_at_base:
+            self.status = Status.WAITING_AT_BASE
+        else:
+            self.status = Status.HOVERING
         self.past_locations: List[UpdateEvent] = []
         self.strikes_visited: List[Tuple[Lightning, float]] = []
         self.event_queue: "Queue[Event]" = Queue()
@@ -186,6 +191,16 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
     @abstractmethod
     def get_range(self) -> float:
         """Return total range of Aircraft."""
+
+    def _get_future_state(self) -> Tuple[float, float, Location]:
+        """Return future time, fuel and position of aircraft.
+
+        As if all elements of the event queue have been completed.
+        """
+        if self.event_queue.empty() or self.use_current_status:
+            return self.time, self.current_fuel_capacity, Location(self.lat, self.lon)
+        future_event = self.event_queue.queue[-1]
+        return future_event.completion_time, future_event.completion_fuel, future_event.position
 
     def _get_future_time(self) -> float:
         """Return time as if all elements of the event queue have been completed."""
@@ -244,6 +259,11 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
     def _set_water_on_board(self, water: float) -> None:  # pylint: disable=unused-argument
         """Set water on board of Aircraft."""
         assert isinstance(self, WaterBomber), f"{self.get_name()} is trying to set water on board"
+
+    def get_type(self) -> str:
+        """Return type of Aircraft."""
+        assert isinstance(self, WaterBomber), f"{self.get_name()} is trying to access type"
+        return ""
 
     @abstractmethod
     def _get_time_at_strike(self) -> float:
@@ -560,7 +580,9 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             self.closest_base = None
             self.required_departure_time = None
 
-    def enough_fuel(self, positions: List[Location]) -> Optional[float]:
+    def enough_fuel(  # pylint: disable=too-many-branches, too-many-arguments
+        self, positions: List[Location]
+    ) -> Optional[float]:
         """Return whether an Aircraft has enough fuel to traverse a given array of positions.
 
         The fuel is tested when the positions are added to the targets queue with the given
@@ -576,29 +598,63 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             Optional[Time]: The arrival time of the aircraft after traversing the array of positions
             or None if not enough fuel
         """
-        current_fuel = self._get_future_fuel()
-        current_time = self._get_future_time()
-        for index, position in enumerate(positions):
-            if index == 0:
-                dist = self._get_future_position().distance(position)
+        current_time, current_fuel, current_pos = self._get_future_state()
+        for idx, position in enumerate(positions):
+            if idx == 0:
+                dist = current_pos.distance(position)
             else:
-                if isinstance(self, UAV) and self.precomputed is not None:
-                    dist = self.precomputed.uav_dist(position, positions[index - 1])
+                departure_pos = positions[idx - 1]
+                if self.precomputed is not None:
+                    if isinstance(self, WaterBomber):
+                        if isinstance(position, Base) and isinstance(departure_pos, Lightning):
+                            dist = self.precomputed.ignition_to_base(
+                                departure_pos, position, self.get_type()
+                            )
+                        elif isinstance(position, Lightning) and isinstance(departure_pos, Base):
+                            dist = self.precomputed.ignition_to_base(
+                                position, departure_pos, self.get_type()
+                            )
+                        elif isinstance(position, Base) and isinstance(departure_pos, WaterTank):
+                            dist = self.precomputed.water_to_base(
+                                departure_pos, position, self.get_type()
+                            )
+                        elif isinstance(position, WaterTank) and isinstance(departure_pos, Base):
+                            dist = self.precomputed.water_to_base(
+                                position, departure_pos, self.get_type()
+                            )
+                        elif isinstance(position, Lightning) and isinstance(
+                            departure_pos, WaterTank
+                        ):
+                            dist = self.precomputed.ignition_to_water(position, departure_pos)
+                        elif isinstance(position, WaterTank) and isinstance(
+                            departure_pos, Lightning
+                        ):
+                            dist = self.precomputed.ignition_to_water(departure_pos, position)
+                        else:
+                            dist = departure_pos.distance(position)
+                    else:
+                        if isinstance(position, Base) and isinstance(departure_pos, Lightning):
+                            dist = self.precomputed.uav_dist(departure_pos, position)
+                        elif isinstance(position, Lightning) and isinstance(departure_pos, Base):
+                            dist = self.precomputed.uav_dist(position, departure_pos)
+                        else:
+                            dist = departure_pos.distance(position)
                 else:
-                    dist = positions[index - 1].distance(position)
+                    dist = departure_pos.distance(position)
             current_fuel -= dist / self.get_range()
             current_time += dist / self.flight_speed
 
             if isinstance(position, Lightning):
-                current_fuel -= self._get_time_at_strike() * (self.flight_speed) / self.get_range()
+                current_fuel -= self._get_time_at_strike() * self.flight_speed / self.get_range()
                 current_time += self._get_time_at_strike()
             if current_fuel < 0:
                 return None
-            if isinstance(position, WaterTank):
-                current_time += self._get_water_refill_time()
             if isinstance(position, Base):
                 current_time += self.fuel_refill_time
                 current_fuel = 1.0
+            elif isinstance(position, WaterTank):
+                current_time += self._get_water_refill_time()
+
         return current_time
 
     def enough_fuel2(self, positions: List[Location]) -> Optional[float]:
@@ -662,7 +718,15 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
 class UAV(Aircraft):
     """UAV class for unmanned aircraft searching lightning strikes."""
 
-    def __init__(self, id_no: int, latitude: float, longitude: float, attributes: Dict[str, Any]):
+    def __init__(
+        self,
+        id_no: int,
+        latitude: float,
+        longitude: float,
+        attributes: Dict[str, Any],
+        starting_at_base: bool,
+        initial_fuel: float,
+    ):  # pylint: disable=too-many-arguments
         """Initialize UAV.
 
         Args:
@@ -679,6 +743,8 @@ class UAV(Aircraft):
             ),
             Duration(int(attributes["fuel_refill_time"]), "min").get(DEFAULT_DURATION_UNITS),
             id_no,
+            starting_at_base,
+            initial_fuel,
         )
         self.total_range: float = Distance(int(attributes["range"]), "km").get(
             DEFAULT_DISTANCE_UNITS
@@ -739,6 +805,8 @@ class WaterBomber(Aircraft):
         longitude: float,
         attributes,
         bomber_type: str,
+        starting_at_base: bool,
+        initial_fuel: float,
     ):  # pylint: disable=too-many-arguments
         """Initialize water bombing aircraft.
 
@@ -757,6 +825,8 @@ class WaterBomber(Aircraft):
             ),
             Duration(int(attributes["fuel_refill_time"]), "min").get(DEFAULT_DURATION_UNITS),
             id_no,
+            starting_at_base,
+            initial_fuel,
         )
         self.range_empty: float = Distance(int(attributes["range_empty"]), "km").get(
             DEFAULT_DISTANCE_UNITS
@@ -809,6 +879,10 @@ class WaterBomber(Aircraft):
     def get_name(self) -> str:
         """Return name of Water Bomber."""
         return str(self.name)
+
+    def get_type(self) -> str:
+        """Return type of Water Bomber."""
+        return self.type
 
     def go_to_strike(self, lightning: Lightning, departure_time: float) -> None:
         """Water Bomber go to and suppress strike.

@@ -32,7 +32,7 @@ class Simulator:
         self.water_bomber_bases_dict = water_bomber_bases_dict
         self.water_tanks = params.get_water_tanks(scenario_idx)
         self.precomputed = PreComputedDistances(
-            self.lightning_strikes, self.uav_bases, self.water_bomber_bases_list, self.water_tanks
+            self.lightning_strikes, self.uav_bases, self.water_bomber_bases_dict, self.water_tanks
         )
 
     def run_simulation(
