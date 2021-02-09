@@ -12,6 +12,7 @@ import numpy as np
 
 from bushfire_drone_simulation.fire_utils import Base, Location, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
+from bushfire_drone_simulation.precomupted import PreComputedDistances
 from bushfire_drone_simulation.units import (
     DEFAULT_DISTANCE_UNITS,
     DEFAULT_DURATION_UNITS,
@@ -36,6 +37,21 @@ class Status(Enum):
     GOING_TO_BASE = 3
     WAITING_AT_WATER = 4
     GOING_TO_WATER = 5
+
+
+class StatusWithId:  # pylint: disable=too-few-public-methods
+    """Class for storing status and id number of the location in that status."""
+
+    def __init__(self, status: Status, id_no: Optional[int] = None):
+        """Initalise StatusID."""
+        self.status = status
+        self.id_no = id_no
+
+    def __str__(self):
+        """To strike method for StatusId."""
+        if self.id_no is None:
+            return self.status
+        return f"{self.status} {self.id_no}"
 
 
 class UpdateEvent(Location):  # pylint: disable=too-few-public-methods
@@ -100,6 +116,7 @@ class Event:  # pylint: disable=too-few-public-methods
     ):  # pylint: disable = too-many-arguments
         """Initalise event."""
         self.position = position
+        self.position_description: str = "base"
         self.departure_time = departure_time
         self.arrival_time = arrival_time
         self.completion_time = completion_time
@@ -139,6 +156,11 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         self.use_current_status: bool = False
         self.closest_base: Optional[Base] = None
         self.required_departure_time: Optional[float] = None
+        self.precomputed: Optional[PreComputedDistances] = None
+
+    def accept_precomputed_distances(self, precomputed: PreComputedDistances):
+        """Accept precomputed distance class with distances already evaluated."""
+        self.precomputed = precomputed
 
     def fuel_refill(self, base: Base) -> None:  # pylint: disable=unused-argument
         """Update time and range of aircraft after fuel refill.
@@ -538,7 +560,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             self.closest_base = None
             self.required_departure_time = None
 
-    def enough_fuel2(self, positions: List[Location]) -> Optional[float]:
+    def enough_fuel(self, positions: List[Location]) -> Optional[float]:
         """Return whether an Aircraft has enough fuel to traverse a given array of positions.
 
         The fuel is tested when the positions are added to the targets queue with the given
@@ -559,12 +581,13 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         for index, position in enumerate(positions):
             if index == 0:
                 dist = self._get_future_position().distance(position)
-                current_fuel -= dist / self.get_range()
-                current_time += dist / self.flight_speed
             else:
-                dist = positions[index - 1].distance(position)
-                current_fuel -= dist / self.get_range()
-                current_time += dist / self.flight_speed
+                if isinstance(self, UAV) and self.precomputed is not None:
+                    dist = self.precomputed.uav_dist(position, positions[index - 1])
+                else:
+                    dist = positions[index - 1].distance(position)
+            current_fuel -= dist / self.get_range()
+            current_time += dist / self.flight_speed
 
             if isinstance(position, Lightning):
                 current_fuel -= self._get_time_at_strike() * (self.flight_speed) / self.get_range()
@@ -578,7 +601,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                 current_fuel = 1.0
         return current_time
 
-    def enough_fuel(self, positions: List[Location]) -> Optional[float]:
+    def enough_fuel2(self, positions: List[Location]) -> Optional[float]:
         """Return whether an Aircraft has enough fuel to traverse a given array of positions.
 
         The fuel is tested when the positions are added to the targets queue with the given

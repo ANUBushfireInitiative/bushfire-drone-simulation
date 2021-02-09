@@ -2,6 +2,7 @@
 
 from typing import List, Union
 
+import numpy as np
 import pandas as pd
 
 from bushfire_drone_simulation.fire_utils import Time, assert_bool, assert_number
@@ -74,7 +75,7 @@ class CSVFile:
 def read_locations_with_capacity(filename: str, constructor):
     """Return a list of Locations contained in the first two columns of a given a csv file."""
     location_data = CSVFile(filename)
-    to_return = []
+    to_return = np.array([])
     lats = location_data["latitude"]
     lons = location_data["longitude"]
     for i, cap in enumerate(location_data["capacity"]):
@@ -89,13 +90,13 @@ def read_locations_with_capacity(filename: str, constructor):
             lons[i],
             f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number",
         )
-        to_return.append(constructor(lat, lon, cap, i))
+        to_return = np.append(to_return, constructor(lat, lon, cap, i))
     return to_return
 
 
 def read_lightning(filename: str, ignition_probability: float) -> List[Lightning]:
     """Return a list of Locations contained in the first two columns of a given a csv file."""
-    lightning = []
+    lightning = np.array([])
     lightning_data = CSVFile(filename)
     lats = lightning_data["latitude"]
     lons = lightning_data["longitude"]
@@ -125,14 +126,15 @@ def read_lightning(filename: str, ignition_probability: float) -> List[Lightning
             lons[i],
             f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number.",
         )
-        lightning.append(
+        lightning = np.append(
+            lightning,
             Lightning(
                 lat,
                 lon,
                 Time(str(times[i])).get(DEFAULT_DURATION_UNITS),
                 ignition_probabilities[i],
                 i,
-            )
+            ),
         )
 
     return lightning

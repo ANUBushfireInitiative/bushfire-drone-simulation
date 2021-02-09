@@ -12,6 +12,7 @@ from typing import Any, Dict, List
 
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.fire_utils import Base, Time, WaterTank, assert_bool, assert_number
@@ -124,7 +125,7 @@ class JSONParameters:
 
     def process_water_bombers(self, bases, scenario_idx):
         """Create water bombers from json file."""
-        water_bombers = []
+        water_bombers = np.array([])
         water_bombers_bases_dict = {}
         for water_bomber_type in self.scenarios[scenario_idx]["water_bombers"]:
             water_bomber = self.scenarios[scenario_idx]["water_bombers"][water_bomber_type]
@@ -145,14 +146,15 @@ class JSONParameters:
                         "('{lons[i]}') isn't a number"
                     ),
                 )
-                water_bombers.append(
+                water_bombers = np.append(
+                    water_bombers,
                     WaterBomber(
                         id_no=i,
                         latitude=lat,
                         longitude=lon,
                         attributes=attributes,
                         bomber_type=water_bomber_type,
-                    )
+                    ),
                 )
             water_bombers_bases_dict[water_bomber_type] = self.get_water_bomber_bases(
                 bases, water_bomber_type, scenario_idx
@@ -174,7 +176,8 @@ class JSONParameters:
         base_data = CSVFile(filename)
         bases_specific = base_data[water_bomber_type]
         bases_all = base_data["all"]
-        current_bases = []
+        current_bases = np.array([])
+
         for (idx, base) in enumerate(bases):
             if assert_bool(
                 bases_all[idx],
@@ -189,17 +192,17 @@ class JSONParameters:
                     f"'{filename}' ('{bases_all[idx]}') is not a boolean."
                 ),
             ):
-                current_bases.append(base)
+                current_bases = np.append(current_bases, base)
         return current_bases
 
-    def process_uavs(self, scenario_idx):
+    def process_uavs(self, scenario_idx: int):
         """Create uavs from json file."""
         uav_data = self.get_attribute("uavs", scenario_idx)
         filename = os.path.join(self.folder, uav_data["spawn_loc_file"])
         uav_spawn_locs = CSVFile(filename)
         lats = uav_spawn_locs["latitude"]
         lons = uav_spawn_locs["longitude"]
-        uavs = []
+        uavs = np.array([])
         attributes = uav_data["attributes"]
         for i, lat in enumerate(lats):
             lat = assert_number(
@@ -210,14 +213,15 @@ class JSONParameters:
                 lons[i],
                 f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') isn't a number.",
             )
-            uavs.append(
+            uavs = np.append(
+                uavs,
                 UAV(
                     id_no=i,
                     latitude=lat,
                     longitude=lon,
                     attributes=attributes
-                    # TODO(Inspection time) Incorporate inspection time #pylint: disable=fixme
-                )
+                    # TODO(Inspection time) Incorporate inspection time pylint: disable=fixme
+                ),
             )
         return uavs
 
@@ -304,34 +308,38 @@ class JSONParameters:
             newline="",
         ) as outputfile:
             filewriter = csv.writer(outputfile)
-            lats = []
-            lons = []
-            inspection_times = []
-            suppression_times = []
-            inspection_times_to_return = []
-            suppression_times_to_return = []
+            lats = np.array([])
+            lons = np.array([])
+            inspection_times = np.array([])
+            suppression_times = np.array([])
+            inspection_times_to_return = np.array([])
+            suppression_times_to_return = np.array([])
             for strike in lightning_strikes:
-                lats.append(strike.lat)
-                lons.append(strike.lon)
+                lats = np.append(lats, strike.lat)
+                lons = np.append(lons, strike.lon)
                 if strike.inspected_time is not None:
-                    inspection_times.append(
-                        Time.from_time(strike.inspected_time - strike.spawn_time).get("hr")
+                    inspection_times = np.append(
+                        inspection_times,
+                        Time.from_time(strike.inspected_time - strike.spawn_time).get("hr"),
                     )
-                    inspection_times_to_return.append(
-                        Time.from_time(strike.inspected_time - strike.spawn_time).get("hr")
+                    inspection_times_to_return = np.append(
+                        inspection_times_to_return,
+                        Time.from_time(strike.inspected_time - strike.spawn_time).get("hr"),
                     )
                 else:
                     _LOG.error("strike %s was not inspected", str(strike.id_no))
-                    inspection_times.append("N/A")
+                    inspection_times = np.append(inspection_times, "N/A")
                 if strike.suppressed_time is not None:
-                    suppression_times.append(
-                        Time.from_time(strike.suppressed_time - strike.spawn_time).get("hr")
+                    suppression_times = np.append(
+                        suppression_times,
+                        Time.from_time(strike.suppressed_time - strike.spawn_time).get("hr"),
                     )
-                    suppression_times_to_return.append(
-                        Time.from_time(strike.suppressed_time - strike.spawn_time).get("hr")
+                    suppression_times_to_return = np.append(
+                        suppression_times_to_return,
+                        Time.from_time(strike.suppressed_time - strike.spawn_time).get("hr"),
                     )
                 else:
-                    suppression_times.append("N/A")
+                    suppression_times = np.append(suppression_times, "N/A")
                     if strike.ignition:
                         _LOG.error("strike %s ignited but was not suppresed", str(strike.id_no))
             filewriter.writerow(
@@ -365,9 +373,9 @@ class JSONParameters:
                     "Status",
                 ]
             )
-            all_uav_updates = []
+            all_uav_updates = np.array([])
             for uav in uavs:
-                all_uav_updates = all_uav_updates + uav.past_locations
+                all_uav_updates = np.append(all_uav_updates, uav.past_locations)
 
             all_uav_updates.sort()
             for uav_update in all_uav_updates:
@@ -411,9 +419,9 @@ class JSONParameters:
                     "Status",
                 ]
             )
-            all_wb_updates = []
+            all_wb_updates = np.array([])
             for water_bomber in water_bombers:
-                all_wb_updates = all_wb_updates + water_bomber.past_locations
+                all_wb_updates = np.append(all_wb_updates, water_bomber.past_locations)
 
             all_wb_updates.sort()
             for wb_update in all_wb_updates:

@@ -17,9 +17,12 @@ _LOG = logging.getLogger(__name__)
 class MatlabUAVCoordinator(UAVCoordinator):
     """Matlab UAV Coordinator."""
 
-    def process_new_strike(self, lightning: Lightning) -> None:
+    def process_new_strike(self, lightning: Lightning) -> None:  # pylint: disable=too-many-branches
         """Receive lightning strike that just occurred and assign best uav."""
-        base_index = np.argmin(list(map(lightning.distance, self.uav_bases)))
+        if self.precomputed is None:
+            base_index = np.argmin(list(map(lightning.distance, self.uav_bases)))
+        else:
+            base_index = self.precomputed.closest_uav_base(lightning)
         min_arrival_time: float = inf
         best_uav: Union[UAV, None] = None
         via_base: Union[Base, None] = None

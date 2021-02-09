@@ -73,7 +73,10 @@ class NewStrikesFirstUAVCoordinator(UAVCoordinator):
         Returns:
             Union[int, None]: id number of best uav or None if none were avaliable
         """
-        base_index = np.argmin(list(map(lightning.distance, self.uav_bases)))
+        if self.precomputed is None:
+            base_index = np.argmin(list(map(lightning.distance, self.uav_bases)))
+        else:
+            base_index = self.precomputed.closest_uav_base(lightning)
         min_arrival_time: float = inf
         best_uav = None
         via_base = None

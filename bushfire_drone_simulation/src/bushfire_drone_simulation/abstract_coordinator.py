@@ -1,11 +1,12 @@
 """Module for the centralized coordinator/HQ controlling the UAVs and aircraft."""
 
 from abc import abstractmethod
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.fire_utils import Base, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
+from bushfire_drone_simulation.precomupted import PreComputedDistances
 
 
 class UAVCoordinator:
@@ -16,6 +17,11 @@ class UAVCoordinator:
         self.uavs: List[UAV] = uavs
         self.uav_bases: List[Base] = uav_bases
         self.uninspected_strikes: Set[Lightning] = set()
+        self.precomputed: Optional[PreComputedDistances] = None
+
+    def accept_precomputed_distances(self, precomputed: PreComputedDistances):
+        """Accept precomputed distance class with distances already evaluated."""
+        self.precomputed = precomputed
 
     def new_strike(self, lightning: Lightning) -> None:
         """Decide on uavs movement with new strike."""
@@ -48,6 +54,11 @@ class WBCoordinator:
         self.water_tanks: List[WaterTank] = water_tanks
         self.uninspected_strikes: Set[Lightning] = set()
         self.unsuppressed_strikes: Set[Lightning] = set()
+        self.precomputed: Optional[PreComputedDistances] = None
+
+    def accept_precomputed_distances(self, precomputed: PreComputedDistances):
+        """Accept precomputed distance class with distances already evaluated."""
+        self.precomputed = precomputed
 
     def new_strike(self, lightning: Lightning) -> None:
         """Decide on uavs movement with new strike."""
