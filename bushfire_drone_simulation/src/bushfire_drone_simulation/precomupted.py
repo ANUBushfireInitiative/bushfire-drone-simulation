@@ -31,7 +31,7 @@ class PreComputedDistances:
         water_bomber_bases_dict: Dict[str, Base],
         water_tanks: List[WaterTank],
     ):
-        """Initalise precomputed distances."""
+        """Initialize precomputed distances."""
         self.to_ignition_id: Dict[int, int] = {}
         self.strike_to_strike_array = np.empty((len(lightning), len(lightning)), float)
         ignitions = np.array([])

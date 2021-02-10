@@ -5,13 +5,13 @@ import math
 from abc import abstractmethod
 from copy import deepcopy
 from enum import Enum
-from queue import Queue
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
 from bushfire_drone_simulation.fire_utils import Base, Location, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
+from bushfire_drone_simulation.linked_list import LinkedList
 from bushfire_drone_simulation.precomupted import PreComputedDistances
 from bushfire_drone_simulation.units import (
     DEFAULT_DISTANCE_UNITS,
@@ -43,7 +43,7 @@ class StatusWithId:  # pylint: disable=too-few-public-methods
     """Class for storing status and id number of the location in that status."""
 
     def __init__(self, status: Status, id_no: Optional[int] = None):
-        """Initalise StatusID."""
+        """Initialize StatusID."""
         self.status = status
         self.id_no = id_no
 
@@ -114,7 +114,7 @@ class Event:  # pylint: disable=too-few-public-methods
         completion_status: Status,
         completion_time: float,
     ):  # pylint: disable = too-many-arguments
-        """Initalise event."""
+        """Initialize event."""
         self.position = position
         self.position_description: str = "base"
         self.departure_time = departure_time
@@ -157,7 +157,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             self.status = Status.HOVERING
         self.past_locations: List[UpdateEvent] = []
         self.strikes_visited: List[Tuple[Lightning, float]] = []
-        self.event_queue: "Queue[Event]" = Queue()
+        self.event_queue: LinkedList = LinkedList()
         self.use_current_status: bool = False
         self.closest_base: Optional[Base] = None
         self.required_departure_time: Optional[float] = None
@@ -199,38 +199,38 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         """
         if self.event_queue.empty() or self.use_current_status:
             return self.time, self.current_fuel_capacity, Location(self.lat, self.lon)
-        future_event = self.event_queue.queue[-1]
+        future_event = self.event_queue.peak_first()
         return future_event.completion_time, future_event.completion_fuel, future_event.position
 
     def _get_future_time(self) -> float:
         """Return time as if all elements of the event queue have been completed."""
         if self.event_queue.empty() or self.use_current_status:
             return self.time
-        return self.event_queue.queue[-1].completion_time
+        return self.event_queue.peak_first().completion_time
 
     def _get_future_position(self) -> Location:
         """Return position as if all elements of the event queue have been completed."""
         if self.event_queue.empty() or self.use_current_status:
             return Location(self.lat, self.lon)
-        return self.event_queue.queue[-1].position
+        return self.event_queue.peak_first().position
 
     def _get_future_fuel(self) -> float:
         """Return fuel capacity as if all elements of the event queue have been completed."""
         if self.event_queue.empty() or self.use_current_status:
             return self.current_fuel_capacity
-        return self.event_queue.queue[-1].completion_fuel
+        return self.event_queue.peak_first().completion_fuel
 
     def _get_future_water(self) -> float:
         """Return water on board as if all elements of the event queue have been completed."""
         if self.event_queue.empty() or self.use_current_status:
             return self._get_water_on_board()
-        return self.event_queue.queue[-1].water
+        return self.event_queue.peak_first().water
 
     def _get_future_status(self) -> Status:
         """Return water on board as if all elements of the event queue have been completed."""
         if self.event_queue.empty() or self.use_current_status:
             return self.status
-        return self.event_queue.queue[-1].completion_status
+        return self.event_queue.peak_first().completion_status
 
     def _get_water_per_delivery(self) -> float:
         """Return water per delivery time of Aircraft."""
@@ -276,7 +276,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
     def _complete_event(self) -> Tuple[Optional[Lightning], Optional[Lightning]]:
         """Completes next event in queue and returns list of strikes inspected and suppressed."""
         assert not self.event_queue.empty(), "Complete event was called on empty queue"
-        event = self.event_queue.get()
+        event = self.event_queue.get_last()
         inspection = None
         suppression = None
         assert isinstance(event, Event), "event_queue contained a non event"
@@ -324,7 +324,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         strikes_suppressed: List[Lightning] = []
         # If we can get to the next position then complete update, otherwise make it half way there
         while not self.event_queue.empty():
-            next_event = self.event_queue.queue[0]
+            next_event = self.event_queue.peak()
             if next_event.departure_time > self.time:
                 if self.status == Status.HOVERING:
                     self._reduce_current_fuel(
@@ -390,7 +390,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         """
         if self.use_current_status:
             # TODO(Add allocated water back to water tank!!) pylint: disable=fixme
-            self.event_queue.queue.clear()
+            self.event_queue.clear()
             self.use_current_status = False
         fuel = self._get_future_fuel()
         assert self._get_future_time() >= departure_time

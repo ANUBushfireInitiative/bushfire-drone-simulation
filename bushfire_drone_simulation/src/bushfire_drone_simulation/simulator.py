@@ -16,7 +16,7 @@ class Simulator:
     """Class for running the simulation."""
 
     def __init__(self, params: JSONParameters, scenario_idx: int):
-        """Init Simulation class."""
+        """Initialize simulation class."""
         self.lightning_queue: "Queue[Lightning]" = PriorityQueue()
         self.lightning_strikes = params.get_lightning(scenario_idx)
         for strike in self.lightning_strikes:

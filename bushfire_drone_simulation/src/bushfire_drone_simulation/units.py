@@ -24,7 +24,7 @@ class Units:
 
     @abc.abstractmethod
     def __init__(self, value: float):
-        """hold."""
+        """Initialize units."""
         self.value = value
 
     def __lt__(self, other: "Units") -> bool:
@@ -80,7 +80,7 @@ class Distance(Units):
     """Distance class for easy unit conversion. Distance stored internally as metres."""
 
     def __init__(self, distance: float, units: str = DEFAULT_DISTANCE_UNITS):
-        """Initialise distance specifying units.
+        """Initialize distance specifying units.
 
         Defaults to DEFAULT_DISTANCE_UNITS if units not specified.
         """
@@ -120,7 +120,7 @@ class Duration(Units):
     """Duration class for easy unit conversion. Duration stored internally as seconds."""
 
     def __init__(self, duration: float, units: str = DEFAULT_DURATION_UNITS):
-        """Initialise duration specifying units.
+        """Initialize duration specifying units.
 
         Defaults to DEFAULT_DURATION_UNITS if units not specified.
         """
@@ -154,7 +154,7 @@ class Speed(Units):
         distance_units: str = DEFAULT_SPEED_DISTANCE_UNITS,
         time_units: str = DEFAULT_SPEED_TIME_UNITS,
     ):
-        """Initialise speed specifying both distance and time units.
+        """Initialize speed specifying both distance and time units.
 
         Defaults to DEFAULT_SPEED_DISTANCE_UNITS and DEFAULT_SPEED_TIME_UNITS if units not
         specified.
@@ -189,7 +189,7 @@ class Volume(Units):  # pylint: disable=too-few-public-methods
     """Volume class for easy unit conversion. Volume stored internally as litres."""
 
     def __init__(self, volume: float, units: str = DEFAULT_VOLUME_UNITS):
-        """Initialise distance specifying units.
+        """Initialize distance specifying units.
 
         Defaults to DEFAULT_VOLUME_UNITS if units not specified.
         """
