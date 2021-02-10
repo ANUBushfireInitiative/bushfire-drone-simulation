@@ -75,7 +75,7 @@ class PreComputedDistances:
 
     def closest_wb_base(self, ignition: Lightning, bomber_name: str) -> int:
         """Return the index of the closest water bomber base to a given ignition."""
-        return self.closest_wb_base_dict[bomber_name][ignition.id_no]
+        return self.closest_wb_base_dict[bomber_name][self.to_ignition_id[ignition.id_no]]
 
     def uav_dist(self, strike: Lightning, base: Base) -> float:
         """Return distance between a strike and uav base."""

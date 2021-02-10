@@ -87,14 +87,27 @@ class LinkedList(Generic[T]):
         """Iterate operator for linked list."""
         current_node = self.first
         while current_node is not None:
-            yield current_node.value
+            if current_node.next is not None:
+                yield current_node.value, current_node.next.value
+            else:
+                yield current_node.value, None
             current_node = current_node.next
 
     def __len__(self) -> int:
         """Length operator for linked list."""
         return self.length
 
-    def get_node(self, index: int) -> Optional[T]:
+    def __getitem__(self, idx: int):
+        """Return value at given index."""
+        assert idx - 1 <= self.length, "get_node: Index out of bounds"
+        current = self.first
+        for _ in range(idx):
+            assert current is not None, "poor implementation of linked list"
+            current = current.next
+        assert current is not None, "poor implementation of linked list"
+        return current.value
+
+    def get_node(self, index: int) -> Optional[Node]:
         """Return node at given index."""
         assert index - 1 <= self.length, "get_node: Index out of bounds"
         current = self.first
@@ -102,4 +115,4 @@ class LinkedList(Generic[T]):
             assert current is not None, "poor implementation of linked list"
             current = current.next
         assert current is not None, "poor implementation of linked list"
-        return current.value
+        return current
