@@ -2,13 +2,13 @@
 
 import logging
 from math import inf
-from typing import Union
+from typing import List, Union
 
 import numpy as np
 
 from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoordinator
-from bushfire_drone_simulation.aircraft import UAV, WaterBomber
-from bushfire_drone_simulation.fire_utils import Base, WaterTank
+from bushfire_drone_simulation.aircraft import UAV, Event, WaterBomber
+from bushfire_drone_simulation.fire_utils import Base, Location, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
 
 _LOG = logging.getLogger(__name__)
@@ -30,7 +30,32 @@ class NewUAVCoordinator(UAVCoordinator):
             # Go through the queue of every new strike and try inserting the new strike inbetween
             # Start at its final destination so its easy to keep track of
             # how many strikes its slowing down
+            if not uav.event_queue.empty():
+                lightning_event: List[Location] = [lightning]
+                future_events: List[Location] = []
+                if isinstance(uav.event_queue.peak_first().position, Lightning):
+                    if self.precomputed is None:
+                        future_events = [
+                            self.uav_bases[np.argmin(list(map(lightning.distance, self.uav_bases)))]
+                        ]
+                    else:
+                        future_events = [
+                            self.uav_bases[self.precomputed.closest_uav_base(lightning)]
+                        ]
 
+                for event, prev_event in uav.event_queue:
+                    assert isinstance(
+                        event, Event
+                    ), f"{uav.get_name()}s event queue contained a non event"
+                    future_events.insert(0, event.position)
+                    if prev_event is None:
+                        temp_arr_time = uav.enough_fuel(lightning_event + future_events, "self")
+                    else:
+                        temp_arr_time = uav.enough_fuel(lightning_event + future_events, prev_event)
+                    if temp_arr_time is not None:
+                        if temp_arr_time < min_arrival_time:
+                            print("cool")
+                            # remember list of places to go
             # Check whether the UAV has enough fuel to
             # go to the lightning strike and then to the nearest base
             # and if so determine the arrival time at the lightning strike

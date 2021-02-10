@@ -43,6 +43,8 @@ class Simulator:
         wb_coordinator.accept_precomputed_distances(self.precomputed)
         for uav in self.uavs:
             uav.accept_precomputed_distances(self.precomputed)
+        for water_bomber in self.water_bombers:
+            water_bomber.accept_precomputed_distances(self.precomputed)
 
         while not self.lightning_queue.empty():
             strike = self.lightning_queue.get()

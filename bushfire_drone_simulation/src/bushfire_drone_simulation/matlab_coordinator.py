@@ -76,13 +76,13 @@ class MatlabWBCoordinator(WBCoordinator):
         via_base: Union[Base, None] = None
         fuel_first: Union[bool, None] = None
         for water_bomber in self.water_bombers:  # pylint: disable=too-many-nested-blocks
-            water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
+            bases = self.water_bomber_bases_dict[water_bomber.type]
             if self.precomputed is None:
-                base_index = np.argmin(list(map(ignition.distance, water_bomber_bases)))
+                base_index = np.argmin(list(map(ignition.distance, bases)))
             else:
                 base_index = self.precomputed.closest_wb_base(ignition, water_bomber.get_type())
             if water_bomber.enough_water():
-                temp_arr_time = water_bomber.enough_fuel([ignition, water_bomber_bases[base_index]])
+                temp_arr_time = water_bomber.enough_fuel([ignition, bases[base_index]])
                 if temp_arr_time is not None:
                     # temp_arr_time = water_bomber.arrival_time([ignition], ignition.inspected_time)
                     if temp_arr_time < min_arrival_time:
@@ -93,9 +93,9 @@ class MatlabWBCoordinator(WBCoordinator):
                         fuel_first = None
                 else:  # Need to refuel
                     _LOG.debug("%s needs to refuel", water_bomber.get_name())
-                    for base in water_bomber_bases:
+                    for base in bases:
                         temp_arr_time = water_bomber.enough_fuel(
-                            [base, ignition, water_bomber_bases[base_index]]
+                            [base, ignition, bases[base_index]]
                         )
                         if temp_arr_time is not None:
                             if temp_arr_time < min_arrival_time:
@@ -111,7 +111,7 @@ class MatlabWBCoordinator(WBCoordinator):
                 _LOG.debug("%s needs to go via a water tank", water_bomber.get_name())
                 for water_tank in self.water_tanks:
                     temp_arr_time = water_bomber.enough_fuel(
-                        [water_tank, ignition, water_bomber_bases[base_index]]
+                        [water_tank, ignition, bases[base_index]]
                     )
                     if water_bomber.check_water_tank(water_tank) and temp_arr_time is not None:
                         if temp_arr_time < min_arrival_time:
@@ -123,13 +123,13 @@ class MatlabWBCoordinator(WBCoordinator):
                 if via_water is None:
                     # Need to also refuel
                     for water_tank in self.water_tanks:
-                        for base in water_bomber_bases:
+                        for base in bases:
                             temp_arr_time = water_bomber.enough_fuel(
                                 [
                                     water_tank,
                                     base,
                                     ignition,
-                                    water_bomber_bases[base_index],
+                                    bases[base_index],
                                 ]
                             )
                             if (
@@ -147,7 +147,7 @@ class MatlabWBCoordinator(WBCoordinator):
                                     base,
                                     water_tank,
                                     ignition,
-                                    water_bomber_bases[base_index],
+                                    bases[base_index],
                                 ]
                             )
                             if (
@@ -181,8 +181,8 @@ class MatlabWBCoordinator(WBCoordinator):
         else:
             _LOG.error("No water bombers were available")
         for water_bomber in self.water_bombers:
-            water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
-            water_bomber.go_to_base_when_necessary(water_bomber_bases, ignition.inspected_time)
+            bases = self.water_bomber_bases_dict[water_bomber.type]
+            water_bomber.go_to_base_when_necessary(bases, ignition.inspected_time)
 
     def process_new_strike(self, lightning) -> None:
         """Decide on uavs movement with new strike."""

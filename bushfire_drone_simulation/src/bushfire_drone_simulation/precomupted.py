@@ -28,7 +28,7 @@ class PreComputedDistances:
         self,
         lightning: List[Lightning],
         uav_bases: List[Base],
-        water_bomber_bases_dict: Dict[str, Base],
+        water_bomber_bases_dict: Dict[str, List[Base]],
         water_tanks: List[WaterTank],
     ):
         """Initialize precomputed distances."""
@@ -47,13 +47,10 @@ class PreComputedDistances:
         for idx, strike in enumerate(lightning):
             self.closest_uav_base_array[idx] = np.argmin(self.strike_to_base_array[strike.id_no])
 
-        self.closest_wb_base_array = np.empty(len(ignitions), int)
-        for idx, strike in enumerate(ignitions):
-            self.closest_uav_base_array[idx] = np.argmin(self.strike_to_base_array[strike.id_no])
-
         self.closest_wb_base_dict: Dict[str, np.ndarray] = {}
         self.ignition_to_base_dict: Dict[str, np.ndarray] = {}
         self.water_to_base_dict: Dict[str, np.ndarray] = {}
+        self.to_base_id_dict: Dict[str, Dict[int, int]] = {}
         for water_bomber_name in water_bomber_bases_dict:
             self.ignition_to_base_dict[water_bomber_name] = create_distance_array(
                 ignitions, water_bomber_bases_dict[water_bomber_name]
@@ -66,6 +63,9 @@ class PreComputedDistances:
                 self.closest_wb_base_dict[water_bomber_name][idx] = np.argmin(
                     self.ignition_to_base_dict[water_bomber_name][self.to_ignition_id[strike.id_no]]
                 )
+            self.to_base_id_dict[water_bomber_name] = {}
+            for i, base in enumerate(water_bomber_bases_dict[water_bomber_name]):
+                self.to_base_id_dict[water_bomber_name][base.id_no] = i
 
         self.ignition_to_water_array = create_distance_array(ignitions, water_tanks)
 
@@ -88,9 +88,11 @@ class PreComputedDistances:
     def ignition_to_base(self, strike: Lightning, base: Base, bomber_name: str) -> float:
         """Return distance in km from given ignition to water bomber base."""
         return self.ignition_to_base_dict[bomber_name][self.to_ignition_id[strike.id_no]][
-            base.id_no
+            self.to_base_id_dict[bomber_name][base.id_no]
         ]
 
     def water_to_base(self, water_tank: WaterTank, base: Base, bomber_name: str) -> float:
         """Return distance in km from given water tank to water bomber base."""
-        return self.water_to_base_dict[bomber_name][water_tank.id_no][base.id_no]
+        return self.water_to_base_dict[bomber_name][water_tank.id_no][
+            self.to_base_id_dict[bomber_name][base.id_no]
+        ]

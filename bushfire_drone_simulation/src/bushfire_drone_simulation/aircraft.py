@@ -5,7 +5,7 @@ import math
 from abc import abstractmethod
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -157,7 +157,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             self.status = Status.HOVERING
         self.past_locations: List[UpdateEvent] = []
         self.strikes_visited: List[Tuple[Lightning, float]] = []
-        self.event_queue: LinkedList = LinkedList()
+        self.event_queue: LinkedList[Event] = LinkedList()
         self.use_current_status: bool = False
         self.closest_base: Optional[Base] = None
         self.required_departure_time: Optional[float] = None
@@ -581,7 +581,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             self.required_departure_time = None
 
     def enough_fuel(  # pylint: disable=too-many-branches, too-many-arguments
-        self, positions: List[Location]
+        self, positions: List[Location], state: Optional[Union[Event, str]] = None
     ) -> Optional[float]:
         """Return whether an Aircraft has enough fuel to traverse a given array of positions.
 
@@ -598,7 +598,16 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             Optional[Time]: The arrival time of the aircraft after traversing the array of positions
             or None if not enough fuel
         """
-        current_time, current_fuel, current_pos = self._get_future_state()
+        if state is None:
+            current_time, current_fuel, current_pos = self._get_future_state()
+        elif isinstance(state, str):
+            current_time = self.time
+            current_fuel = self.current_fuel_capacity
+            current_pos = self
+        else:
+            current_time = state.completion_time
+            current_fuel = state.completion_fuel
+            current_pos = state.position
         for idx, position in enumerate(positions):
             if idx == 0:
                 dist = current_pos.distance(position)
