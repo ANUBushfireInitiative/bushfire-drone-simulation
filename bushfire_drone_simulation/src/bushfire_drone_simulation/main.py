@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 from bushfire_drone_simulation.gui.gui import start_gui, start_map_gui
 from bushfire_drone_simulation.matlab_coordinator import MatlabUAVCoordinator, MatlabWBCoordinator
+from bushfire_drone_simulation.new_coordinator import NewUAVCoordinator, NewWBCoordinator
 from bushfire_drone_simulation.new_strikes_first_coordinator import (
     NewStrikesFirstUAVCoordinator,
     NewStrikesFirstWBCoordinator,
@@ -22,15 +23,21 @@ app = typer.Typer()
 PARAMETERS_FILENAME_ARGUMENT = typer.Option("parameters.json", help="Path to parameters file.")
 
 UAV_COORDINATORS: Dict[
-    str, Union[Type[MatlabUAVCoordinator], Type[NewStrikesFirstUAVCoordinator]]
+    str,
+    Union[Type[MatlabUAVCoordinator], Type[NewStrikesFirstUAVCoordinator], Type[NewUAVCoordinator]],
 ] = {
     "MatlabUAVCoordinator": MatlabUAVCoordinator,
     "NewStrikesFirstUAVCoordinator": NewStrikesFirstUAVCoordinator,
+    "NewUAVCoordinator": NewUAVCoordinator,
 }
 
-WB_COORDINATORS: Dict[str, Union[Type[MatlabWBCoordinator], Type[NewStrikesFirstWBCoordinator]]] = {
+WB_COORDINATORS: Dict[
+    str,
+    Union[Type[MatlabWBCoordinator], Type[NewStrikesFirstWBCoordinator], Type[NewWBCoordinator]],
+] = {
     "MatlabWBCoordinator": MatlabWBCoordinator,
     "NewStrikesFirstWBCoordinator": NewStrikesFirstWBCoordinator,
+    "NewWBCoordinator": NewWBCoordinator,
 }
 
 

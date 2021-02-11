@@ -35,8 +35,11 @@ class UAVCoordinator:
 
     def lightning_strike_inspected(self, lightning_strikes: List[Tuple[Lightning, int]]) -> None:
         """Lightning has been inspected, remove from uninspected strikes."""
-        for (strike, _) in lightning_strikes:
-            self.uninspected_strikes.remove(strike)
+        for strike, _ in lightning_strikes:
+            try:
+                self.uninspected_strikes.remove(strike)
+            except KeyError:
+                assert False, f"{strike.id_no} was inspected but not in set of uninspected strikes"
 
 
 class WBCoordinator:

@@ -59,6 +59,19 @@ class LinkedList(Generic[T]):
         self.length -= 1
         return ret_value
 
+    def delete_from(self, delete_node: Node) -> None:
+        """Delete all elements of the list prior to delete_node."""
+        assert self.length != 0, "get_last called on empty list"
+        assert self.first is not None, "something broke in the list implementation."
+        delete_node.prev = None
+        self.first = delete_node
+        self.length = 0
+        current: Optional[Node[T]] = self.first
+        while current is not None:
+            current = current.next
+            self.length += 1
+        assert self.length != 0, "we broke something"
+
     def put(self, value: T) -> None:
         """Add a value to the front of the linked list."""
         new_node = Node(value)
@@ -88,7 +101,7 @@ class LinkedList(Generic[T]):
         current_node = self.first
         while current_node is not None:
             if current_node.next is not None:
-                yield current_node.value, current_node.next.value
+                yield current_node.value, current_node.next
             else:
                 yield current_node.value, None
             current_node = current_node.next

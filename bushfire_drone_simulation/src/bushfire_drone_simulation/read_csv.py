@@ -106,14 +106,14 @@ def read_lightning(filename: str, ignition_probability: float) -> List[Lightning
         ignition_probabilities: List[float] = [
             1
             if assert_bool(
-                i,
+                ignition,
                 (
-                    f"Error: The ignition on row {i+1} of '{filename}'"
-                    "('{ignitions[i]}') is not a boolean."
+                    f"Error: The ignition on row {i+1} of '{filename}' "
+                    f"('{ignition}') is not a boolean."
                 ),
             )
             else 0
-            for i in ignitions
+            for i, ignition in enumerate(ignitions)
         ]
     else:
         ignition_probabilities = [ignition_probability for _ in enumerate(lats)]
