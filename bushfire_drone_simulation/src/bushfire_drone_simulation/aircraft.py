@@ -444,6 +444,8 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             )
             if isinstance(self, WaterBomber):
                 water -= self._get_water_per_delivery()
+                if water < 0:
+                    _LOG.error("%s ran out of water.", self.get_name())
             self.event_queue.put(
                 Event(
                     position=position,
@@ -940,9 +942,27 @@ class WaterBomber(Aircraft):
         self.water_on_board = self.water_capacity
         self.time += self.water_refill_time
 
-    def enough_water(self, no_of_fires: int = 1) -> bool:
-        """Return whether the water bomber has enough water to extinguish desired fires."""
-        return self._get_future_water() >= self.water_per_delivery * no_of_fires
+    def enough_water(
+        self, positions: List[Location], state: Optional[Union[Event, str]] = None
+    ) -> bool:
+        """Return whether the water bomber has enough water.
+
+        To travese given list of positions from a given state.
+        """
+        if state is None:
+            water = self._get_future_water()
+        elif isinstance(state, str):
+            water = self.water_on_board
+        else:
+            water = state.water
+        for position in positions:
+            if isinstance(position, Lightning):
+                water -= self.water_per_delivery
+            if water < 0:
+                return False
+            if isinstance(position, WaterTank):
+                water = self.water_capacity
+        return True
 
     def _get_water_refill_time(self) -> float:
         """Return water refill time of Aircraft. Should be 0 if does not exist."""

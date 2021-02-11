@@ -1,4 +1,4 @@
-"""Simple coordinator."""
+"""Insertion coordinator."""
 
 import logging
 from math import inf
@@ -37,8 +37,6 @@ class InsertionUAVCoordinator(UAVCoordinator):
         # The event from which to start going to assigned locations, str if delete all elements
         for uav in self.uavs:  # pylint: disable=too-many-nested-blocks
             # Go through the queue of every new strike and try inserting the new strike inbetween
-            # Start at its final destination so its easy to keep track of
-            # how many strikes its slowing down
             if not uav.event_queue.empty():
                 lightning_event: List[Location] = [lightning]
                 future_events: List[Location] = []
@@ -70,12 +68,9 @@ class InsertionUAVCoordinator(UAVCoordinator):
                     if temp_arr_time is not None:
                         if temp_arr_time < min_arrival_time:
                             min_arrival_time = temp_arr_time
-                            # remember list of places to go
                             assigned_locations = lightning_event + future_events
                             if prev_event is None:
                                 start_from = "empty"
-                                # if uav.id_no == 139:
-                                #     print(f"{uav.get_name()} is trying to empty queue")
                             else:
                                 start_from = prev_event
                             best_uav = uav
@@ -91,10 +86,7 @@ class InsertionUAVCoordinator(UAVCoordinator):
                     best_uav = uav
                     assigned_locations = [lightning]
                     start_from = None
-                    # if uav.id_no == 139:
-                    #     print(f"non fancy adding strike {lightning.id_no}")
-            # Need to go via a base to refuel
-            else:
+            else:  # Need to go via a base to refuel
                 for uav_base in self.uav_bases:
                     temp_arr_time = uav.enough_fuel(
                         [uav_base, lightning, self.uav_bases[base_index]]
@@ -109,16 +101,10 @@ class InsertionUAVCoordinator(UAVCoordinator):
             _LOG.debug("Best UAV is: %s", best_uav.get_name())
             if start_from is not None:
                 if isinstance(start_from, str):
-                    # if best_uav.id_no == 139:
-                    #     print("emptying queue")
                     best_uav.event_queue.clear()
                 else:
-                    # if best_uav.id_no == 139:
-                    #     print(f"starting from {start_from.value.position.id_no}")
                     best_uav.event_queue.delete_from(start_from)
             for location in assigned_locations:
-                # if best_uav.id_no == 139:
-                #     print(f"139 is adding {location.id_no}")
                 best_uav.add_location_to_queue(location, lightning.spawn_time)
         else:
             _LOG.error("No UAVs were available to process lightning strike %s", lightning.id_no)
@@ -144,10 +130,7 @@ class InsertionWBCoordinator(WBCoordinator):
         start_from: Optional[Union[Node[Event], str]] = None
         for water_bomber in self.water_bombers:  # pylint: disable=too-many-nested-blocks
             bases = self.water_bomber_bases_dict[water_bomber.type]
-
             # Go through the queue of every new strike and try inserting the new strike inbetween
-            # Start at its final destination so its easy to keep track of
-            # how many strikes its slowing down
             if not water_bomber.event_queue.empty():
                 ignition_event: List[Location] = [ignition]
                 future_events: List[Location] = []
@@ -161,21 +144,20 @@ class InsertionWBCoordinator(WBCoordinator):
                         ]
 
                 for event, prev_event in water_bomber.event_queue:
-                    assert isinstance(
-                        event, Event
-                    ), f"{water_bomber.get_name()}s event queue contained a non event"
                     future_events.insert(0, event.position)
+                    temp_arr_time = None
                     if prev_event is None:  # no more events in queue, use aircraft current state
-                        temp_arr_time = water_bomber.enough_fuel(
-                            ignition_event + future_events + final_strike_base, "self"
-                        )
+                        if water_bomber.enough_water(ignition_event + future_events, "self"):
+                            temp_arr_time = water_bomber.enough_fuel(
+                                ignition_event + future_events + final_strike_base, "self"
+                            )
                     else:
-                        assert isinstance(
-                            prev_event.value, Event
-                        ), f"{water_bomber.get_name()}s event queue contained a non event"
-                        temp_arr_time = water_bomber.enough_fuel(
-                            ignition_event + future_events + final_strike_base, prev_event.value
-                        )
+                        if water_bomber.enough_water(
+                            ignition_event + future_events, prev_event.value
+                        ):
+                            temp_arr_time = water_bomber.enough_fuel(
+                                ignition_event + future_events + final_strike_base, prev_event.value
+                            )
                     if temp_arr_time is not None:
                         if temp_arr_time < min_arrival_time:
                             min_arrival_time = temp_arr_time
@@ -190,10 +172,9 @@ class InsertionWBCoordinator(WBCoordinator):
                 base_index = np.argmin(list(map(ignition.distance, bases)))
             else:
                 base_index = self.precomputed.closest_wb_base(ignition, water_bomber.get_type())
-            if water_bomber.enough_water():
+            if water_bomber.enough_water([ignition]):
                 temp_arr_time = water_bomber.enough_fuel([ignition, bases[base_index]])
                 if temp_arr_time is not None:
-                    # temp_arr_time = water_bomber.arrival_time([ignition], ignition.inspected_time)
                     if temp_arr_time < min_arrival_time:
                         min_arrival_time = temp_arr_time
                         best_water_bomber = water_bomber

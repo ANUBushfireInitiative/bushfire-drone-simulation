@@ -193,7 +193,7 @@ class NewStrikesFirstWBCoordinator(WBCoordinator):
                 base_index = np.argmin(list(map(ignition.distance, water_bomber_bases)))
             else:
                 base_index = self.precomputed.closest_wb_base(ignition, water_bomber.get_type())
-            if water_bomber.enough_water():
+            if water_bomber.enough_water([ignition]):
                 temp_arr_time = water_bomber.enough_fuel([ignition, water_bomber_bases[base_index]])
                 if temp_arr_time is not None:
                     if temp_arr_time < min_arrival_time:
