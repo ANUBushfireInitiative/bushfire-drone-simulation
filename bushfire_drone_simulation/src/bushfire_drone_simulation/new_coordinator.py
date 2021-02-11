@@ -133,8 +133,51 @@ class NewWBCoordinator(WBCoordinator):
         min_arrival_time: float = inf
         best_water_bomber: Union[WaterBomber, None] = None
         assigned_locations: List[Location] = []
+        start_from: Optional[Union[Node[Event], str]] = None
         for water_bomber in self.water_bombers:  # pylint: disable=too-many-nested-blocks
             bases = self.water_bomber_bases_dict[water_bomber.type]
+
+            # Go through the queue of every new strike and try inserting the new strike inbetween
+            # Start at its final destination so its easy to keep track of
+            # how many strikes its slowing down
+            if not water_bomber.event_queue.empty():
+                ignition_event: List[Location] = [ignition]
+                future_events: List[Location] = []
+                final_strike_base: List[Location] = []
+                if isinstance(water_bomber.event_queue.peak_first().position, Lightning):
+                    if self.precomputed is None:
+                        final_strike_base = [bases[np.argmin(list(map(ignition.distance, bases)))]]
+                    else:
+                        final_strike_base = [
+                            bases[self.precomputed.closest_wb_base(ignition, water_bomber.type)]
+                        ]
+
+                for event, prev_event in water_bomber.event_queue:
+                    assert isinstance(
+                        event, Event
+                    ), f"{water_bomber.get_name()}s event queue contained a non event"
+                    future_events.insert(0, event.position)
+                    if prev_event is None:  # no more events in queue, use aircraft current state
+                        temp_arr_time = water_bomber.enough_fuel(
+                            ignition_event + future_events + final_strike_base, "self"
+                        )
+                    else:
+                        assert isinstance(
+                            prev_event.value, Event
+                        ), f"{water_bomber.get_name()}s event queue contained a non event"
+                        temp_arr_time = water_bomber.enough_fuel(
+                            ignition_event + future_events + final_strike_base, prev_event.value
+                        )
+                    if temp_arr_time is not None:
+                        if temp_arr_time < min_arrival_time:
+                            min_arrival_time = temp_arr_time
+                            assigned_locations = ignition_event + future_events
+                            if prev_event is None:
+                                start_from = "empty"
+                            else:
+                                start_from = prev_event
+                            best_water_bomber = water_bomber
+
             if self.precomputed is None:
                 base_index = np.argmin(list(map(ignition.distance, bases)))
             else:
@@ -147,6 +190,7 @@ class NewWBCoordinator(WBCoordinator):
                         min_arrival_time = temp_arr_time
                         best_water_bomber = water_bomber
                         assigned_locations = [ignition]
+                        start_from = None
                 else:  # Need to refuel
                     _LOG.debug("%s needs to refuel", water_bomber.get_name())
                     for base in bases:
@@ -158,6 +202,7 @@ class NewWBCoordinator(WBCoordinator):
                                 min_arrival_time = temp_arr_time
                                 best_water_bomber = water_bomber
                                 assigned_locations = [base, ignition]
+                                start_from = None
 
             else:
                 # Need to go via a water tank
@@ -174,6 +219,7 @@ class NewWBCoordinator(WBCoordinator):
                             best_water_bomber = water_bomber
                             assigned_locations = [water_tank, ignition]
                             go_via_base = False
+                            start_from = None
                 if go_via_base:
                     for water_tank in self.water_tanks:
                         for base in bases:
@@ -193,6 +239,7 @@ class NewWBCoordinator(WBCoordinator):
                                     min_arrival_time = temp_arr_time
                                     best_water_bomber = water_bomber
                                     assigned_locations = [water_tank, base, ignition]
+                                    start_from = None
                             temp_arr_time = water_bomber.enough_fuel(
                                 [
                                     base,
@@ -209,8 +256,14 @@ class NewWBCoordinator(WBCoordinator):
                                     min_arrival_time = temp_arr_time
                                     best_water_bomber = water_bomber
                                     assigned_locations = [base, water_tank, ignition]
+                                    start_from = None
         if best_water_bomber is not None:
             _LOG.debug("Best water bomber is: %s", best_water_bomber.get_name())
+            if start_from is not None:
+                if isinstance(start_from, str):
+                    best_water_bomber.event_queue.clear()
+                else:
+                    best_water_bomber.event_queue.delete_from(start_from)
             for location in assigned_locations:
                 best_water_bomber.add_location_to_queue(location, ignition.inspected_time)
 
