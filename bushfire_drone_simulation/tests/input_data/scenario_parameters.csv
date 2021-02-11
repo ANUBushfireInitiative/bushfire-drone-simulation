@@ -1,2 +1,4 @@
-scenario_name,uavs/attributes/flight_speed
-1,235
+scenario_name,uav_coordinator,wb_coordinator
+MatlabCoordinator,"MatlabUAVCoordinator","MatlabWBCoordinator"
+NewStrikesFirstCoordinator,"NewStrikesFirstUAVCoordinator","NewStrikesFirstWBCoordinator"
+InsertionCoordinator,"InsertionUAVCoordinator","InsertionWBCoordinator"

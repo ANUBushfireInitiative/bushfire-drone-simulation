@@ -8,8 +8,11 @@ import typer
 from tqdm import tqdm
 
 from bushfire_drone_simulation.gui.gui import start_gui, start_map_gui
+from bushfire_drone_simulation.insertion_coordinator import (
+    InsertionUAVCoordinator,
+    InsertionWBCoordinator,
+)
 from bushfire_drone_simulation.matlab_coordinator import MatlabUAVCoordinator, MatlabWBCoordinator
-from bushfire_drone_simulation.new_coordinator import NewUAVCoordinator, NewWBCoordinator
 from bushfire_drone_simulation.new_strikes_first_coordinator import (
     NewStrikesFirstUAVCoordinator,
     NewStrikesFirstWBCoordinator,
@@ -24,20 +27,26 @@ PARAMETERS_FILENAME_ARGUMENT = typer.Option("parameters.json", help="Path to par
 
 UAV_COORDINATORS: Dict[
     str,
-    Union[Type[MatlabUAVCoordinator], Type[NewStrikesFirstUAVCoordinator], Type[NewUAVCoordinator]],
+    Union[
+        Type[MatlabUAVCoordinator],
+        Type[NewStrikesFirstUAVCoordinator],
+        Type[InsertionUAVCoordinator],
+    ],
 ] = {
     "MatlabUAVCoordinator": MatlabUAVCoordinator,
     "NewStrikesFirstUAVCoordinator": NewStrikesFirstUAVCoordinator,
-    "NewUAVCoordinator": NewUAVCoordinator,
+    "InsertionUAVCoordinator": InsertionUAVCoordinator,
 }
 
 WB_COORDINATORS: Dict[
     str,
-    Union[Type[MatlabWBCoordinator], Type[NewStrikesFirstWBCoordinator], Type[NewWBCoordinator]],
+    Union[
+        Type[MatlabWBCoordinator], Type[NewStrikesFirstWBCoordinator], Type[InsertionWBCoordinator]
+    ],
 ] = {
     "MatlabWBCoordinator": MatlabWBCoordinator,
     "NewStrikesFirstWBCoordinator": NewStrikesFirstWBCoordinator,
-    "NewWBCoordinator": NewWBCoordinator,
+    "InsertionWBCoordinator": InsertionWBCoordinator,
 }
 
 

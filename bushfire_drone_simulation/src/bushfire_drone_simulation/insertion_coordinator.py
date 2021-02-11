@@ -15,8 +15,12 @@ from bushfire_drone_simulation.linked_list import Node
 _LOG = logging.getLogger(__name__)
 
 
-class NewUAVCoordinator(UAVCoordinator):
-    """New UAV Coordinator."""
+class InsertionUAVCoordinator(UAVCoordinator):
+    """Insertion UAV Coordinator.
+
+    Coordinator will try to insert the new strike inbetween the uavs current tasks
+    and minimise the new strikes inspection time.
+    """
 
     def process_new_strike(  # pylint: disable=too-many-branches, too-many-statements
         self, lightning: Lightning
@@ -122,8 +126,12 @@ class NewUAVCoordinator(UAVCoordinator):
             uav.go_to_base_when_necessary(self.uav_bases, lightning.spawn_time)
 
 
-class NewWBCoordinator(WBCoordinator):
-    """New water bomber coordinator."""
+class InsertionWBCoordinator(WBCoordinator):
+    """Insertion water bomber coordinator.
+
+    Coordinator will try to insert the new strike inbetween the uavs current tasks
+    and minimise the new strikes inspection time.
+    """
 
     def process_new_ignition(  # pylint: disable=too-many-branches, too-many-statements
         self, ignition: Lightning
