@@ -82,15 +82,30 @@ The JSON parameters file should contain the following information formatted as i
         UAV_COORDINATORS = {
             "MatlabUAVCoordinator": MatlabUAVCoordinator,
             "NewStrikesFirstUAVCoordinator": NewStrikesFirstUAVCoordinator,
+            "InsertionUAVCoordinator": InsertionUAVCoordinator,
+            "MinimiseMeanTimeUAVCoordinator": MinimiseMeanTimeUAVCoordinator,
         }
 
         WB_COORDINATORS = {
             "MatlabWBCoordinator": MatlabWBCoordinator,
             "NewStrikesFirstWBCoordinator": NewStrikesFirstWBCoordinator,
+            "InsertionWBCoordinator": InsertionWBCoordinator,
+            "MinimiseMeanTimeWBCoordinator": MinimiseMeanTimeWBCoordinator,
         }
 
     The provided name of the coordinator in the JSON file should be the key to the desired coordinator
     in the appropriate dictionary.
+
+    The currently implemented coordinators are described below:
+
+    - **MatlabUAVCoordinator**: Equivalent of the original matlab implementation. This simply assigns each lighning strike as it occurs to the UAV which will get to it the fastest when appended to it's queue of tasks.
+    - **MatlabWBCoordinator**: Water bomber equivalent of MatlabUAVCoordinator.
+    - **InsertionUAVCoordinator**: This is an improvement on the MatlabUAVCoordinator that allows the lighning strike to be inserted anywhere into the queue of tasks.
+    - **InsertionWBCoordinator**: Water bomber equivalent of InsertionUAVCoordinator.
+    - **MinimiseMeanTimeUAVCoordinator**: This is an improvement on the InsertionUAVCoordinator that minimizes the total increase in the average inspection time given an insertion into the UAV task queue.
+    - **MinimiseMeanTimeWBCoordinator**: Water bomber equivalent of MinimiseMeanTimeUAVCoordinator.
+    - **NewStrikesFirstUAVCoordinator**: This coordinator assigns each new lighning strike to the UAV that would currently be able to get there the fastest and then reassigns the lightning strikes that were assigned to that UAV prior. WARNING: This is very slow, and does not appear to improve on the basic matlab coordinator.
+    - **NewStrikesFirstWBCoordinator**: Water bomber equivalent of NewStrikesFirstUAVCoordinator.
 
 *  The following generic variables:
 
