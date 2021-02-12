@@ -2,3 +2,4 @@ scenario_name,uav_coordinator,wb_coordinator
 MatlabCoordinator,"MatlabUAVCoordinator","MatlabWBCoordinator"
 NewStrikesFirstCoordinator,"NewStrikesFirstUAVCoordinator","NewStrikesFirstWBCoordinator"
 InsertionCoordinator,"InsertionUAVCoordinator","InsertionWBCoordinator"
+MinimiseMeanTimeCoordinator,"MinimiseMeanTimeUAVCoordinator","MinimiseMeanTimeWBCoordinator"

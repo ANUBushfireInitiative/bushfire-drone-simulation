@@ -181,7 +181,6 @@ is just sample input.
 
     .. csv-table::
         :header: "latitude", "longitude", "capacity"
-        :widths: 7, 7, 7
 
         -37.81,144.97,10000
 
@@ -199,23 +198,43 @@ is just sample input.
 
     .. csv-table::
         :header: "latitude", "longitude", "time"
-        :widths: 7, 7, 7
 
         -37.81,144.97,2020/12/13/10/20/30
 
     Note that the time can either be in the form YYYY*MM*DD*HH*MM*SS where "*" represents any character
     (e.g. 2033-11/03D12*00?12 would be accepted) or in minutes from time 0.
+    Standardly the simulation would be run with randomised ignitions but if these would like to be
+    specified by the user an additional column should be added containing a boolean for each strike
+    indicating whether or not it ignited as follows:
+
+    .. csv-table::
+        :header: "latitude", "longitude", "time", "ignited"
+
+        -37.81,144.97,2020/12/13/10/20/30,True
+
+    Note that accepted boolean inputs are as follows:
+
+    .. csv-table::
+        :header: "Boolean", "Accepted Input"
+
+        True, "1, 1.0, t, true, yes, y"
+        False, "0, 0.0, f, false, no, n"
+
+    With any capitalisations. False can also be indicated with an empty cell.
 
 *  spawn_loc_file
 
     The spawn locations file, required for each type of aircraft, designates the initial location of each
-    aircraft. The should all be formatted as follows
+    aircraft as well as it's inital conditions. The should all be formatted as follows
 
     .. csv-table::
-        :header: "latitude", "longitude"
-        :widths: 7, 7
+        :header: "latitude", "longitude", "starting at base", "inital fuel"
 
-        -37.81,144.97
+        -37.81,144.97,True,0.9
+
+    Where starting at base indicates whether the aircraft should start hovering at time 0 or not (indicated
+    by a boolean, see above for accepted boolean input) and inital fuel a decimal between 0 and 1
+    indicating the percentage capacity of the fuel tank the aircraft begins with.
 
 
 Multiple Simulations
@@ -237,7 +256,7 @@ as follows:
         "scenario_parameters_filename": "path_to_file"
     }
 
-For example, the JSON parameters file
+For example, the following portion of a JSON parameters file
 
 .. code-block:: json
 
@@ -285,8 +304,8 @@ please see bushfire_drone_simulation/example_input.
         "lightning_filename": "lightning.csv",
         "scenario_parameters_filename": "scenario_parameters.csv",
         "output_folder_name": "output",
-        "uav_coordinator": "NewStrikesFirstUAVCoordinator",
-        "wb_coordinator": "NewStrikesFirstWBCoordinator",
+        "uav_coordinator": "MatlabUAVCoordinator",
+        "wb_coordinator": "MatlabWBCoordinator",
         "ignition_probability": 0.072,
         "uavs": {
             "spawn_loc_file": "uav_spawn_locations.csv",

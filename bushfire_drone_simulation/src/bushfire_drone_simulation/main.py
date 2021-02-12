@@ -13,6 +13,10 @@ from bushfire_drone_simulation.insertion_coordinator import (
     InsertionWBCoordinator,
 )
 from bushfire_drone_simulation.matlab_coordinator import MatlabUAVCoordinator, MatlabWBCoordinator
+from bushfire_drone_simulation.minimise_mean_time_coordinator import (
+    MinimiseMeanTimeUAVCoordinator,
+    MinimiseMeanTimeWBCoordinator,
+)
 from bushfire_drone_simulation.new_strikes_first_coordinator import (
     NewStrikesFirstUAVCoordinator,
     NewStrikesFirstWBCoordinator,
@@ -31,22 +35,28 @@ UAV_COORDINATORS: Dict[
         Type[MatlabUAVCoordinator],
         Type[NewStrikesFirstUAVCoordinator],
         Type[InsertionUAVCoordinator],
+        Type[MinimiseMeanTimeUAVCoordinator],
     ],
 ] = {
     "MatlabUAVCoordinator": MatlabUAVCoordinator,
     "NewStrikesFirstUAVCoordinator": NewStrikesFirstUAVCoordinator,
     "InsertionUAVCoordinator": InsertionUAVCoordinator,
+    "MinimiseMeanTimeUAVCoordinator": MinimiseMeanTimeUAVCoordinator,
 }
 
 WB_COORDINATORS: Dict[
     str,
     Union[
-        Type[MatlabWBCoordinator], Type[NewStrikesFirstWBCoordinator], Type[InsertionWBCoordinator]
+        Type[MatlabWBCoordinator],
+        Type[NewStrikesFirstWBCoordinator],
+        Type[InsertionWBCoordinator],
+        Type[MinimiseMeanTimeWBCoordinator],
     ],
 ] = {
     "MatlabWBCoordinator": MatlabWBCoordinator,
     "NewStrikesFirstWBCoordinator": NewStrikesFirstWBCoordinator,
     "InsertionWBCoordinator": InsertionWBCoordinator,
+    "MinimiseMeanTimeWBCoordinator": MinimiseMeanTimeWBCoordinator,
 }
 
 

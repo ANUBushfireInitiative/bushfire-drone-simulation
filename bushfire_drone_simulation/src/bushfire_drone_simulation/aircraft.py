@@ -1,4 +1,4 @@
-"""Aircraft module for various aircraft classes."""
+"""Aircraft module for various aircraft classes."""  # pylint: disable=too-many-lines
 
 import logging
 import math
@@ -595,6 +595,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
 
         Args:
             positions (List[Location]): array of locations for the aircraft to traverse
+            state (Optional[Union[Event, str]]): the departure state of the aircraft
 
         Returns:
             Optional[Time]: The arrival time of the aircraft after traversing the array of positions
@@ -663,6 +664,42 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             if isinstance(position, Base):
                 current_time += self.fuel_refill_time
                 current_fuel = 1.0
+            elif isinstance(position, WaterTank):
+                current_time += self._get_water_refill_time()
+
+        return current_time
+
+    def arrival_time(  # pylint: disable=too-many-branches, too-many-arguments
+        self, positions: List[Location], state: Optional[Union[Event, str]] = None
+    ) -> float:
+        """Return the arrival time of an aricraft after traversing a given array of positions.
+
+        Args:
+            positions (List[Location]): array of locations for the aircraft to traverse
+            state (Optional[Union[Event, str]]): the departure state of the aircraft
+
+        Returns:
+            Time: The arrival time of the aircraft after traversing the array of positions
+        """
+        if state is None:
+            current_time, _, current_pos = self._get_future_state()
+        elif isinstance(state, str):
+            current_time = self.time
+            current_pos = self
+        else:
+            current_time = state.completion_time
+            current_pos = state.position
+        for idx, position in enumerate(positions):
+            if idx == 0:
+                dist = current_pos.distance(position)
+            else:
+                dist = positions[idx - 1].distance(position)
+            current_time += dist / self.flight_speed
+
+            if isinstance(position, Lightning):
+                current_time += self._get_time_at_strike()
+            if isinstance(position, Base):
+                current_time += self.fuel_refill_time
             elif isinstance(position, WaterTank):
                 current_time += self._get_water_refill_time()
 
