@@ -390,6 +390,12 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         """
         if self.use_current_status:
             # TODO(Add allocated water back to water tank!!) pylint: disable=fixme
+            # if isinstance(self, WaterBomber):
+            #     for event, prev_event in self.event_queue:
+            #         if isinstance(event.position, WaterTank):
+            #             event.position.return_allocated_water(
+            #                 self._get_water_capacity() - prev_event.value.water
+            #             )
             self.event_queue.clear()
             self.use_current_status = False
         fuel = self._get_future_fuel()

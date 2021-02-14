@@ -92,7 +92,7 @@ class JSONParameters:
         self.output_folder = self.folder / self.scenarios[0]["output_folder_name"]
 
         # All scenarios output to same folder
-        if self.output_folder.exists:
+        if self.output_folder.exists():
             if any(self.output_folder.iterdir()):
                 cont = input(
                     "Output folder already exists and is not empty, "
@@ -101,9 +101,8 @@ class JSONParameters:
                 if cont.lower() != "y":
                     _LOG.info("Aborting")
                     sys.exit()
-
         else:
-            os.mkdir(self.output_folder)
+            self.output_folder.mkdir(parents=True)
 
     def get_uav_bases(self, scenario_idx: int) -> List[Base]:
         """Return list of UAV bases."""

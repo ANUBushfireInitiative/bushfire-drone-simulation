@@ -69,8 +69,12 @@ class WaterTank(Location):
             _LOG.error("Water tank ran out of water")
 
     def remove_unallocated_water(self, volume: float) -> None:
-        """Remove a given volume from the water tank."""
+        """Remove a given volume from unallocated water in the water tank."""
         self.unallocated_capacity -= volume
+
+    def return_allocated_water(self, volume: float) -> None:
+        """Return a given volume to the unallocated water tank in the water tank."""
+        self.unallocated_capacity += volume
 
     def get_water_capacity(self, future_capacity: bool = False) -> float:
         """Return water capacity of tank.
