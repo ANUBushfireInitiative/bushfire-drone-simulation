@@ -49,7 +49,7 @@ class CSVFile:
         Returns:
             List[str]: List of column headings
         """
-        return list(self.csv_dataframe.columns.values)
+        return list(self.csv_dataframe.columns.values.tolist())
 
     def get_cell(self, column: Union[str, int], cell_idx: int) -> Any:
         """get_cell.

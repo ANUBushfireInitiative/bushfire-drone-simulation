@@ -51,7 +51,7 @@ repos:
     hooks:
     -   id: mypy
         args: [--strict, --config-file, .mypy.ini, --allow-untyped-decorators, --follow-imports=normal]
-        additional_dependencies: [typer, numpy, pytest, tk]
+        additional_dependencies: [typer, numpy, pandas, pytest, tk]
 -   repo: local
     hooks:
     -   id: pylint

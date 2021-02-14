@@ -24,10 +24,11 @@ _LOG = logging.getLogger(__name__)
 matplotlib.use("Agg")
 
 
-def _get_from_dict(data_dict: Dict[str, Any], key_list: List[str]) -> Union[Dict[str, Any], str]:
+def _get_from_dict(
+    data_dict: Dict[str, Any], key_list: List[str]
+) -> Union[Dict[str, Any], str, int, float]:
     """Get value corresponding to a list of keys in nested dictionaries."""
     to_return = reduce(dict.__getitem__, key_list, data_dict)
-    assert isinstance(to_return, str), "Error: dictionary has a value that is not a string"
     return to_return
 
 

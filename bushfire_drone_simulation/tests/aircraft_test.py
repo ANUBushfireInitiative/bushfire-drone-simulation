@@ -12,7 +12,7 @@ FILE_LOC = Path(__file__)
 PARAMS_LOC = FILE_LOC.parent / "parameters.json"
 
 
-@pytest.mark.integration
+@pytest.mark.slow
 def test_times_chronological(monkeypatch: MonkeyPatch) -> None:
     """Are the Aircrafts movements chronological."""
     monkeypatch.setattr("builtins.input", lambda _: "Y")
@@ -31,7 +31,7 @@ def test_times_chronological(monkeypatch: MonkeyPatch) -> None:
                     ), f"The event updates of {water_bomber.name} were not in chronological order"
 
 
-@pytest.mark.integration
+@pytest.mark.slow
 def test_reasonable_fuel_refill(monkeypatch: MonkeyPatch) -> None:
     """Does the Aircraft refill often enough."""
     monkeypatch.setattr("builtins.input", lambda _: "Y")
@@ -64,7 +64,7 @@ def test_reasonable_fuel_refill(monkeypatch: MonkeyPatch) -> None:
                         time_full = update.time
 
 
-@pytest.mark.integration
+@pytest.mark.slow
 def test_aircraft_status(monkeypatch: MonkeyPatch) -> None:  # pylint: disable=too-many-branches
     """Does the aircraft status alter reasonably."""
     monkeypatch.setattr("builtins.input", lambda _: "Y")
