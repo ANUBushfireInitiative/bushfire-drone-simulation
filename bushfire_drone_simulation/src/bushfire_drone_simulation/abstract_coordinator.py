@@ -19,7 +19,7 @@ class UAVCoordinator:
         self.uninspected_strikes: Set[Lightning] = set()
         self.precomputed: Optional[PreComputedDistances] = None
 
-    def accept_precomputed_distances(self, precomputed: PreComputedDistances):
+    def accept_precomputed_distances(self, precomputed: PreComputedDistances) -> None:
         """Accept precomputed distance class with distances already evaluated."""
         self.precomputed = precomputed
 
@@ -59,7 +59,7 @@ class WBCoordinator:
         self.unsuppressed_strikes: Set[Lightning] = set()
         self.precomputed: Optional[PreComputedDistances] = None
 
-    def accept_precomputed_distances(self, precomputed: PreComputedDistances):
+    def accept_precomputed_distances(self, precomputed: PreComputedDistances) -> None:
         """Accept precomputed distance class with distances already evaluated."""
         self.precomputed = precomputed
 

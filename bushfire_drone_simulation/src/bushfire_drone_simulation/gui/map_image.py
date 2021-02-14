@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import geotiler
 import PIL.Image
@@ -51,7 +51,7 @@ def put_in_cache(url: str, image: bytes) -> None:
             image_file.close()
 
 
-def downloader(tiles, num_workers: int):
+def downloader(tiles: Any, num_workers: int) -> Any:
     """Tile downloader.
 
     Args:

@@ -47,10 +47,10 @@ class StatusWithId:  # pylint: disable=too-few-public-methods
         self.status = status
         self.id_no = id_no
 
-    def __str__(self):
+    def __str__(self) -> str:
         """To strike method for StatusId."""
         if self.id_no is None:
-            return self.status
+            return str(self.status)
         return f"{self.status} {self.id_no}"
 
 
@@ -163,7 +163,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         self.required_departure_time: Optional[float] = None
         self.precomputed: Optional[PreComputedDistances] = None
 
-    def accept_precomputed_distances(self, precomputed: PreComputedDistances):
+    def accept_precomputed_distances(self, precomputed: PreComputedDistances) -> None:
         """Accept precomputed distance class with distances already evaluated."""
         self.precomputed = precomputed
 
@@ -197,38 +197,38 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
 
         As if all elements of the event queue have been completed.
         """
-        if self.event_queue.empty() or self.use_current_status:
+        if self.event_queue.is_empty() or self.use_current_status:
             return self.time, self.current_fuel_capacity, Location(self.lat, self.lon)
         future_event = self.event_queue.peak_first()
         return future_event.completion_time, future_event.completion_fuel, future_event.position
 
     def _get_future_time(self) -> float:
         """Return time as if all elements of the event queue have been completed."""
-        if self.event_queue.empty() or self.use_current_status:
+        if self.event_queue.is_empty() or self.use_current_status:
             return self.time
         return self.event_queue.peak_first().completion_time
 
     def _get_future_position(self) -> Location:
         """Return position as if all elements of the event queue have been completed."""
-        if self.event_queue.empty() or self.use_current_status:
+        if self.event_queue.is_empty() or self.use_current_status:
             return Location(self.lat, self.lon)
         return self.event_queue.peak_first().position
 
     def _get_future_fuel(self) -> float:
         """Return fuel capacity as if all elements of the event queue have been completed."""
-        if self.event_queue.empty() or self.use_current_status:
+        if self.event_queue.is_empty() or self.use_current_status:
             return self.current_fuel_capacity
         return self.event_queue.peak_first().completion_fuel
 
     def _get_future_water(self) -> float:
         """Return water on board as if all elements of the event queue have been completed."""
-        if self.event_queue.empty() or self.use_current_status:
+        if self.event_queue.is_empty() or self.use_current_status:
             return self._get_water_on_board()
         return self.event_queue.peak_first().water
 
     def _get_future_status(self) -> Status:
         """Return water on board as if all elements of the event queue have been completed."""
-        if self.event_queue.empty() or self.use_current_status:
+        if self.event_queue.is_empty() or self.use_current_status:
             return self.status
         return self.event_queue.peak_first().completion_status
 
@@ -275,7 +275,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
 
     def _complete_event(self) -> Tuple[Optional[Lightning], Optional[Lightning]]:
         """Completes next event in queue and returns list of strikes inspected and suppressed."""
-        assert not self.event_queue.empty(), "Complete event was called on empty queue"
+        assert not self.event_queue.is_empty(), "Complete event was called on empty queue"
         event = self.event_queue.get_last()
         inspection = None
         suppression = None
@@ -323,7 +323,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         strikes_inspected: List[Lightning] = []
         strikes_suppressed: List[Lightning] = []
         # If we can get to the next position then complete update, otherwise make it half way there
-        while not self.event_queue.empty():
+        while not self.event_queue.is_empty():
             next_event = self.event_queue.peak()
             if next_event.departure_time > self.time:
                 if self.status == Status.HOVERING:
@@ -565,11 +565,11 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             percentage (float, optional): fraction of fuel tank. Defaults to 0.3, must be <= 1.
         """
         if self._get_future_status() == Status.HOVERING:
-            base_index = np.argmin(list(map(self._get_future_position().distance, bases)))
+            base_index = int(np.argmin(list(map(self._get_future_position().distance, bases))))
             dist_to_base = self._get_future_position().distance(bases[base_index])
             percentage_range = self._get_future_fuel() * self.get_range() * percentage
             time_to_base = (percentage_range - dist_to_base) / self.flight_speed
-            # time to base could be negative becuase current range is a percentage of actual range
+            # time to base could be negative because current range is a percentage of actual range
             # we want departure time to be the current time if this is the case or the current time
             # plus the time_to_base if not
             if time_to_base > 0:
@@ -830,7 +830,7 @@ class UAV(Aircraft):
         lightning.inspected(self.time)
         self.strikes_visited.append((lightning, self.time))
 
-    def get_range(self):
+    def get_range(self) -> float:
         """Return total range of UAV."""
         return self.total_range
 
@@ -851,7 +851,7 @@ class WaterBomber(Aircraft):
         id_no: int,
         latitude: float,
         longitude: float,
-        attributes,
+        attributes: Dict[str, str],
         bomber_type: str,
         starting_at_base: bool,
         initial_fuel: float,
@@ -862,7 +862,7 @@ class WaterBomber(Aircraft):
             id_no (int): id number of water bomber
             latitude (float): latitude of water bomber
             longitude (float): longitude of water bomber
-            attributes ([type]): dictionary of attributes of water bomber
+            attributes (): dictionary of attributes of water bomber
             bomber_type (str): type of water bomber
         """
         super().__init__(
@@ -914,7 +914,7 @@ class WaterBomber(Aircraft):
             )
         ]
 
-    def get_range(self):
+    def get_range(self) -> float:
         """Return range of Water bomber."""
         return (self.range_under_load - self.range_empty) * (
             self.water_on_board / self.water_capacity

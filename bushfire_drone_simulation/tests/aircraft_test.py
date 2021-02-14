@@ -1,15 +1,19 @@
 """Aircraft testing."""
 
-import os
+from pathlib import Path
+
+import pytest
+from _pytest.monkeypatch import MonkeyPatch
 
 from bushfire_drone_simulation.aircraft import Status
 from bushfire_drone_simulation.main import run_simulation
 
-FILE_LOC = os.path.realpath(__file__)
-PARAMS_LOC = os.path.join(os.path.dirname(FILE_LOC), "parameters.json")
+FILE_LOC = Path(__file__)
+PARAMS_LOC = FILE_LOC.parent / "parameters.json"
 
 
-def test_times_chronological(monkeypatch):
+@pytest.mark.integration
+def test_times_chronological(monkeypatch: MonkeyPatch) -> None:
     """Are the Aircrafts movements chronological."""
     monkeypatch.setattr("builtins.input", lambda _: "Y")
     for simulator in run_simulation(PARAMS_LOC):
@@ -27,7 +31,8 @@ def test_times_chronological(monkeypatch):
                     ), f"The event updates of {water_bomber.name} were not in chronological order"
 
 
-def test_reasonable_fuel_refill(monkeypatch):
+@pytest.mark.integration
+def test_reasonable_fuel_refill(monkeypatch: MonkeyPatch) -> None:
     """Does the Aircraft refill often enough."""
     monkeypatch.setattr("builtins.input", lambda _: "Y")
     for simulator in run_simulation(PARAMS_LOC):
@@ -59,7 +64,8 @@ def test_reasonable_fuel_refill(monkeypatch):
                         time_full = update.time
 
 
-def test_aricraft_status(monkeypatch):  # pylint: disable=too-many-branches
+@pytest.mark.integration
+def test_aircraft_status(monkeypatch: MonkeyPatch) -> None:  # pylint: disable=too-many-branches
     """Does the aircraft status alter reasonably."""
     monkeypatch.setattr("builtins.input", lambda _: "Y")
     for simulator in run_simulation(PARAMS_LOC):  # pylint: disable=too-many-nested-blocks

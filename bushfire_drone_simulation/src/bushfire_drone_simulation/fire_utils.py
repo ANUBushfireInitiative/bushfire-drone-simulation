@@ -4,7 +4,7 @@ import logging
 from math import atan2, cos, degrees, inf, radians, sin, sqrt
 from typing import Any, Tuple
 
-from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Duration, Volume
+from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Duration
 
 _LOG = logging.getLogger(__name__)
 
@@ -93,13 +93,13 @@ class WaterTank(Location):
 class Base(Location):
     """Class containing a base's location and fuel capacity."""
 
-    def __init__(self, latitude: float, longitude: float, capacity: Volume, id_no: int):
+    def __init__(self, latitude: float, longitude: float, capacity: float, id_no: int):
         """Initialise aircraft base from location and fuel capacity."""
         super().__init__(latitude, longitude)
         self.capacity = capacity
         self.id_no = id_no
 
-    def remove_fuel(self, volume: Volume) -> None:
+    def remove_fuel(self, volume: float) -> None:
         """Remove a given volume of fuel from the base."""
         self.capacity -= volume
 
@@ -169,7 +169,7 @@ class Time:
                 )
 
     @classmethod
-    def from_time(cls, time: float):
+    def from_time(cls, time: float) -> "Time":
         """Initialise time from float, assume float is in DEFAULT_DURATION_UNITS."""
         ret_time = Time("0")
         ret_time.time = Duration(time)

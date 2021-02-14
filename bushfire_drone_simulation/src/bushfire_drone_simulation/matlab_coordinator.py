@@ -20,7 +20,7 @@ class MatlabUAVCoordinator(UAVCoordinator):
     def process_new_strike(self, lightning: Lightning) -> None:  # pylint: disable=too-many-branches
         """Receive lightning strike that just occurred and assign best uav."""
         if self.precomputed is None:
-            base_index = np.argmin(list(map(lightning.distance, self.uav_bases)))
+            base_index = int(np.argmin(list(map(lightning.distance, self.uav_bases))))
         else:
             base_index = self.precomputed.closest_uav_base(lightning)
         min_arrival_time: float = inf
@@ -78,7 +78,7 @@ class MatlabWBCoordinator(WBCoordinator):
         for water_bomber in self.water_bombers:  # pylint: disable=too-many-nested-blocks
             bases = self.water_bomber_bases_dict[water_bomber.type]
             if self.precomputed is None:
-                base_index = np.argmin(list(map(ignition.distance, bases)))
+                base_index = int(np.argmin(list(map(ignition.distance, bases))))
             else:
                 base_index = self.precomputed.closest_wb_base(ignition, water_bomber.get_type())
             if water_bomber.enough_water([ignition]):
@@ -162,5 +162,5 @@ class MatlabWBCoordinator(WBCoordinator):
             bases = self.water_bomber_bases_dict[water_bomber.type]
             water_bomber.go_to_base_when_necessary(bases, ignition.inspected_time)
 
-    def process_new_strike(self, lightning) -> None:
+    def process_new_strike(self, lightning: Lightning) -> None:
         """Decide on uavs movement with new strike."""

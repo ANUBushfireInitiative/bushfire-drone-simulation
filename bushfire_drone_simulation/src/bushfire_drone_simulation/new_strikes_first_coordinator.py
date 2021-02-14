@@ -74,7 +74,7 @@ class NewStrikesFirstUAVCoordinator(UAVCoordinator):
             Union[int, None]: id number of best uav or None if none were avaliable
         """
         if self.precomputed is None:
-            base_index = np.argmin(list(map(lightning.distance, self.uav_bases)))
+            base_index = int(np.argmin(list(map(lightning.distance, self.uav_bases))))
         else:
             base_index = self.precomputed.closest_uav_base(lightning)
         min_arrival_time: float = inf
@@ -190,7 +190,7 @@ class NewStrikesFirstWBCoordinator(WBCoordinator):
         for water_bomber in self.water_bombers:  # pylint: disable=too-many-nested-blocks
             water_bomber_bases = self.water_bomber_bases_dict[water_bomber.type]
             if self.precomputed is None:
-                base_index = np.argmin(list(map(ignition.distance, water_bomber_bases)))
+                base_index = int(np.argmin(list(map(ignition.distance, water_bomber_bases))))
             else:
                 base_index = self.precomputed.closest_wb_base(ignition, water_bomber.get_type())
             if water_bomber.enough_water([ignition]):
@@ -295,5 +295,5 @@ class NewStrikesFirstWBCoordinator(WBCoordinator):
             _LOG.error("No water bombers were available")
         return ret_name
 
-    def process_new_strike(self, lightning) -> None:
+    def process_new_strike(self, lightning: Lightning) -> None:
         """Decide on uavs movement with new strike."""

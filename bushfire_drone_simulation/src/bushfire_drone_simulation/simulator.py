@@ -5,8 +5,6 @@ from queue import PriorityQueue, Queue
 from typing import List, Tuple
 
 from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoordinator
-from bushfire_drone_simulation.aircraft import UAV, WaterBomber
-from bushfire_drone_simulation.fire_utils import Base
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.precomupted import PreComputedDistances
@@ -26,9 +24,9 @@ class Simulator:
         water_bombers, water_bomber_bases_dict = params.process_water_bombers(
             self.water_bomber_bases_list, scenario_idx
         )
-        self.uavs: List[UAV] = params.process_uavs(scenario_idx)
-        self.uav_bases: List[Base] = params.get_uav_bases(scenario_idx)
-        self.water_bombers: List[WaterBomber] = water_bombers
+        self.uavs = params.process_uavs(scenario_idx)
+        self.uav_bases = params.get_uav_bases(scenario_idx)
+        self.water_bombers = water_bombers
         self.water_bomber_bases_dict = water_bomber_bases_dict
         self.water_tanks = params.get_water_tanks(scenario_idx)
         self.precomputed = PreComputedDistances(

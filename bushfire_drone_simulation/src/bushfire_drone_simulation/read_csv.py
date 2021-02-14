@@ -1,13 +1,14 @@
 """Functions for reading and writing data to a csv."""
 
-from typing import List, Union
+from abc import abstractmethod
+from pathlib import Path
+from typing import Any, List, Protocol, Type, TypeVar, Union
 
-import numpy as np
 import pandas as pd
 
 from bushfire_drone_simulation.fire_utils import Time, assert_bool, assert_number
 from bushfire_drone_simulation.lightning import Lightning
-from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS
+from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Volume
 
 
 class ColumnNotFoundException(Exception):
@@ -17,13 +18,13 @@ class ColumnNotFoundException(Exception):
 class CSVFile:
     """CSVFile class to provide wrapper for csv files (with useful errors)."""
 
-    def __init__(self, filename: str):
+    def __init__(self, filename: Path):
         """Initialize CSVFile class.
 
         Args:
             filename (str): path to csv file from current working directory
         """
-        self.filename: str = filename
+        self.filename = filename
         self.csv_dataframe: pd.DataFrame = pd.DataFrame(pd.read_csv(filename))
 
     def get_column(self, column: Union[str, int]) -> pd.Series:
@@ -43,14 +44,14 @@ class CSVFile:
         return column_to_return
 
     def get_column_headings(self) -> List[str]:
-        """Get headins of columns.
+        """Get list of column headings.
 
         Returns:
             List[str]: List of column headings
         """
-        return self.csv_dataframe.columns.values.tolist()
+        return list(self.csv_dataframe.columns.values)
 
-    def get_cell(self, column: Union[str, int], cell_idx: int):
+    def get_cell(self, column: Union[str, int], cell_idx: int) -> Any:
         """get_cell.
 
         Args:
@@ -59,11 +60,11 @@ class CSVFile:
         """
         return self.get_column(column)[cell_idx]
 
-    def __len__(self):
+    def __len__(self) -> int:
         """__len__."""
         return len(self.csv_dataframe.axes[0])
 
-    def __getitem__(self, i: Union[str, int]):
+    def __getitem__(self, i: Union[str, int]) -> pd.Series:
         """__getitem__.
 
         Args:
@@ -72,10 +73,23 @@ class CSVFile:
         return self.get_column(i)
 
 
-def read_locations_with_capacity(filename: str, constructor):
+class LocWithCapacityInit(Protocol):
+    """Protocol class for location with capacity constructor."""
+
+    @abstractmethod
+    def __init__(self, latitude: float, longitude: float, capacity: float, id_no: int):
+        """__init__."""
+
+
+LocationConstructor = TypeVar("LocationConstructor", bound=LocWithCapacityInit)
+
+
+def read_locations_with_capacity(
+    filename: Path, constructor: Type[LocationConstructor], capacity_units: str = "L"
+) -> List[LocationConstructor]:
     """Return a list of Locations contained in the first two columns of a given a csv file."""
     location_data = CSVFile(filename)
-    to_return = np.array([])
+    to_return = []
     lats = location_data["latitude"]
     lons = location_data["longitude"]
     for i, cap in enumerate(location_data["capacity"]):
@@ -90,13 +104,13 @@ def read_locations_with_capacity(filename: str, constructor):
             lons[i],
             f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number",
         )
-        to_return = np.append(to_return, constructor(lat, lon, cap, i))
+        to_return.append(constructor(lat, lon, Volume(cap, capacity_units).get(), i))
     return to_return
 
 
-def read_lightning(filename: str, ignition_probability: float) -> List[Lightning]:
+def read_lightning(filename: Path, ignition_probability: float) -> List[Lightning]:
     """Return a list of Locations contained in the first two columns of a given a csv file."""
-    lightning = np.array([])
+    lightning = []
     lightning_data = CSVFile(filename)
     lats = lightning_data["latitude"]
     lons = lightning_data["longitude"]
@@ -126,8 +140,7 @@ def read_lightning(filename: str, ignition_probability: float) -> List[Lightning
             lons[i],
             f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number.",
         )
-        lightning = np.append(
-            lightning,
+        lightning.append(
             Lightning(
                 lat,
                 lon,

@@ -1,6 +1,8 @@
 """GUI Module for bushfire drone simulation."""
 
 import tkinter as tk
+from tkinter import Button, Event
+from typing import Dict, List, Tuple
 
 from PIL import ImageTk
 
@@ -14,7 +16,7 @@ from bushfire_drone_simulation.simulator import Simulator
 class GUI:
     """GUI class for bushfire drone simulation."""
 
-    def __init__(self, simulator: Simulator):
+    def __init__(self, simulator: Simulator) -> None:
         """Run GUI from simulator."""
         self.window = tk.Tk()
         self.window.title("ANU Bushfire Initiative Drone Simulation")
@@ -34,7 +36,7 @@ class GUI:
 
         y = 2
         for key in checkbox_dict:
-            checkbox_dict[key][1].select()
+            checkbox_dict[key][1].select()  # type: ignore
             # self.canvas.create_window(10, 10, anchor="w", window=checkbox_dict[key][1])
             checkbox_dict[key][1].place(x=20, y=y)
             y += 20
@@ -54,10 +56,10 @@ class GUI:
 
         self.window.mainloop()
 
-    def create_lightning(self):
+    def create_lightning(self) -> Tuple[List[int], List[int]]:
         """Create lists of points of lightning and ignitions and add to canvas."""
-        lightning_points = []
-        ignition_points = []
+        lightning_points: List[int] = []
+        ignition_points: List[int] = []
         for strike in self.simulator.lightning_strikes:
             if strike.ignition:
                 self.create_point_from_elm(strike, ignition_points)
@@ -65,25 +67,25 @@ class GUI:
                 self.create_point_from_elm(strike, lightning_points)
         return lightning_points, ignition_points
 
-    def create_uavs(self):
+    def create_uavs(self) -> Tuple[List[int], List[int], List[int]]:
         """Create lists of uav points, paths and bases and add to canvas."""
-        uav_points = []
-        uav_paths = []
+        uav_points: List[int] = []
+        uav_paths: List[int] = []
         for uav in self.simulator.uavs:
             for idx, past_loc in enumerate(uav.past_locations):
                 if idx != 0:
                     self.connect_points(past_loc, uav.past_locations[idx - 1], uav_paths)
             self.create_point_from_elm(uav, uav_points, rad=4)
-        uav_base_points = []
+        uav_base_points: List[int] = []
         for base in self.simulator.uav_bases:
             self.create_point_from_elm(base, uav_base_points, rad=2)
         return uav_points, uav_paths, uav_base_points
 
-    def create_water_bombers(self):
+    def create_water_bombers(self) -> Tuple[List[int], List[int], List[int]]:
         """Create lists of water bomber points, paths and bases and add to canvas."""
-        water_bomber_base_points = []
-        water_bomber_points = []
-        water_bomber_paths = []
+        water_bomber_base_points: List[int] = []
+        water_bomber_points: List[int] = []
+        water_bomber_paths: List[int] = []
         for water_bomber_type in self.simulator.water_bomber_bases_dict:
             for base in self.simulator.water_bomber_bases_dict[water_bomber_type]:
                 self.create_point_from_elm(base, water_bomber_base_points, rad=2)
@@ -96,14 +98,14 @@ class GUI:
                 self.create_point_from_elm(water_bomber, water_bomber_points, rad=4)
         return water_bomber_base_points, water_bomber_points, water_bomber_paths
 
-    def create_water_tanks(self):
+    def create_water_tanks(self) -> List[int]:
         """Create list of water tanks and add to canvas."""
-        water_tank_points = []
+        water_tank_points: List[int] = []
         for tank in self.simulator.water_tanks:
             self.create_point_from_elm(tank, water_tank_points, rad=2)
         return water_tank_points
 
-    def create_checkboxes(self):
+    def create_checkboxes(self) -> Dict[str, Tuple[tk.IntVar, tk.Checkbutton, List[int]]]:
         """Create check boxes for interating with GUI."""
         return_dict = {}
 
@@ -180,42 +182,42 @@ class GUI:
         return return_dict
 
     def create_point_from_elm(
-        self, element: Location, list_name, rad=5
-    ):  # center coordinates, radius
+        self, element: Location, list_name: List[int], rad: int = 5
+    ) -> None:  # center coordinates, radius
         """Create a point given an element extending Location."""
         x, y = element.to_coordinates()
-        point = self.canvas.create_oval(
+        point = self.canvas.create_oval(  # type: ignore
             x - rad, y - rad, x + rad, y + rad, fill=type_to_colour(element)
         )
         list_name.append(point)
 
-    def connect_points(self, p_1: Location, p_2: Location, list_name):
+    def connect_points(self, p_1: Location, p_2: Location, list_name: List[int]) -> None:
         """Connect two points with a line."""
-        line = self.canvas.create_line(
+        line = self.canvas.create_line(  # type: ignore
             p_1.to_coordinates(), p_2.to_coordinates(), fill=type_to_colour(p_1), width=1
         )
         list_name.append(line)
 
-    def delete(self, points_list):
+    def hide(self, points_list: List[int]) -> None:
         """Hide list of points from canvas_name."""
         for point in points_list:
             self.canvas.itemconfigure(point, state="hidden")
 
-    def show(self, points_list):
+    def show(self, points_list: List[int]) -> None:
         """Hide list of points from canvas_name."""
         for point in points_list:
             self.canvas.itemconfigure(point, state="normal")
 
-    def update(self, checkbox_dict):
+    def update(self, checkbox_dict: Dict[str, Tuple[tk.IntVar, tk.Checkbutton, List[int]]]) -> None:
         """Update whether a set of points is displayed on the canvas."""
         for key in checkbox_dict:
-            if checkbox_dict[key][0].get() == 0:
-                self.delete(checkbox_dict[key][2])
+            if checkbox_dict[key][0].get() == 0:  # type: ignore
+                self.hide(checkbox_dict[key][2])
             else:
                 self.show(checkbox_dict[key][2])
 
 
-def type_to_colour(element: Location):
+def type_to_colour(element: Location) -> str:
     """Assign an element a colour based on its type."""
     if isinstance(element, WaterTank):
         return "blue"
@@ -230,7 +232,7 @@ def type_to_colour(element: Location):
     return "black"
 
 
-def start_gui(simulation: Simulator):
+def start_gui(simulation: Simulator) -> None:
     """Start GUI of simulation."""
     GUI(simulation)
 
@@ -245,7 +247,7 @@ LONGITUDE = 147.9
 class MapUI(tk.Tk):
     """Tkinter GUI for displaying a movable map."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """__init__."""
         tk.Tk.__init__(self)
         self.title("ANU Bushfire Initiative Drone Simulation")
@@ -266,7 +268,7 @@ class MapUI(tk.Tk):
         self.zoom_out_button = self.add_zoom_button("-", -1)
         self.restart()
 
-        self.coords = None
+        self.coords = (0, 0)
         self.image = None
         self.tk_image = None
 
@@ -279,7 +281,7 @@ class MapUI(tk.Tk):
     # self.map_image.change_zoom(self.zoom, event.x, event.y)
     # self.redraw()
 
-    def add_zoom_button(self, text: str, change: int):
+    def add_zoom_button(self, text: str, change: int) -> Button:
         """Add zoom button.
 
         Args:
@@ -291,7 +293,7 @@ class MapUI(tk.Tk):
         )
         return button
 
-    def change_zoom(self, change: int):
+    def change_zoom(self, change: int) -> None:
         """Change map zoom.
 
         Args:
@@ -303,35 +305,35 @@ class MapUI(tk.Tk):
             self.map_image.change_zoom(self.zoom)
             self.restart()
 
-    def drag(self, event):
+    def drag(self, event: Event) -> None:
         """Process mouse drag.
 
         Args:
             event: Mouse drag event
         """
-        self.map_image.move(self.coords[0] - event.x, self.coords[1] - event.y)
+        self.map_image.move(self.coords[0] - event.x, self.coords[1] - event.y)  # type: ignore
         self.redraw()
-        self.coords = event.x, event.y
+        self.coords = event.x, event.y  # type: ignore
 
-    def click(self, event):
+    def click(self, event: Event) -> None:
         """Process click.
 
         Args:
             event: Click event
         """
-        self.coords = event.x, event.y
+        self.coords = event.x, event.y  # type: ignore
 
-    def reload(self):
+    def reload(self) -> None:
         """Reload."""
         self["cursor"] = ""
         self.redraw()
 
-    def restart(self):
+    def restart(self) -> None:
         """Restart."""
         self["cursor"] = "watch"
         self.after(1, self.reload)
 
-    def redraw(self):
+    def redraw(self) -> None:
         """Redraw display."""
         self.image = self.map_image.get_image()
         self.tk_image = ImageTk.PhotoImage(self.image)
@@ -345,6 +347,6 @@ class MapUI(tk.Tk):
         self.zoom_out_button.place(x=x, y=y + 30)
 
 
-def start_map_gui():
+def start_map_gui() -> None:
     """Start a basic GUI version of the drone simulation."""
     MapUI().mainloop()

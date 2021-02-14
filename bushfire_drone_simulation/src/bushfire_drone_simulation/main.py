@@ -1,6 +1,7 @@
 """Main entry point for bushfire-drone-simulation."""
 
 import logging
+from pathlib import Path
 from sys import stderr
 from typing import Dict, List, Type, Union
 
@@ -27,7 +28,6 @@ from bushfire_drone_simulation.simulator import Simulator
 _LOG = logging.getLogger(__name__)
 app = typer.Typer()
 
-PARAMETERS_FILENAME_ARGUMENT = typer.Option("parameters.json", help="Path to parameters file.")
 
 UAV_COORDINATORS: Dict[
     str,
@@ -60,14 +60,16 @@ WB_COORDINATORS: Dict[
 }
 
 
-def main():
+def main() -> None:
     """Entry point for bushfire_drone_simulation."""
     logging.basicConfig(stream=stderr, level=logging.WARNING)
     app()
 
 
 @app.command()
-def gui(parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT):
+def gui(
+    parameters_filename: Path = typer.Option("parameters.json", help="Path to parameters file.")
+) -> None:
     """Start a GUI version of the drone simulation."""
     simulator = run_simulation(parameters_filename)[0]
     if simulator is not None:
@@ -75,13 +77,15 @@ def gui(parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT):
 
 
 @app.command()
-def map_gui():
+def map_gui() -> None:
     """Start a GUI version of the drone simulation."""
     start_map_gui()
 
 
 @app.command()
-def run_simulation(parameters_filename: str = PARAMETERS_FILENAME_ARGUMENT) -> List[Simulator]:
+def run_simulation(
+    parameters_filename: Path = typer.Option("parameters.json", help="Path to parameters file.")
+) -> List[Simulator]:
     """Run bushfire drone simulation."""
     params = JSONParameters(parameters_filename)
     to_return = []

@@ -34,7 +34,7 @@ class Lightning(Location):
         """
         self.inspected_time = time
 
-    def suppressed(self, time: float):
+    def suppressed(self, time: float) -> None:
         """Lightning strike is updated when suppressed.
 
         Args:

@@ -8,13 +8,13 @@ import os
 import shutil
 import sys
 from functools import reduce
-from typing import Any, Dict, List
+from pathlib import Path
+from typing import Any, Dict, List, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
 
-from bushfire_drone_simulation.aircraft import UAV, WaterBomber
+from bushfire_drone_simulation.aircraft import UAV, UpdateEvent, WaterBomber
 from bushfire_drone_simulation.fire_utils import Base, Time, WaterTank, assert_bool, assert_number
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.read_csv import CSVFile, read_lightning, read_locations_with_capacity
@@ -24,38 +24,44 @@ _LOG = logging.getLogger(__name__)
 matplotlib.use("Agg")
 
 
-def _get_from_dict(data_dict: Dict[str, Any], key_list: List[str]):
+def _get_from_dict(data_dict: Dict[str, Any], key_list: List[str]) -> Union[Dict[str, Any], str]:
     """Get value corresponding to a list of keys in nested dictionaries."""
-    return reduce(dict.__getitem__, key_list, data_dict)
+    to_return = reduce(dict.__getitem__, key_list, data_dict)
+    assert isinstance(to_return, str), "Error: dictionary has a value that is not a string"
+    return to_return
 
 
-def _set_in_dict(data_dict, key_list, value):
+def _set_in_dict(
+    data_dict: Dict[str, Any], key_list: List[str], value: Union[Dict[str, Any], str]
+) -> None:
     """Set value corresponding to a list of keys in nested dictionaries."""
-    _get_from_dict(data_dict, key_list[:-1])[key_list[-1]] = value
+    _get_from_dict(data_dict, key_list[:-1])[key_list[-1]] = value  # type: ignore
 
 
 class JSONParameters:
     """Class for reading parameters from a csv file."""
 
-    def __init__(self, filename: str):
+    def __init__(self, parameters_file: Path):
         """Read collection of variables stored in filename.
 
         Args:
             filename (str): filepath to json parameters file from current working directory
         """
-        self.folder = os.path.dirname(filename)
-        self.filepath = filename
-        with open(filename) as file:
+        self.folder = parameters_file.parent
+        self.filepath = parameters_file
+        with open(parameters_file) as file:
             self.parameters = json.load(file)
 
         self.scenarios: List[Dict[str, Any]] = []
 
         if "scenario_parameters_filename" in self.parameters.keys():
             self.csv_scenarios = CSVFile(
-                os.path.join(self.folder, self.parameters["scenario_parameters_filename"])
+                self.folder / self.parameters["scenario_parameters_filename"]
             )
 
-            def recurse_through_dictionaries(dictionary_path: List[str], dictionary):
+            def recurse_through_dictionaries(
+                dictionary_path: List[str], dictionary: Union[Dict[str, Any], str]
+            ) -> None:
                 if isinstance(dictionary, str) and dictionary == "?":
                     if len(self.scenarios) == 0:
                         # Haven't yet deep copied self.scenarios
@@ -82,11 +88,11 @@ class JSONParameters:
         if len(self.scenarios) == 0:
             self.scenarios = [self.parameters]
 
-        self.output_folder = os.path.join(self.folder, self.scenarios[0]["output_folder_name"])
+        self.output_folder = self.folder / self.scenarios[0]["output_folder_name"]
 
         # All scenarios output to same folder
-        if os.path.exists(self.output_folder):
-            if os.listdir(self.output_folder):
+        if self.output_folder.exists:
+            if any(self.output_folder.iterdir()):
                 cont = input(
                     "Output folder already exists and is not empty, "
                     + "do you want to overwrite its contents? \nEnter 'Y' if yes and 'N' if no \n"
@@ -123,13 +129,15 @@ class JSONParameters:
             self.get_attribute("ignition_probability", scenario_idx),
         )
 
-    def process_water_bombers(self, bases, scenario_idx):
+    def process_water_bombers(
+        self, bases: List[Base], scenario_idx: int
+    ) -> Tuple[List[WaterBomber], Dict[str, List[Base]]]:
         """Create water bombers from json file."""
-        water_bombers = np.array([])
+        water_bombers: List[WaterBomber] = []
         water_bombers_bases_dict = {}
         for water_bomber_type in self.scenarios[scenario_idx]["water_bombers"]:
             water_bomber = self.scenarios[scenario_idx]["water_bombers"][water_bomber_type]
-            filename = os.path.join(self.folder, water_bomber["spawn_loc_file"])
+            filename = self.folder / water_bomber["spawn_loc_file"]
             water_bomber_spawn_locs = CSVFile(filename)
             lats = water_bomber_spawn_locs["latitude"]
             lons = water_bomber_spawn_locs["longitude"]
@@ -157,8 +165,7 @@ class JSONParameters:
                     fuel[i],
                     f"Error: The fuel on row {i+1} of '{filename}' ('{lons[i]}') isn't a number.",
                 )
-                water_bombers = np.append(
-                    water_bombers,
+                water_bombers.append(
                     WaterBomber(
                         id_no=i,
                         latitude=lat,
@@ -175,7 +182,9 @@ class JSONParameters:
 
         return water_bombers, water_bombers_bases_dict
 
-    def get_water_bomber_bases(self, bases, water_bomber_type: str, scenario_idx: int):
+    def get_water_bomber_bases(
+        self, bases: List[Base], water_bomber_type: str, scenario_idx: int
+    ) -> List[Base]:
         """get_water_bomber_bases.
 
         Args:
@@ -183,13 +192,13 @@ class JSONParameters:
             water_bomber_type (str): water_bomber_type
             scenario_idx (int): scenario_idx
         """
-        filename = os.path.join(
-            self.folder, self.get_attribute("water_bomber_bases_filename", scenario_idx)
+        filename = self.folder / str(
+            self.get_attribute("water_bomber_bases_filename", scenario_idx)
         )
         base_data = CSVFile(filename)
         bases_specific = base_data[water_bomber_type]
         bases_all = base_data["all"]
-        current_bases = np.array([])
+        current_bases: List[Base] = []
 
         for (idx, base) in enumerate(bases):
             if assert_bool(
@@ -205,19 +214,20 @@ class JSONParameters:
                     f"'{filename}' ('{bases_all[idx]}') is not a boolean."
                 ),
             ):
-                current_bases = np.append(current_bases, base)
+                current_bases.append(base)
         return current_bases
 
-    def process_uavs(self, scenario_idx: int):
+    def process_uavs(self, scenario_idx: int) -> List[UAV]:
         """Create uavs from json file."""
         uav_data = self.get_attribute("uavs", scenario_idx)
-        filename = os.path.join(self.folder, uav_data["spawn_loc_file"])
+        assert isinstance(uav_data, dict)
+        filename = self.folder / uav_data["spawn_loc_file"]
         uav_spawn_locs = CSVFile(filename)
         lats = uav_spawn_locs["latitude"]
         lons = uav_spawn_locs["longitude"]
         start_locs = uav_spawn_locs["starting at base"]
         fuel = uav_spawn_locs["initial fuel"]
-        uavs = np.array([])
+        uavs: List[UAV] = []
         attributes = uav_data["attributes"]
         for i, lat in enumerate(lats):
             lat = assert_number(
@@ -237,8 +247,7 @@ class JSONParameters:
                 fuel[i],
                 f"Error: The fuel on row {i+1} of '{filename}' ('{lons[i]}') isn't a number.",
             )
-            uavs = np.append(
-                uavs,
+            uavs.append(
                 UAV(
                     id_no=i,
                     latitude=lat,
@@ -250,7 +259,7 @@ class JSONParameters:
             )
         return uavs
 
-    def get_attribute(self, attribute: str, scenario_idx):
+    def get_attribute(self, attribute: str, scenario_idx: int) -> Any:
         """Return attribute of JSON file."""
         if attribute not in self.scenarios[scenario_idx]:
             raise Exception(
@@ -260,13 +269,20 @@ class JSONParameters:
             )
         return self.scenarios[scenario_idx][attribute]
 
-    def get_relative_filepath(self, key: str, scenario_idx):
+    def get_relative_filepath(self, key: str, scenario_idx: int) -> Path:
         """Return relative file path to given key."""
-        return os.path.join(self.folder, self.get_attribute(key, scenario_idx))
+        filename = self.get_attribute(key, scenario_idx)
+        assert isinstance(filename, str)
+        return self.folder / filename
 
-    def create_plots(
-        self, inspection_times, suppression_times, water_bombers, water_tanks, prefix
-    ):  # pylint: disable=too-many-arguments
+    def create_plots(  # pylint: disable=too-many-arguments
+        self,
+        inspection_times: List[float],
+        suppression_times: List[float],
+        water_bombers: List[WaterBomber],
+        water_tanks: List[WaterTank],
+        prefix: str,
+    ) -> None:
         """Create plots and write to output."""
         title = ""
         if len(inspection_times) != 0:
@@ -322,65 +338,57 @@ class JSONParameters:
             )
         )
 
-    def write_to_simulation_output_file(self, lightning_strikes, prefix):
+    def write_to_simulation_output_file(
+        self, lightning_strikes: List[Lightning], prefix: str
+    ) -> Tuple[List[float], List[float]]:
         """Write simulation data to output file."""
         with open(
-            os.path.join(
-                self.output_folder,
-                prefix + "simulation_output.csv",
-            ),
+            self.output_folder / (prefix + "simulation_output.csv"),
             "w",
             newline="",
         ) as outputfile:
             filewriter = csv.writer(outputfile)
-            lats = np.array([])
-            lons = np.array([])
-            inspection_times = np.array([])
-            suppression_times = np.array([])
-            inspection_times_to_return = np.array([])
-            suppression_times_to_return = np.array([])
+            lats: List[float] = []
+            lons: List[float] = []
+            inspection_times: List[Union[float, str]] = []
+            suppression_times: List[Union[float, str]] = []
+            inspection_times_to_return: List[float] = []
+            suppression_times_to_return: List[float] = []
             for strike in lightning_strikes:
-                lats = np.append(lats, strike.lat)
-                lons = np.append(lons, strike.lon)
+                lats.append(strike.lat)
+                lons.append(strike.lon)
                 if strike.inspected_time is not None:
-                    inspection_times = np.append(
-                        inspection_times,
+                    inspection_times.append(
                         Time.from_time(strike.inspected_time - strike.spawn_time).get("hr"),
                     )
-                    inspection_times_to_return = np.append(
-                        inspection_times_to_return,
+                    inspection_times_to_return.append(
                         Time.from_time(strike.inspected_time - strike.spawn_time).get("hr"),
                     )
                 else:
                     _LOG.error("strike %s was not inspected", str(strike.id_no))
-                    inspection_times = np.append(inspection_times, "N/A")
+                    inspection_times.append("N/A")
                 if strike.suppressed_time is not None:
-                    suppression_times = np.append(
-                        suppression_times,
+                    suppression_times.append(
                         Time.from_time(strike.suppressed_time - strike.spawn_time).get("hr"),
                     )
-                    suppression_times_to_return = np.append(
-                        suppression_times_to_return,
+                    suppression_times_to_return.append(
                         Time.from_time(strike.suppressed_time - strike.spawn_time).get("hr"),
                     )
                 else:
-                    suppression_times = np.append(suppression_times, "N/A")
+                    suppression_times.append("N/A")
                     if strike.ignition:
-                        _LOG.error("strike %s ignited but was not suppresed", str(strike.id_no))
+                        _LOG.error("strike %s ignited but was not suppressed", str(strike.id_no))
             filewriter.writerow(
                 ["Latitude", "Longitude", "Inspection time (hr)", "Suppression time (hr)"]
             )
-            for row in zip(*[lats, lons, inspection_times, suppression_times]):
+            for row in zip(lats, lons, inspection_times, suppression_times):
                 filewriter.writerow(row)
         return inspection_times_to_return, suppression_times_to_return
 
-    def write_to_uav_updates_file(self, uavs, prefix):
+    def write_to_uav_updates_file(self, uavs: List[UAV], prefix: str) -> None:
         """Write UAV event update data to output file."""
         with open(
-            os.path.join(
-                self.output_folder,
-                prefix + "uav_event_updates.csv",
-            ),
+            self.output_folder / (prefix + "uav_event_updates.csv"),
             "w",
             newline="",
         ) as outputfile:
@@ -398,9 +406,9 @@ class JSONParameters:
                     "Status",
                 ]
             )
-            all_uav_updates = np.array([])
+            all_uav_updates: List[UpdateEvent] = []
             for uav in uavs:
-                all_uav_updates = np.append(all_uav_updates, uav.past_locations)
+                all_uav_updates += uav.past_locations
 
             all_uav_updates.sort()
             for uav_update in all_uav_updates:
@@ -418,7 +426,7 @@ class JSONParameters:
                     ]
                 )
 
-    def write_to_wb_updates_file(self, water_bombers, prefix):
+    def write_to_wb_updates_file(self, water_bombers: List[WaterBomber], prefix: str) -> None:
         """Write water bomber event update data to output file."""
         # water_bombers: List[WaterBomber] = coordinator.water_bombers
         with open(
@@ -444,9 +452,9 @@ class JSONParameters:
                     "Status",
                 ]
             )
-            all_wb_updates = np.array([])
+            all_wb_updates: List[UpdateEvent] = []
             for water_bomber in water_bombers:
-                all_wb_updates = np.append(all_wb_updates, water_bomber.past_locations)
+                all_wb_updates += water_bomber.past_locations
 
             all_wb_updates.sort()
             for wb_update in all_wb_updates:
@@ -465,7 +473,7 @@ class JSONParameters:
                     ]
                 )
 
-    def write_to_input_parameters_folder(self, scenario_idx):
+    def write_to_input_parameters_folder(self, scenario_idx: int) -> None:
         """Copy input parameters to input parameters folder to be output."""
         input_folder = os.path.join(self.output_folder, "simulation_input")
         if not os.path.exists(input_folder):

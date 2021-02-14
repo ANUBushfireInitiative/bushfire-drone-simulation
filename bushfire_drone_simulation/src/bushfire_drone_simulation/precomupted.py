@@ -1,14 +1,14 @@
 """File for storing precomputed values."""
 
-from typing import Dict, List
+from typing import Dict, List, Sequence
 
 import numpy as np
 
-from bushfire_drone_simulation.fire_utils import Base, WaterTank
+from bushfire_drone_simulation.fire_utils import Base, Location, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
 
 
-def create_distance_array(list1, list2):
+def create_distance_array(list1: Sequence[Location], list2: Sequence[Location]) -> np.ndarray:
     """Given 2 lists of locations, return a 2D distance array.
 
     The ith jth should contain the distance between the ith element from list1
@@ -34,18 +34,20 @@ class PreComputedDistances:
         """Initialize precomputed distances."""
         self.to_ignition_id: Dict[int, int] = {}
         self.strike_to_strike_array = np.empty((len(lightning), len(lightning)), float)
-        ignitions = np.array([])
+        ignitions = []
         ignition_id = 0
         for i, strike in enumerate(lightning):
             if strike.ignition:
-                ignitions = np.append(ignitions, strike)
+                ignitions.append(strike)
                 self.to_ignition_id[i] = ignition_id
                 ignition_id += 1
 
         self.strike_to_base_array = create_distance_array(lightning, uav_bases)
-        self.closest_uav_base_array = np.empty(len(lightning), int)
+        self.closest_uav_base_array: List[int] = []
         for idx, strike in enumerate(lightning):
-            self.closest_uav_base_array[idx] = np.argmin(self.strike_to_base_array[strike.id_no])
+            self.closest_uav_base_array.append(
+                int(np.argmin(self.strike_to_base_array[strike.id_no]))
+            )
 
         self.closest_wb_base_dict: Dict[str, np.ndarray] = {}
         self.ignition_to_base_dict: Dict[str, np.ndarray] = {}
@@ -75,24 +77,30 @@ class PreComputedDistances:
 
     def closest_wb_base(self, ignition: Lightning, bomber_name: str) -> int:
         """Return the index of the closest water bomber base to a given ignition."""
-        return self.closest_wb_base_dict[bomber_name][self.to_ignition_id[ignition.id_no]]
+        return int(self.closest_wb_base_dict[bomber_name][self.to_ignition_id[ignition.id_no]])
 
     def uav_dist(self, strike: Lightning, base: Base) -> float:
         """Return distance between a strike and uav base."""
-        return self.strike_to_base_array[strike.id_no][base.id_no]
+        return float(self.strike_to_base_array[strike.id_no][base.id_no])
 
     def ignition_to_water(self, strike: Lightning, water_tank: WaterTank) -> float:
         """Return distance in km from given ignition to water tank."""
-        return self.ignition_to_water_array[self.to_ignition_id[strike.id_no]][water_tank.id_no]
+        return float(
+            self.ignition_to_water_array[self.to_ignition_id[strike.id_no]][water_tank.id_no]
+        )
 
     def ignition_to_base(self, strike: Lightning, base: Base, bomber_name: str) -> float:
         """Return distance in km from given ignition to water bomber base."""
-        return self.ignition_to_base_dict[bomber_name][self.to_ignition_id[strike.id_no]][
-            self.to_base_id_dict[bomber_name][base.id_no]
-        ]
+        return float(
+            self.ignition_to_base_dict[bomber_name][self.to_ignition_id[strike.id_no]][
+                self.to_base_id_dict[bomber_name][base.id_no]
+            ]
+        )
 
     def water_to_base(self, water_tank: WaterTank, base: Base, bomber_name: str) -> float:
         """Return distance in km from given water tank to water bomber base."""
-        return self.water_to_base_dict[bomber_name][water_tank.id_no][
-            self.to_base_id_dict[bomber_name][base.id_no]
-        ]
+        return float(
+            self.water_to_base_dict[bomber_name][water_tank.id_no][
+                self.to_base_id_dict[bomber_name][base.id_no]
+            ]
+        )

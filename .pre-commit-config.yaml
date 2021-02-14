@@ -50,7 +50,8 @@ repos:
     rev: v0.730
     hooks:
     -   id: mypy
-        #args: [--strict]
+        args: [--strict, --config-file, .mypy.ini, --allow-untyped-decorators, --follow-imports=normal]
+        additional_dependencies: [typer, numpy, pytest, tk]
 -   repo: local
     hooks:
     -   id: pylint

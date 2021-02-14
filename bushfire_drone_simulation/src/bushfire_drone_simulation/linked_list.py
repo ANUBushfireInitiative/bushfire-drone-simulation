@@ -1,34 +1,39 @@
 """Doubly linked list implementation."""
 
-from typing import Generic, Optional, TypeVar
+from typing import Generic, Iterator, Optional, Tuple, TypeVar
 
 T = TypeVar("T")
 
 
 class Node(Generic[T]):  # pylint: disable=too-few-public-methods
-    """Class containing element of linked list."""
+    """Class containing element of linked list.
 
-    def __init__(self, value: T):
+    self.next will be None if the node is the last element in the list.
+    Likewise, self.prev will be None if the node is the first element in the list.
+    """
+
+    def __init__(self, value: T) -> None:
         """Initialize node."""
         self.value: T = value
-        self.next: Optional[Node] = None
-        self.prev: Optional[Node] = None
+        self.next: Optional[Node[T]] = None
+        self.prev: Optional[Node[T]] = None
 
 
 class LinkedList(Generic[T]):
     """Class for linked list."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize linked list."""
-        self.first: Optional[Node] = None
-        self.last: Optional[Node] = None
+        self.first: Optional[Node[T]] = None
+        self.last: Optional[Node[T]] = None
         self.length: int = 0
 
-    def insert_after(self, prev_node: Node, new_value: T) -> None:
+    def insert_after_node(self, prev_node: Node[T], new_value: T) -> None:
         """Insert new_value after prev_node in the linked list."""
         new_node = Node(new_value)
         new_node.prev = prev_node
         if prev_node.next is None:
+            assert prev_node == self.last
             self.last = new_node
         else:
             new_node.next = prev_node.next
@@ -36,7 +41,7 @@ class LinkedList(Generic[T]):
         prev_node.next = new_node
         self.length += 1
 
-    def empty(self):
+    def is_empty(self) -> bool:
         """Return whether or not the linked list is empty."""
         return self.length == 0
 
@@ -48,7 +53,8 @@ class LinkedList(Generic[T]):
 
     def get_last(self) -> T:
         """Return the final element of the linked list. Equivalent to pop/get in a queue."""
-        assert self.length != 0, "get_last called on empty list"
+        if self.length == 0:
+            raise IndexError("Get last from empty linked list.")
         assert self.last is not None, "something broke in the list implementation."
         ret_value = self.last.value
         if self.last.prev is None:
@@ -59,9 +65,10 @@ class LinkedList(Generic[T]):
         self.length -= 1
         return ret_value
 
-    def delete_from(self, delete_node: Node) -> None:
+    def delete_up_to(self, delete_node: Node[T]) -> None:
         """Delete all elements of the list prior to delete_node."""
-        assert self.length != 0, "get_last called on empty list"
+        if self.length == 0:
+            raise IndexError("delete from empty linked list.")
         assert self.first is not None, "something broke in the list implementation."
         delete_node.prev = None
         self.first = delete_node
@@ -86,43 +93,44 @@ class LinkedList(Generic[T]):
 
     def peak(self) -> T:
         """Return value of last element of the linked list without removing it."""
-        assert self.length != 0, "peak called on empty list"
+        if self.length == 0:
+            raise IndexError("peak from empty linked list.")
         assert self.last is not None, "something is wrong with the list implementation"
         return self.last.value
 
     def peak_first(self) -> T:
         """Return value of first element of the linked list without removing it."""
-        assert self.length != 0, "first called on empty list"
+        if self.length == 0:
+            raise IndexError("peak first from empty linked list.")
         assert self.first is not None, "something is wrong with the list implementation"
         return self.first.value
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[T, Optional[Node[T]]]]:
         """Iterate operator for linked list."""
         current_node = self.first
         while current_node is not None:
-            if current_node.next is not None:
-                yield current_node.value, current_node.next
-            else:
-                yield current_node.value, None
+            yield current_node.value, current_node.next
             current_node = current_node.next
 
     def __len__(self) -> int:
         """Length operator for linked list."""
         return self.length
 
-    def __getitem__(self, idx: int):
+    def __getitem__(self, index: int) -> T:
         """Return value at given index."""
-        assert idx - 1 <= self.length, "get_node: Index out of bounds"
+        if index - 1 <= self.length:
+            raise IndexError("Index out of bounds")
         current = self.first
-        for _ in range(idx):
+        for _ in range(index):
             assert current is not None, "poor implementation of linked list"
             current = current.next
         assert current is not None, "poor implementation of linked list"
         return current.value
 
-    def get_node(self, index: int) -> Optional[Node]:
+    def get_node(self, index: int) -> Optional[Node[T]]:
         """Return node at given index."""
-        assert index - 1 <= self.length, "get_node: Index out of bounds"
+        if index - 1 <= self.length:
+            raise IndexError("Index out of bounds")
         current = self.first
         for _ in range(index):
             assert current is not None, "poor implementation of linked list"
