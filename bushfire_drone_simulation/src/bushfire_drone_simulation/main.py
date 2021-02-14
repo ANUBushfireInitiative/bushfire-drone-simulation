@@ -8,6 +8,7 @@ from typing import Dict, List, Type, Union
 import typer
 from tqdm import tqdm
 
+from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoordinator
 from bushfire_drone_simulation.gui.gui import start_gui, start_map_gui
 from bushfire_drone_simulation.insertion_coordinator import (
     InsertionUAVCoordinator,
@@ -29,30 +30,14 @@ _LOG = logging.getLogger(__name__)
 app = typer.Typer()
 
 
-UAV_COORDINATORS: Dict[
-    str,
-    Union[
-        Type[MatlabUAVCoordinator],
-        Type[NewStrikesFirstUAVCoordinator],
-        Type[InsertionUAVCoordinator],
-        Type[MinimiseMeanTimeUAVCoordinator],
-    ],
-] = {
+UAV_COORDINATORS: Dict[str, Union[Type[UAVCoordinator]]] = {
     "MatlabUAVCoordinator": MatlabUAVCoordinator,
     "NewStrikesFirstUAVCoordinator": NewStrikesFirstUAVCoordinator,
     "InsertionUAVCoordinator": InsertionUAVCoordinator,
     "MinimiseMeanTimeUAVCoordinator": MinimiseMeanTimeUAVCoordinator,
 }
 
-WB_COORDINATORS: Dict[
-    str,
-    Union[
-        Type[MatlabWBCoordinator],
-        Type[NewStrikesFirstWBCoordinator],
-        Type[InsertionWBCoordinator],
-        Type[MinimiseMeanTimeWBCoordinator],
-    ],
-] = {
+WB_COORDINATORS: Dict[str, Union[Type[WBCoordinator]]] = {
     "MatlabWBCoordinator": MatlabWBCoordinator,
     "NewStrikesFirstWBCoordinator": NewStrikesFirstWBCoordinator,
     "InsertionWBCoordinator": InsertionWBCoordinator,

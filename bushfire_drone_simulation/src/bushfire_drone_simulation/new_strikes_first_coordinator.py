@@ -1,4 +1,4 @@
-"""Coordinator that prioritises new strikes and only processes remaining strikes if nessesary."""
+"""Coordinator that prioritizes new strikes and only processes remaining strikes if necessary."""
 
 import logging
 from math import inf

@@ -1,8 +1,8 @@
-"""Insertion coordinator minmising mean inspection/supression time.
+"""Insertion coordinator minimizing mean inspection/supression time.
 
 This coordinator aims to minimise the mean inspection/supression time of the lightning strikes
 by finding the place within each aircrafts list of locations to 'insert' a recent strike
-to visit that minimises this value.
+to visit that minimizes this value.
 It does not consider also going via a base/water tank to facilitate 'inserting' this extra
 strike and rather discounts the option if it does not possess enough fuel or water.
 
@@ -16,7 +16,7 @@ import numpy as np
 
 from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoordinator
 from bushfire_drone_simulation.aircraft import UAV, Event, WaterBomber
-from bushfire_drone_simulation.fire_utils import Location
+from bushfire_drone_simulation.fire_utils import Base, Location
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.linked_list import Node
 
@@ -26,7 +26,7 @@ _LOG = logging.getLogger(__name__)
 class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
     """Insertion UAV Coordinator.
 
-    Coordinator will try to insert the new strike inbetween the uavs current tasks
+    Coordinator will try to insert the new strike in between the uavs current tasks
     and minimise the new strikes inspection time.
     """
 
@@ -35,42 +35,54 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
     ) -> None:
         """Receive lightning strike that just occurred and assign best uav."""
         if self.precomputed is None:
-            base_index = int(np.argmin(list(map(lightning.distance, self.uav_bases))))
+            index_of_closest_base = int(np.argmin(list(map(lightning.distance, self.uav_bases))))
         else:
-            base_index = self.precomputed.closest_uav_base(lightning)
+            index_of_closest_base = self.precomputed.closest_uav_base(lightning)
         min_arrival_time: float = inf
         best_uav: Union[UAV, None] = None
         assigned_locations: List[Location] = []
         start_from: Optional[Union[Node[Event], str]] = None
         # The event from which to start going to assigned locations, str if delete all elements
         for uav in self.uavs:  # pylint: disable=too-many-nested-blocks
-            # Go through the queue of every new strike and try inserting the new strike inbetween
+            # Go through the queue of every new strike and try inserting the new strike in between
             if not uav.event_queue.is_empty():
                 lightning_event: List[Location] = [lightning]
                 future_events: List[Location] = []
-                base: List[Location] = []
-                if isinstance(uav.event_queue.peak_first().position, Lightning):
+                closest_base_to_last_event: Optional[Base] = None
+                last_event_position = uav.event_queue.peak_first().position
+                if isinstance(last_event_position, Lightning):
                     if self.precomputed is None:
-                        base = [
-                            self.uav_bases[
-                                int(np.argmin(list(map(lightning.distance, self.uav_bases))))
-                            ]
+                        closest_base_to_last_event = self.uav_bases[
+                            int(np.argmin(list(map(last_event_position.distance, self.uav_bases))))
                         ]
                     else:
-                        base = [self.uav_bases[self.precomputed.closest_uav_base(lightning)]]
+                        closest_base_to_last_event = self.uav_bases[
+                            self.precomputed.closest_uav_base(last_event_position)
+                        ]
                 no_of_strikes_after_insertion: int = 0
                 for event, prev_event in uav.event_queue:
                     future_events.insert(0, event.position)
                     if isinstance(event.position, Lightning):
                         no_of_strikes_after_insertion += 1
                     prev_arrival_time = event.completion_time
-                    state: Union[Event, str] = "self"
+                    prev_state: Union[Event, str] = "self"
                     if prev_event is not None:
-                        state = prev_event.value
-                    enough_fuel = uav.enough_fuel(lightning_event + future_events + base, state)
+                        prev_state = prev_event.value
+                    enough_fuel = uav.enough_fuel(
+                        lightning_event
+                        + future_events
+                        + (
+                            [closest_base_to_last_event]
+                            if closest_base_to_last_event is not None
+                            else []
+                        ),
+                        prev_state,
+                    )
                     if enough_fuel is not None:
-                        new_strike_arr_time = uav.arrival_time([lightning], state)
-                        old_strike_arr_time = uav.arrival_time([lightning, event.position], state)
+                        new_strike_arr_time = uav.arrival_time([lightning], prev_state)
+                        old_strike_arr_time = uav.arrival_time(
+                            [lightning, event.position], prev_state
+                        )
                         cumulative_time = (
                             no_of_strikes_after_insertion
                             * (old_strike_arr_time - prev_arrival_time)
@@ -89,7 +101,7 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
             # go to the lightning strike and then to the nearest base
             # and if so determine the arrival time at the lightning strike
             # updating if it is currently the minimum
-            temp_arr_time = uav.enough_fuel([lightning, self.uav_bases[base_index]])
+            temp_arr_time = uav.enough_fuel([lightning, self.uav_bases[index_of_closest_base]])
             if temp_arr_time is not None:
                 temp_arr_time = uav.arrival_time([lightning])
                 if temp_arr_time < min_arrival_time:
@@ -100,7 +112,7 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
             else:  # Need to go via a base to refuel
                 for uav_base in self.uav_bases:
                     temp_arr_time = uav.enough_fuel(
-                        [uav_base, lightning, self.uav_bases[base_index]]
+                        [uav_base, lightning, self.uav_bases[index_of_closest_base]]
                     )
                     if temp_arr_time is not None:
                         temp_arr_time = uav.arrival_time([uav_base, lightning])
@@ -127,7 +139,7 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
 class MinimiseMeanTimeWBCoordinator(WBCoordinator):
     """Insertion water bomber coordinator.
 
-    Coordinator will try to insert the new strike inbetween the uavs current tasks
+    Coordinator will try to insert the new strike in between the uavs current tasks
     and minimise the new strikes inspection time.
     """
 
@@ -142,19 +154,21 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
         start_from: Optional[Union[Node[Event], str]] = None
         for water_bomber in self.water_bombers:  # pylint: disable=too-many-nested-blocks
             bases = self.water_bomber_bases_dict[water_bomber.type]
-            # Go through the queue of every new strike and try inserting the new strike inbetween
+            # Go through the queue of every new strike and try inserting the new strike in between
             if not water_bomber.event_queue.is_empty():
                 ignition_event: List[Location] = [ignition]
                 future_events: List[Location] = []
-                final_strike_base: List[Location] = []
-                if isinstance(water_bomber.event_queue.peak_first().position, Lightning):
-                    if self.precomputed is None:
-                        final_strike_base = [
-                            bases[int(np.argmin(list(map(ignition.distance, bases))))]
+                last_event_position = water_bomber.event_queue.peak_first().position
+                closest_base_to_last_event: Optional[Base] = None
+                if not isinstance(last_event_position, Base):
+                    if self.precomputed is None or not isinstance(last_event_position, Lightning):
+                        closest_base_to_last_event = bases[
+                            int(np.argmin(list(map(last_event_position.distance, bases))))
                         ]
+
                     else:
-                        final_strike_base = [
-                            bases[self.precomputed.closest_wb_base(ignition, water_bomber.type)]
+                        closest_base_to_last_event = bases[
+                            self.precomputed.closest_wb_base(last_event_position, water_bomber.type)
                         ]
                 no_of_strikes_after_insertion: int = 0
                 for event, prev_event in water_bomber.event_queue:
@@ -167,7 +181,14 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                         state = prev_event.value
                     if water_bomber.enough_water(ignition_event + future_events, state):
                         enough_fuel = water_bomber.enough_fuel(
-                            ignition_event + future_events + final_strike_base, state
+                            ignition_event
+                            + future_events
+                            + (
+                                [closest_base_to_last_event]
+                                if closest_base_to_last_event is not None
+                                else []
+                            ),
+                            state,
                         )
                         if enough_fuel is not None:
                             new_strike_arr_time = water_bomber.arrival_time([ignition], state)
