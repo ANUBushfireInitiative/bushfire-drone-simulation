@@ -34,6 +34,9 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
         self, lightning: Lightning
     ) -> None:
         """Receive lightning strike that just occurred and assign best uav."""
+        mean_time_power = float(
+            self.parameters.get_attribute("uav_mean_time_power", self.scenario_idx)
+        )
         if self.precomputed is None:
             index_of_closest_base = int(np.argmin(list(map(lightning.distance, self.uav_bases))))
         else:
@@ -48,6 +51,7 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
             if not uav.event_queue.is_empty():
                 lightning_event: List[Location] = [lightning]
                 future_events: List[Location] = []
+                prev_inspection_times: List[float] = []
                 closest_base_to_last_event: Optional[Base] = None
                 last_event_position = uav.event_queue.peak_last().position
                 if isinstance(last_event_position, Lightning):
@@ -59,11 +63,10 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                         closest_base_to_last_event = self.uav_bases[
                             self.precomputed.closest_uav_base(last_event_position)
                         ]
-                no_of_strikes_after_insertion: int = 0
                 for event, prev_event in uav.event_queue.iterate_backwards():
                     future_events.insert(0, event.position)
                     if isinstance(event.position, Lightning):
-                        no_of_strikes_after_insertion += 1
+                        prev_inspection_times.append(event.completion_time)
                     prev_arrival_time = event.completion_time
                     prev_state: Union[Event, str] = "self"
                     if prev_event is not None:
@@ -83,11 +86,14 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                         old_strike_arr_time = uav.arrival_time(
                             [lightning, event.position], prev_state
                         )
+                        additional_arr_time = old_strike_arr_time - prev_arrival_time
                         cumulative_time = (
-                            no_of_strikes_after_insertion
-                            * (old_strike_arr_time - prev_arrival_time)
-                            + new_strike_arr_time
-                        )
+                            new_strike_arr_time - lightning.spawn_time
+                        ) ** mean_time_power
+                        for time in prev_inspection_times:
+                            cumulative_time += (
+                                time + additional_arr_time
+                            ) ** mean_time_power - time ** mean_time_power
                         if cumulative_time < min_arrival_time:
                             min_arrival_time = cumulative_time
                             assigned_locations = lightning_event + future_events
@@ -103,7 +109,9 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
             # updating if it is currently the minimum
             temp_arr_time = uav.enough_fuel([lightning, self.uav_bases[index_of_closest_base]])
             if temp_arr_time is not None:
-                temp_arr_time = uav.arrival_time([lightning])
+                temp_arr_time = (
+                    uav.arrival_time([lightning]) - lightning.spawn_time
+                ) ** mean_time_power
                 if temp_arr_time < min_arrival_time:
                     min_arrival_time = temp_arr_time
                     best_uav = uav
@@ -115,7 +123,9 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                         [uav_base, lightning, self.uav_bases[index_of_closest_base]]
                     )
                     if temp_arr_time is not None:
-                        temp_arr_time = uav.arrival_time([uav_base, lightning])
+                        temp_arr_time = (
+                            uav.arrival_time([uav_base, lightning]) - lightning.spawn_time
+                        ) ** mean_time_power
                         if temp_arr_time < min_arrival_time:
                             min_arrival_time = temp_arr_time
                             best_uav = uav
@@ -147,6 +157,9 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
         self, ignition: Lightning
     ) -> None:
         """Decide on water bombers movement with new ignition."""
+        mean_time_power = float(
+            self.parameters.get_attribute("wb_mean_time_power", self.scenario_idx)
+        )
         assert ignition.inspected_time is not None, "Error: Ignition was not inspected."
         min_arrival_time: float = inf
         best_water_bomber: Union[WaterBomber, None] = None
@@ -159,27 +172,26 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                 ignition_event: List[Location] = [ignition]
                 future_events: List[Location] = []
                 last_event_position = water_bomber.event_queue.peak_last().position
+                prev_suppression_times: List[float] = []
                 closest_base_to_last_event: Optional[Base] = None
                 if not isinstance(last_event_position, Base):
                     if self.precomputed is None or not isinstance(last_event_position, Lightning):
                         closest_base_to_last_event = bases[
                             int(np.argmin(list(map(last_event_position.distance, bases))))
                         ]
-
                     else:
                         closest_base_to_last_event = bases[
                             self.precomputed.closest_wb_base(last_event_position, water_bomber.type)
                         ]
-                no_of_strikes_after_insertion: int = 0
                 for event, prev_event in water_bomber.event_queue.iterate_backwards():
-                    if isinstance(event.position, Location):
-                        no_of_strikes_after_insertion += 1
-                    prev_arrival_time = event.completion_time
                     future_events.insert(0, event.position)
-                    state: Union[Event, str] = "self"
+                    if isinstance(event.position, Location):
+                        prev_suppression_times.append(event.completion_time)
+                    prev_arrival_time = event.completion_time
+                    prev_state: Union[Event, str] = "self"
                     if prev_event is not None:
-                        state = prev_event.value
-                    if water_bomber.enough_water(ignition_event + future_events, state):
+                        prev_state = prev_event.value
+                    if water_bomber.enough_water(ignition_event + future_events, prev_state):
                         enough_fuel = water_bomber.enough_fuel(
                             ignition_event
                             + future_events
@@ -188,18 +200,21 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                                 if closest_base_to_last_event is not None
                                 else []
                             ),
-                            state,
+                            prev_state,
                         )
                         if enough_fuel is not None:
-                            new_strike_arr_time = water_bomber.arrival_time([ignition], state)
+                            new_strike_arr_time = water_bomber.arrival_time([ignition], prev_state)
                             old_strike_arr_time = water_bomber.arrival_time(
-                                [ignition, event.position], state
+                                [ignition, event.position], prev_state
                             )
+                            additional_arr_time = old_strike_arr_time - prev_arrival_time
                             cumulative_time = (
-                                no_of_strikes_after_insertion
-                                * (old_strike_arr_time - prev_arrival_time)
-                                + new_strike_arr_time
-                            )
+                                new_strike_arr_time - ignition.spawn_time
+                            ) ** mean_time_power
+                            for time in prev_suppression_times:
+                                cumulative_time += (
+                                    time + additional_arr_time
+                                ) ** mean_time_power - time ** mean_time_power
                             if cumulative_time < min_arrival_time:
                                 min_arrival_time = cumulative_time
                                 assigned_locations = ignition_event + future_events
@@ -216,7 +231,9 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
             if water_bomber.enough_water([ignition]):
                 temp_arr_time = water_bomber.enough_fuel([ignition, bases[base_index]])
                 if temp_arr_time is not None:
-                    temp_arr_time = water_bomber.arrival_time([ignition])
+                    temp_arr_time = (
+                        water_bomber.arrival_time([ignition]) - ignition.spawn_time
+                    ) ** mean_time_power
                     if temp_arr_time < min_arrival_time:
                         min_arrival_time = temp_arr_time
                         best_water_bomber = water_bomber
@@ -229,7 +246,9 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                             [base, ignition, bases[base_index]]
                         )
                         if temp_arr_time is not None:
-                            temp_arr_time = water_bomber.arrival_time([base, ignition])
+                            temp_arr_time = (
+                                water_bomber.arrival_time([base, ignition]) - ignition.spawn_time
+                            ) ** mean_time_power
                             if temp_arr_time < min_arrival_time:
                                 min_arrival_time = temp_arr_time
                                 best_water_bomber = water_bomber
@@ -246,7 +265,9 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                         [water_tank, ignition, bases[base_index]]
                     )
                     if water_bomber.check_water_tank(water_tank) and temp_arr_time is not None:
-                        temp_arr_time = water_bomber.arrival_time([water_tank, ignition])
+                        temp_arr_time = (
+                            water_bomber.arrival_time([water_tank, ignition]) - ignition.spawn_time
+                        ) ** mean_time_power
                         if temp_arr_time < min_arrival_time:
                             min_arrival_time = temp_arr_time
                             best_water_bomber = water_bomber
@@ -268,9 +289,10 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                                 water_bomber.check_water_tank(water_tank)
                                 and temp_arr_time is not None
                             ):
-                                temp_arr_time = water_bomber.arrival_time(
-                                    [water_tank, base, ignition]
-                                )
+                                temp_arr_time = (
+                                    water_bomber.arrival_time([water_tank, base, ignition])
+                                    - ignition.spawn_time
+                                ) ** mean_time_power
                                 if temp_arr_time < min_arrival_time:
                                     min_arrival_time = temp_arr_time
                                     best_water_bomber = water_bomber
@@ -288,9 +310,10 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                                 water_bomber.check_water_tank(water_tank)
                                 and temp_arr_time is not None
                             ):
-                                temp_arr_time = water_bomber.arrival_time(
-                                    [base, water_tank, ignition]
-                                )
+                                temp_arr_time = (
+                                    water_bomber.arrival_time([base, water_tank, ignition])
+                                    - ignition.spawn_time
+                                ) ** mean_time_power
                                 if temp_arr_time < min_arrival_time:
                                     min_arrival_time = temp_arr_time
                                     best_water_bomber = water_bomber

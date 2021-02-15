@@ -6,18 +6,23 @@ from typing import Dict, List, Optional, Set, Tuple
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.fire_utils import Base, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
+from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.precomupted import PreComputedDistances
 
 
 class UAVCoordinator:
     """Class for centrally coordinating UAVs."""
 
-    def __init__(self, uavs: List[UAV], uav_bases: List[Base]):
+    def __init__(
+        self, uavs: List[UAV], uav_bases: List[Base], parameters: JSONParameters, scenario_idx: int
+    ):
         """Initialize coordinator."""
         self.uavs: List[UAV] = uavs
         self.uav_bases: List[Base] = uav_bases
         self.uninspected_strikes: Set[Lightning] = set()
         self.precomputed: Optional[PreComputedDistances] = None
+        self.parameters = parameters
+        self.scenario_idx = scenario_idx
 
     def accept_precomputed_distances(self, precomputed: PreComputedDistances) -> None:
         """Accept precomputed distance class with distances already evaluated."""
@@ -45,11 +50,13 @@ class UAVCoordinator:
 class WBCoordinator:
     """Class for centrally coordinating water bombers."""
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         water_bombers: List[WaterBomber],
         water_bomber_bases: Dict[str, List[Base]],
         water_tanks: List[WaterTank],
+        parameters: JSONParameters,
+        scenario_idx: int,
     ):
         """Initialize coordinator."""
         self.water_bombers: List[WaterBomber] = water_bombers
@@ -58,6 +65,8 @@ class WBCoordinator:
         self.uninspected_strikes: Set[Lightning] = set()
         self.unsuppressed_strikes: Set[Lightning] = set()
         self.precomputed: Optional[PreComputedDistances] = None
+        self.parameters = parameters
+        self.scenario_idx = scenario_idx
 
     def accept_precomputed_distances(self, precomputed: PreComputedDistances) -> None:
         """Accept precomputed distance class with distances already evaluated."""

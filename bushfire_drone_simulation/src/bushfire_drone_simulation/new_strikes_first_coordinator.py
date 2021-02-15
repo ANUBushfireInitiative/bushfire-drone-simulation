@@ -11,6 +11,7 @@ from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoo
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.fire_utils import Base, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
+from bushfire_drone_simulation.parameters import JSONParameters
 
 _LOG = logging.getLogger(__name__)
 
@@ -18,9 +19,11 @@ _LOG = logging.getLogger(__name__)
 class NewStrikesFirstUAVCoordinator(UAVCoordinator):
     """New Strikes First UAV Coordinator."""
 
-    def __init__(self, uavs: List[UAV], uav_bases: List[Base]):
+    def __init__(
+        self, uavs: List[UAV], uav_bases: List[Base], parameters: JSONParameters, scenario_idx: int
+    ):
         """Initialize UAV coordinator."""
-        super().__init__(uavs, uav_bases)
+        super().__init__(uavs, uav_bases, parameters, scenario_idx)
         self.assigned_drones: Dict[int, List[Lightning]] = {}
         self.strikes_to_be_processed: "Queue[Lightning]" = Queue()
         self.assigned_this_round: List[bool] = [False for _ in self.uavs]
@@ -120,14 +123,16 @@ class NewStrikesFirstUAVCoordinator(UAVCoordinator):
 class NewStrikesFirstWBCoordinator(WBCoordinator):
     """New strikes first water bomber coordinator."""
 
-    def __init__(
+    def __init__(  # pylint: disable= too-many-arguments
         self,
         water_bombers: List[WaterBomber],
         water_bomber_bases: Dict[str, List[Base]],
         water_tanks: List[WaterTank],
+        parameters: JSONParameters,
+        scenario_idx: int,
     ):
         """Initialize UAV coordinator."""
-        super().__init__(water_bombers, water_bomber_bases, water_tanks)
+        super().__init__(water_bombers, water_bomber_bases, water_tanks, parameters, scenario_idx)
         self.assigned_bombers: Dict[str, List[Lightning]] = {}
         self.strikes_to_be_processed: "Queue[Lightning]" = Queue()
 

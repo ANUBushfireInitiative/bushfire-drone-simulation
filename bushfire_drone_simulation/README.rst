@@ -112,8 +112,13 @@ The JSON parameters file should contain the following information formatted as i
     .. code-block:: json
 
         {
+            "uav_mean_time_power": 1,
+            "wb_mean_time_power": 1,
             "ignition_probability": "the probability a given lightning strike will ignite"
         }
+
+    ``uav_mean_time_power`` and ``wb_mean_time_power`` are only required when using the MinimiseMeanTimeUAVCoordinator and MinimiseMeanTimeWBCoordinator respectively. They control the power of the time that the program tries to minimize, e.g. a value of 1 will try to minimize the mean time whereas a value of 2 will try to minimize the mean(time^2).
+    ``ignition_probability`` is the probability of each strike igniting if not specified in the lightning input file.
 
 *  A dictionary containing the following information about UAVs
 
@@ -321,6 +326,8 @@ please see bushfire_drone_simulation/example_input.
         "output_folder_name": "output",
         "uav_coordinator": "MatlabUAVCoordinator",
         "wb_coordinator": "MatlabWBCoordinator",
+        "uav_mean_time_power": 1,
+        "wb_mean_time_power": 1,
         "ignition_probability": 0.072,
         "uavs": {
             "spawn_loc_file": "uav_spawn_locations.csv",

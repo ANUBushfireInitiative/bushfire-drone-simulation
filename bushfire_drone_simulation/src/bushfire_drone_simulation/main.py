@@ -77,10 +77,14 @@ def run_simulation(
     for scenario_idx in tqdm(range(0, len(params.scenarios)), unit="scenario"):
         simulator = Simulator(params, scenario_idx)
         uav_coordinator = UAV_COORDINATORS[params.get_attribute("uav_coordinator", scenario_idx)](
-            simulator.uavs, simulator.uav_bases
+            simulator.uavs, simulator.uav_bases, params, scenario_idx
         )
         wb_coordinator = WB_COORDINATORS[params.get_attribute("wb_coordinator", scenario_idx)](
-            simulator.water_bombers, simulator.water_bomber_bases_dict, simulator.water_tanks
+            simulator.water_bombers,
+            simulator.water_bomber_bases_dict,
+            simulator.water_tanks,
+            params,
+            scenario_idx,
         )
         simulator.run_simulation(uav_coordinator, wb_coordinator)
 
