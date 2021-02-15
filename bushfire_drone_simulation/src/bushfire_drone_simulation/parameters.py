@@ -404,6 +404,7 @@ class JSONParameters:
                     "Fuel capacity (%)",
                     "Current range (km)",
                     "Status",
+                    "Next updates",
                 ]
             )
             all_uav_updates: List[UpdateEvent] = []
@@ -423,6 +424,7 @@ class JSONParameters:
                         uav_update.fuel * 100,
                         Distance(uav_update.current_range).get("km"),
                         str(uav_update.status),
+                        uav_update.list_of_next_events,
                     ]
                 )
 
@@ -450,6 +452,7 @@ class JSONParameters:
                     "Current range (km)",
                     "Water capacity (L)",
                     "Status",
+                    "Next updates",
                 ]
             )
             all_wb_updates: List[UpdateEvent] = []
@@ -470,6 +473,7 @@ class JSONParameters:
                         Distance(wb_update.current_range).get("km"),
                         Volume(wb_update.water).get("L"),
                         str(wb_update.status),
+                        wb_update.list_of_next_events,
                     ]
                 )
 
