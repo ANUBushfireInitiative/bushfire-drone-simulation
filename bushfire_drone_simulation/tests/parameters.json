@@ -9,6 +9,8 @@
     "wb_coordinator": "?",
     "uav_mean_time_power": 1,
     "wb_mean_time_power": 1,
+    "target_maximum_inspection_time": 0.5,
+    "target_maximum_suppression_time": 1,
     "ignition_probability": 1,
 
     "uavs": {"spawn_loc_file": "input_data/uav_spawn_locations.csv",
