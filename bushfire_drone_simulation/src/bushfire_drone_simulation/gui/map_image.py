@@ -116,18 +116,31 @@ class MapImage:
 
     def _fetch_image(self) -> None:
         """_fetch_image."""
-        geotiler_map = geotiler.Map(
+        self.geotiler_map = geotiler.Map(
             center=(self.display_lon, self.display_lat),
             zoom=self.zoom,
             size=(self.width * 2, self.height * 2),
         )
         self.lat = self.display_lat
         self.lon = self.display_lon
-        self.extent = geotiler_map.extent
+        self.extent = self.geotiler_map.extent
         self.reload_required = False
-        self.big_image: PIL.Image.Image = render_map(geotiler_map)
-        self.left = int((self.big_image.size[0] - self.width) / 2)
-        self.top = int((self.big_image.size[1] - self.height) / 2)
+        self.big_image: PIL.Image.Image = render_map(self.geotiler_map)
+        self.left = int((self.big_image.width - self.width) / 2)
+        self.top = int((self.big_image.height - self.height) / 2)
+
+    def get_coordinates(self, latitude: float, longitude: float) -> Tuple[int, int]:
+        """Get pixel coordinates on the map image from a latitude and longitude.
+
+        Args:
+            latitude (float): latitude
+            longitude (float): longitude
+
+        Returns:
+            Tuple[int, int]: Pixel coordinates
+        """
+        big_x, big_y = self.geotiler_map.rev_geocode((longitude, latitude))
+        return big_x - self.left, big_y - self.top
 
     def _update_image(self) -> None:
         """_update_image."""

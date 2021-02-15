@@ -41,10 +41,10 @@ class Location:
         z = h_1 * sin(radians(self.lat)) + h_2 * sin(radians(other.lat))
         return Location(degrees(atan2(z, sqrt(x * x + y * y))), degrees(atan2(y, x)))
 
-    def to_coordinates(self) -> Tuple[float, float]:
-        """Return pixel coordinates of location."""
-        # FIXME(not converting lat lon to coordinates)  # pylint: disable=fixme
-        return (self.lon - 144) * 100, (-34 - self.lat) * 150
+    # def to_coordinates(self) -> Tuple[float, float]:
+    # """Return pixel coordinates of location."""
+    # # FIXME(not converting lat lon to coordinates)  # pylint: disable=fixme
+    # return (self.lon - 144) * 100, (-34 - self.lat) * 150
 
     def copy_loc(self) -> "Location":
         """Create a new instance of Location."""

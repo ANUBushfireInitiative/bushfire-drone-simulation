@@ -154,7 +154,7 @@ class JSONParameters:
                     lons[i],
                     (
                         f"Error: The longitude on row {i+1} of '{filename}' "
-                        "('{lons[i]}') isn't a number"
+                        f"('{lons[i]}') isn't a number"
                     ),
                 )
                 starting_at_base = assert_bool(
@@ -265,8 +265,8 @@ class JSONParameters:
         if attribute not in self.scenarios[scenario_idx]:
             raise Exception(
                 f"Error: Parameter '{attribute}' is missing in '{self.filepath}'.\n"
-                "Please add '{attribute}' to '{self.filepath}' "
-                "and run the simulation again"
+                f"Please add '{attribute}' to '{self.filepath}' "
+                f"and run the simulation again"
             )
         return self.scenarios[scenario_idx][attribute]
 
