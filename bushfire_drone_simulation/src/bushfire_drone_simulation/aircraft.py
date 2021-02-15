@@ -31,15 +31,15 @@ EPSILON: float = 0.001
 class Status(Enum):
     """Enum for Aircraft status."""
 
-    HOVERING = 0
-    GOING_TO_STRIKE = 1
-    INSPECTING_STRIKE = 2
-    WAITING_AT_BASE = 3
-    GOING_TO_BASE = 4
-    REFUELING_AT_BASE = 5
-    WAITING_AT_WATER = 6
-    GOING_TO_WATER = 7
-    REFILLING_WATER = 8
+    HOVERING = "Hovering"
+    GOING_TO_STRIKE = "Going to strike"
+    INSPECTING_STRIKE = "Inspecting strike"
+    WAITING_AT_BASE = "Waiting at base"
+    GOING_TO_BASE = "Going to base"
+    REFUELING_AT_BASE = "Refueling at base"
+    WAITING_AT_WATER = "Waiting at watertank"
+    GOING_TO_WATER = "Going to watertank"
+    REFILLING_WATER = "Refilling at watertank"
 
 
 class StatusWithId:  # pylint: disable=too-few-public-methods
@@ -96,7 +96,7 @@ class UpdateEvent(Location):  # pylint: disable=too-few-public-methods
         self.distance_hovered = distance_hovered
         self.water = current_water
         self.time = time
-        self.status: str = str(status)
+        self.status: str = status.value
         self.list_of_next_events = list_of_next_events
         if loc_id_no is not None:
             self.status += " " + str(loc_id_no)
@@ -757,10 +757,10 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         distance_hovered = 0.0
         if previous_update.status == Status.HOVERING:
             distance_hovered = (self.time - previous_update.time) * self.flight_speed
-        list_of_next_events: List[str] = []
+        next_events: List[str] = []
         for event in self.event_queue:
             if isinstance(event.position, (Lightning, Base, WaterTank)):
-                list_of_next_events.append(f"{event.departure_status} {event.position.id_no}")
+                next_events.append(f"{event.departure_status.value} {event.position.id_no}")
         self.past_locations.append(
             UpdateEvent(
                 self.get_name(),
@@ -773,7 +773,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                 self.get_range() * self.current_fuel_capacity,
                 distance_hovered,
                 self._get_water_on_board(),
-                list_of_next_events,
+                next_events,
                 loc_id_no=loc_id_no,
             )
         )

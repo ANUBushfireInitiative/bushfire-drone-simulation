@@ -8,6 +8,7 @@ import os
 import shutil
 import sys
 from functools import reduce
+from math import isinf
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
@@ -309,7 +310,7 @@ class JSONParameters:
 
         water_bomber_names = [wb.name for wb in water_bombers]
         num_suppressed = [len(wb.strikes_visited) for wb in water_bombers]
-        axs[1, 0].set_title("Lightning strikes suppressed per helicopter")
+        axs[1, 0].set_title("Lightning strikes suppressed per water bomber")
         axs[1, 0].bar(water_bomber_names, num_suppressed)
         axs[1, 0].tick_params(labelrotation=90)
 
@@ -317,7 +318,11 @@ class JSONParameters:
         axs[1, 1].set_title("Water tank levels after suppression")
         axs[1, 1].bar(
             water_tank_ids,
-            [Volume(wt.initial_capacity).get(units="kL") for wt in water_tanks],
+            [
+                Volume(wt.initial_capacity).get(units="kL")
+                for wt in water_tanks
+                if not isinf(wt.initial_capacity)
+            ],
             label="Full Capacity",
             color="orange",
         )
@@ -350,6 +355,7 @@ class JSONParameters:
             filewriter = csv.writer(outputfile)
             lats: List[float] = []
             lons: List[float] = []
+            spawn_times: List[float] = []
             inspection_times: List[Union[float, str]] = []
             suppression_times: List[Union[float, str]] = []
             inspection_times_to_return: List[float] = []
@@ -357,6 +363,7 @@ class JSONParameters:
             for strike in lightning_strikes:
                 lats.append(strike.lat)
                 lons.append(strike.lon)
+                spawn_times.append(Time.from_time(strike.spawn_time).get("hr"))
                 if strike.inspected_time is not None:
                     inspection_times.append(
                         Time.from_time(strike.inspected_time - strike.spawn_time).get("hr"),
@@ -379,9 +386,15 @@ class JSONParameters:
                     if strike.ignition:
                         _LOG.error("strike %s ignited but was not suppressed", str(strike.id_no))
             filewriter.writerow(
-                ["Latitude", "Longitude", "Inspection time (hr)", "Suppression time (hr)"]
+                [
+                    "Latitude",
+                    "Longitude",
+                    "Spawn time (hr)",
+                    "Inspection time (hr)",
+                    "Suppression time (hr)",
+                ]
             )
-            for row in zip(lats, lons, inspection_times, suppression_times):
+            for row in zip(lats, lons, spawn_times, inspection_times, suppression_times):
                 filewriter.writerow(row)
         return inspection_times_to_return, suppression_times_to_return
 
