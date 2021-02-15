@@ -439,7 +439,7 @@ class JSONParameters:
                         Distance(uav_update.distance_hovered).get("km"),
                         uav_update.fuel * 100,
                         Distance(uav_update.current_range).get("km"),
-                        str(uav_update.status_str),
+                        uav_update.status_str,
                         uav_update.list_of_next_events,
                     ]
                 )

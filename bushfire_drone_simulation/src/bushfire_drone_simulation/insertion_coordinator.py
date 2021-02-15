@@ -8,7 +8,7 @@ import numpy as np
 
 from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoordinator
 from bushfire_drone_simulation.aircraft import UAV, Event, WaterBomber
-from bushfire_drone_simulation.fire_utils import Location
+from bushfire_drone_simulation.fire_utils import Base, Location
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.linked_list import Node
 
@@ -41,15 +41,22 @@ class InsertionUAVCoordinator(UAVCoordinator):
                 lightning_event: List[Location] = [lightning]
                 future_events: List[Location] = []
                 base: List[Location] = []
-                if isinstance(uav.event_queue.peak_last().position, Lightning):
+                last_event_position = uav.event_queue.peak_last().position
+                if isinstance(last_event_position, Lightning):
                     if self.precomputed is None:
                         base = [
                             self.uav_bases[
-                                int(np.argmin(list(map(lightning.distance, self.uav_bases))))
+                                int(
+                                    np.argmin(
+                                        list(map(last_event_position.distance, self.uav_bases))
+                                    )
+                                )
                             ]
                         ]
                     else:
-                        base = [self.uav_bases[self.precomputed.closest_uav_base(lightning)]]
+                        base = [
+                            self.uav_bases[self.precomputed.closest_uav_base(last_event_position)]
+                        ]
 
                 for event, prev_event in uav.event_queue.iterate_backwards():
                     assert isinstance(
@@ -136,31 +143,36 @@ class InsertionWBCoordinator(WBCoordinator):
             if not water_bomber.event_queue.is_empty():
                 ignition_event: List[Location] = [ignition]
                 future_events: List[Location] = []
-                final_strike_base: List[Location] = []
-                if isinstance(water_bomber.event_queue.peak_last().position, Lightning):
-                    if self.precomputed is None:
-                        final_strike_base = [
-                            bases[int(np.argmin(list(map(ignition.distance, bases))))]
+                closest_base_to_last_event: List[Location] = []
+                last_event_position = water_bomber.event_queue.peak_last().position
+                if not isinstance(last_event_position, Base):
+                    if self.precomputed is None or not isinstance(last_event_position, Lightning):
+                        closest_base_to_last_event = [
+                            bases[int(np.argmin(list(map(last_event_position.distance, bases))))]
                         ]
                     else:
-                        final_strike_base = [
-                            bases[self.precomputed.closest_wb_base(ignition, water_bomber.type)]
+                        closest_base_to_last_event = [
+                            bases[
+                                self.precomputed.closest_wb_base(
+                                    last_event_position, water_bomber.type
+                                )
+                            ]
                         ]
-
                 for event, prev_event in water_bomber.event_queue.iterate_backwards():
                     future_events.insert(0, event.position)
                     temp_arr_time = None
                     if prev_event is None:  # no more events in queue, use aircraft current state
                         if water_bomber.enough_water(ignition_event + future_events, "self"):
                             temp_arr_time = water_bomber.enough_fuel(
-                                ignition_event + future_events + final_strike_base, "self"
+                                ignition_event + future_events + closest_base_to_last_event, "self"
                             )
                     else:
                         if water_bomber.enough_water(
                             ignition_event + future_events, prev_event.value
                         ):
                             temp_arr_time = water_bomber.enough_fuel(
-                                ignition_event + future_events + final_strike_base, prev_event.value
+                                ignition_event + future_events + closest_base_to_last_event,
+                                prev_event.value,
                             )
                     if temp_arr_time is not None:
                         if temp_arr_time < min_arrival_time:
