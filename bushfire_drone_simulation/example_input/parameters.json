@@ -7,6 +7,10 @@
     "output_folder_name": "output",
     "uav_coordinator": "MatlabUAVCoordinator",
     "wb_coordinator": "MatlabWBCoordinator",
+    "uav_mean_time_power": 1,
+    "wb_mean_time_power": 1,
+    "target_maximum_inspection_time": 0.5,
+    "target_maximum_suppression_time": 1,
     "ignition_probability": "?",
 
     "uavs": {"spawn_loc_file": "input_data/uav_spawn_locations.csv",

@@ -163,7 +163,7 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                         if inspection_time > target_max_time:
                             if temp_arr_time < min_arr_time_above_target:
                                 min_arr_time_above_target = temp_arr_time
-                                assigned_locations_above_target = [lightning]
+                                assigned_locations_above_target = [uav_base, lightning]
                                 start_from_above_target = None
                                 best_uav_above_target = uav
 
@@ -182,6 +182,7 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
             for location in assigned_locations:
                 best_uav.add_location_to_queue(location, lightning.spawn_time)
         elif best_uav_above_target is not None:
+            # print("UAV Couldn't stay below max inspection time target")
             _LOG.debug("Couldn't stay below max inspection time target")
             _LOG.debug("Best UAV is: %s", best_uav_above_target.get_name())
             if start_from_above_target is not None:
@@ -445,6 +446,7 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
             for location in assigned_locations:
                 best_water_bomber.add_location_to_queue(location, ignition.inspected_time)
         elif best_water_bomber_above_target is not None:
+            # print("Couldn't stay below max inspection time target")
             _LOG.debug("Couldn't stay below max inspection time target")
             _LOG.debug("Best water bomber is: %s", best_water_bomber_above_target.get_name())
             if start_from_above_target is not None:

@@ -114,10 +114,18 @@ The JSON parameters file should contain the following information formatted as i
         {
             "uav_mean_time_power": 1,
             "wb_mean_time_power": 1,
+            "target_maximum_inspection_time": 1,
+            "target_maximum_suppression_time": 1,
             "ignition_probability": "the probability a given lightning strike will ignite"
         }
 
     ``uav_mean_time_power`` and ``wb_mean_time_power`` are only required when using the MinimiseMeanTimeUAVCoordinator and MinimiseMeanTimeWBCoordinator respectively. They control the power of the time that the program tries to minimize, e.g. a value of 1 will try to minimize the mean time whereas a value of 2 will try to minimize the mean(time^2).
+
+    ``target_maximum_inspection_time`` and ``target_maximum_suppression_time`` (in hours) are similarly only required when using the MinimiseMeanTimeUAVCoordinator or MinimiseMeanTimeWBCoordinator.    They will try to avoid the coordinator reallocating aircraft such that the inspection/supression times
+    exceed the target maximum provided. However if it is not possible for the coordinator to reallocate
+    such that this is the case then the coordinator will select the allocation that minimises the mean time
+    (to a given power as discussed above).
+
     ``ignition_probability`` is the probability of each strike igniting if not specified in the lightning input file.
 
 *  A dictionary containing the following information about UAVs
