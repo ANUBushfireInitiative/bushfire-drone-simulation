@@ -359,3 +359,86 @@ please see bushfire_drone_simulation/example_input.
             }
         }
     }
+
+
+
+Simulation Output
+-----------------
+
+The output from the simulation consits of 4 files and a simulation input folder for each scenario
+which can be found in the output folder. The files and folder are denoted with their associated
+scenario name (specified in the scenario parameters file (see Required Input)) and then a name describing
+the output they contain. The contents of the 4 files and simulation input folder are described below.
+
+Simulation Input Folder
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The simulation input folder contins the JSON parameters file used to run the simulation as well as all
+relavent csv files. Relavent csv files include all those referred to in JSON parameters as well as any
+additional files referred to in the scenario parameters csv file (for example if different scenarios
+used different UAV spawn locations).
+
+The purpose of this folder is for the user to recall the input data that returned
+the output of the simulation, not for ease of running the simulation again with these parameters.
+Therefore, the csv files are placed in the same level directory as the JSON parameters file,
+that is, any sub directories that previously existed in the input data will not be included. This means
+that the paths specified in the JSON parameters may no longer be correct so in order to run the simulation
+again the user will need to correct these paths.
+
+Inspection Times Plot
+~~~~~~~~~~~~~~~~~~~~~
+This png file contains 4 plots which are as follows:
+
+* Histogram of UAV inspection times
+    This plot as the name describes simply presents a histogram of the inspection times for each strike
+    in the specified csv file. Note that if a strike was not inspected it is not included in this plot
+    (rather an error message is presented on the terminal alterting the user to this fact).
+
+* Histogram of suppression times
+    Similarly to the inspection times plot, this plot presents a histogram of the suppression times for each
+    strike not including any strikes that did not ignite or that did ignite but were not suppressed
+    (again a error will be displayed on the terminal if this is the case).
+
+* Lightning strikes inspected per water bomber
+    Another histogram indicating how many strikes each water bomber inspected.
+
+* Water tank levels after suppression
+    This histogram depicts both the intial capacity and the final capacity after the simulation is complete
+    of all water tanks specified in the input data. Note that if the water tanks have an infinite
+    capacity these are not displayed on the histogram.
+
+
+Simulation Output
+~~~~~~~~~~~~~~~~~
+
+This csv file simply contains the ID number, position, spawn time, inspection time and supression time
+of every strike from the scenario. If a strike was not inspected or suppressed (either because it
+did not ignite or there were no water bombers avalible), the inspected or suppression time will be
+denoted 'N/A'.
+
+UAV Event Updates
+~~~~~~~~~~~~~~~~~
+
+The UAV event updates csv file contains all movements of the UAVs throughout the entire simulation.
+These updates are listed in chronological order so if a particular drones movements would like to
+be analysed it is recommened that a filter function is used to filter out the desired data.
+Each movement update of the UAV contains the following information:
+
+* **UAV ID** - the UAV in question
+* **Latitude** - the latitude from which the UAV is departing from
+* **Longitude** - the longitude from which the UAV is departing from
+* **Time** (min) - the absolute time (relative to 0) of departure
+* **Distance travelled** (km) - the distance travelled since the previous update
+* **Distance hovered** (km) - the distance hovered since the previous update
+* **Fuel capacity** (%) - the fuel capacity upon departure
+* **Current range** (km) - the range of the aircraft upon departure
+* **Status** - what the aircraft is now doing
+* **Next updates** - what the aircraft will do in future if the coordinator does not tell it otherwise
+
+Water Bomber Event Updates
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The water bomber event updates are structed exactly as the UAV updates however they include one
+additional column:
+
+* **Water capacity** (L): the water on board of the aircraft upon departure

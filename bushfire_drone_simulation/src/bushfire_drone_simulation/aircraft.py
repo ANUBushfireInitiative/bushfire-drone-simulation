@@ -1,5 +1,4 @@
-"""Aircraft module for various aircraft classes."""  # pylint: disable=too-many-lines
-
+"""Aircraft module for various aircraft classes."""
 import logging
 import math
 from abc import abstractmethod
@@ -90,16 +89,17 @@ class UpdateEvent(Location):  # pylint: disable=too-few-public-methods
             current_water (float): Current water on board aircraft.
         """
         self.name = name
-        self.distance_travelled = distance_travelled  # since previous update
+        self.distance_travelled = distance_travelled
         self.fuel = current_fuel
         self.current_range = current_range
         self.distance_hovered = distance_hovered
         self.water = current_water
         self.time = time
-        self.status: str = status.value
+        self.status = status
+        self.status_str: str = status.value
         self.list_of_next_events = list_of_next_events
         if loc_id_no is not None:
-            self.status += " " + str(loc_id_no)
+            self.status_str += " " + str(loc_id_no)
         super().__init__(latitude, longitude)
 
     def __lt__(self, other: "UpdateEvent") -> bool:
@@ -176,16 +176,6 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
     def accept_precomputed_distances(self, precomputed: PreComputedDistances) -> None:
         """Accept precomputed distance class with distances already evaluated."""
         self.precomputed = precomputed
-
-    def fuel_refill(self, base: Base) -> None:  # pylint: disable=unused-argument
-        """Update time and range of aircraft after fuel refill.
-
-        Args:
-            base (Base): base to be refilled from
-        """
-        # base.empty()
-        self.current_fuel_capacity = 1.0
-        self.time += self.fuel_refill_time
 
     def _update_location(self, position: Location) -> None:
         """Update location of aircraft."""
@@ -390,7 +380,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             and update_time - self.required_departure_time > -EPSILON
         ):
             assert self.closest_base is not None
-            self.go_to_base_from_consider(self.closest_base, self.required_departure_time)
+            self.go_to_base(self.closest_base, self.required_departure_time)
         assert isinstance(update_time, float)
         if update_time > self.time and not math.isinf(update_time):
             if self.status == Status.HOVERING:
@@ -498,7 +488,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         else:
             _LOG.error("Input to accept update should be a base, strike or water tank")
 
-    def go_to_base_from_consider(self, base: Base, departure_time: float) -> None:
+    def go_to_base(self, base: Base, departure_time: float) -> None:
         """Go to and refill Aircraft at base."""
         if departure_time - self.time > EPSILON:
             assert self.status == Status.HOVERING  # Must have been called from consider
@@ -514,7 +504,9 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         self._update_location(base)
         self.status = Status.REFUELING_AT_BASE
         self._add_update(base.id_no)
-        self.fuel_refill(base)
+        # base.empty()
+        self.current_fuel_capacity = 1.0
+        self.time += self.fuel_refill_time
         # event queue is always empty
         self.status = Status.WAITING_AT_BASE
         self._add_update(base.id_no)

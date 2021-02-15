@@ -353,6 +353,7 @@ class JSONParameters:
             newline="",
         ) as outputfile:
             filewriter = csv.writer(outputfile)
+            id_nos: List[int] = []
             lats: List[float] = []
             lons: List[float] = []
             spawn_times: List[float] = []
@@ -361,6 +362,7 @@ class JSONParameters:
             inspection_times_to_return: List[float] = []
             suppression_times_to_return: List[float] = []
             for strike in lightning_strikes:
+                id_nos.append(strike.id_no)
                 lats.append(strike.lat)
                 lons.append(strike.lon)
                 spawn_times.append(Time.from_time(strike.spawn_time).get("hr"))
@@ -387,6 +389,7 @@ class JSONParameters:
                         _LOG.error("strike %s ignited but was not suppressed", str(strike.id_no))
             filewriter.writerow(
                 [
+                    "Strike ID",
                     "Latitude",
                     "Longitude",
                     "Spawn time (hr)",
@@ -394,7 +397,7 @@ class JSONParameters:
                     "Suppression time (hr)",
                 ]
             )
-            for row in zip(lats, lons, spawn_times, inspection_times, suppression_times):
+            for row in zip(id_nos, lats, lons, spawn_times, inspection_times, suppression_times):
                 filewriter.writerow(row)
         return inspection_times_to_return, suppression_times_to_return
 
@@ -436,7 +439,7 @@ class JSONParameters:
                         Distance(uav_update.distance_hovered).get("km"),
                         uav_update.fuel * 100,
                         Distance(uav_update.current_range).get("km"),
-                        str(uav_update.status),
+                        str(uav_update.status_str),
                         uav_update.list_of_next_events,
                     ]
                 )
