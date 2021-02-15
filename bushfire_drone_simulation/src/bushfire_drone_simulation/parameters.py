@@ -145,6 +145,22 @@ class JSONParameters:
             start_locs = water_bomber_spawn_locs["starting at base"]
             fuel = water_bomber_spawn_locs["initial fuel"]
             attributes = water_bomber["attributes"]
+            for attribute in [
+                "flight_speed",
+                "fuel_refill_time",
+                "range_empty",
+                "range_under_load",
+                "water_refill_time",
+                "bombing_time",
+                "water_per_delivery",
+                "water_capacity",
+            ]:
+                if attribute not in attributes:
+                    raise Exception(
+                        f"Error: Parameter '{attribute}' is missing in '{self.filepath}'.\n"
+                        f"Please add '{attribute}' to '{self.filepath}' "
+                        f"and run the simulation again"
+                    )
             for i, lat in enumerate(lats):
                 lat = assert_number(
                     lat,
@@ -230,6 +246,13 @@ class JSONParameters:
         fuel = uav_spawn_locs["initial fuel"]
         uavs: List[UAV] = []
         attributes = uav_data["attributes"]
+        for attribute in ["flight_speed", "fuel_refill_time", "range", "inspection_time"]:
+            if attribute not in attributes:
+                raise Exception(
+                    f"Error: Parameter '{attribute}' is missing in '{self.filepath}'.\n"
+                    f"Please add '{attribute}' to '{self.filepath}' "
+                    f"and run the simulation again"
+                )
         for i, lat in enumerate(lats):
             lat = assert_number(
                 lat,
