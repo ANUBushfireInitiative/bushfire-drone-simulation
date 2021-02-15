@@ -49,7 +49,7 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                 lightning_event: List[Location] = [lightning]
                 future_events: List[Location] = []
                 closest_base_to_last_event: Optional[Base] = None
-                last_event_position = uav.event_queue.peak_first().position
+                last_event_position = uav.event_queue.peak_last().position
                 if isinstance(last_event_position, Lightning):
                     if self.precomputed is None:
                         closest_base_to_last_event = self.uav_bases[
@@ -60,7 +60,7 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                             self.precomputed.closest_uav_base(last_event_position)
                         ]
                 no_of_strikes_after_insertion: int = 0
-                for event, prev_event in uav.event_queue:
+                for event, prev_event in uav.event_queue.iterate_backwards():
                     future_events.insert(0, event.position)
                     if isinstance(event.position, Lightning):
                         no_of_strikes_after_insertion += 1
@@ -127,7 +127,7 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                 if isinstance(start_from, str):
                     best_uav.event_queue.clear()
                 else:
-                    best_uav.event_queue.delete_up_to(start_from)
+                    best_uav.event_queue.delete_after(start_from)
             for location in assigned_locations:
                 best_uav.add_location_to_queue(location, lightning.spawn_time)
         else:
@@ -158,7 +158,7 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
             if not water_bomber.event_queue.is_empty():
                 ignition_event: List[Location] = [ignition]
                 future_events: List[Location] = []
-                last_event_position = water_bomber.event_queue.peak_first().position
+                last_event_position = water_bomber.event_queue.peak_last().position
                 closest_base_to_last_event: Optional[Base] = None
                 if not isinstance(last_event_position, Base):
                     if self.precomputed is None or not isinstance(last_event_position, Lightning):
@@ -171,7 +171,7 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                             self.precomputed.closest_wb_base(last_event_position, water_bomber.type)
                         ]
                 no_of_strikes_after_insertion: int = 0
-                for event, prev_event in water_bomber.event_queue:
+                for event, prev_event in water_bomber.event_queue.iterate_backwards():
                     if isinstance(event.position, Location):
                         no_of_strikes_after_insertion += 1
                     prev_arrival_time = event.completion_time
@@ -302,7 +302,7 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                 if isinstance(start_from, str):
                     best_water_bomber.event_queue.clear()
                 else:
-                    best_water_bomber.event_queue.delete_up_to(start_from)
+                    best_water_bomber.event_queue.delete_after(start_from)
             for location in assigned_locations:
                 best_water_bomber.add_location_to_queue(location, ignition.inspected_time)
 

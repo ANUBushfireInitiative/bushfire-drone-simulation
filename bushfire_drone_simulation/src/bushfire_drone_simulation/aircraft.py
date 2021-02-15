@@ -207,38 +207,38 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         """
         if self.event_queue.is_empty() or self.use_current_status:
             return self.time, self.current_fuel_capacity, Location(self.lat, self.lon)
-        future_event = self.event_queue.peak_first()
+        future_event = self.event_queue.peak_last()
         return future_event.completion_time, future_event.completion_fuel, future_event.position
 
     def _get_future_time(self) -> float:
         """Return time as if all elements of the event queue have been completed."""
         if self.event_queue.is_empty() or self.use_current_status:
             return self.time
-        return self.event_queue.peak_first().completion_time
+        return self.event_queue.peak_last().completion_time
 
     def _get_future_position(self) -> Location:
         """Return position as if all elements of the event queue have been completed."""
         if self.event_queue.is_empty() or self.use_current_status:
             return Location(self.lat, self.lon)
-        return self.event_queue.peak_first().position
+        return self.event_queue.peak_last().position
 
     def _get_future_fuel(self) -> float:
         """Return fuel capacity as if all elements of the event queue have been completed."""
         if self.event_queue.is_empty() or self.use_current_status:
             return self.current_fuel_capacity
-        return self.event_queue.peak_first().completion_fuel
+        return self.event_queue.peak_last().completion_fuel
 
     def _get_future_water(self) -> float:
         """Return water on board as if all elements of the event queue have been completed."""
         if self.event_queue.is_empty() or self.use_current_status:
             return self._get_water_on_board()
-        return self.event_queue.peak_first().water
+        return self.event_queue.peak_last().water
 
     def _get_future_status(self) -> Status:
         """Return water on board as if all elements of the event queue have been completed."""
         if self.event_queue.is_empty() or self.use_current_status:
             return self.status
-        return self.event_queue.peak_first().completion_status
+        return self.event_queue.peak_last().completion_status
 
     def _get_water_per_delivery(self) -> float:
         """Return water per delivery time of Aircraft."""
@@ -284,7 +284,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
     def _complete_event(self) -> Tuple[Optional[Lightning], Optional[Lightning]]:
         """Completes next event in queue and returns list of strikes inspected and suppressed."""
         assert not self.event_queue.is_empty(), "Complete event was called on empty queue"
-        event = self.event_queue.get_last()
+        event = self.event_queue.get_first()
         inspection = None
         suppression = None
         assert isinstance(event, Event), "event_queue contained a non event"

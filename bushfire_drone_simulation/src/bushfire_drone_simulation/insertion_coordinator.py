@@ -41,7 +41,7 @@ class InsertionUAVCoordinator(UAVCoordinator):
                 lightning_event: List[Location] = [lightning]
                 future_events: List[Location] = []
                 base: List[Location] = []
-                if isinstance(uav.event_queue.peak_first().position, Lightning):
+                if isinstance(uav.event_queue.peak_last().position, Lightning):
                     if self.precomputed is None:
                         base = [
                             self.uav_bases[
@@ -51,7 +51,7 @@ class InsertionUAVCoordinator(UAVCoordinator):
                     else:
                         base = [self.uav_bases[self.precomputed.closest_uav_base(lightning)]]
 
-                for event, prev_event in uav.event_queue:
+                for event, prev_event in uav.event_queue.iterate_backwards():
                     assert isinstance(
                         event, Event
                     ), f"{uav.get_name()}s event queue contained a non event"
@@ -105,7 +105,7 @@ class InsertionUAVCoordinator(UAVCoordinator):
                 if isinstance(start_from, str):
                     best_uav.event_queue.clear()
                 else:
-                    best_uav.event_queue.delete_up_to(start_from)
+                    best_uav.event_queue.delete_after(start_from)
             for location in assigned_locations:
                 best_uav.add_location_to_queue(location, lightning.spawn_time)
         else:
@@ -137,7 +137,7 @@ class InsertionWBCoordinator(WBCoordinator):
                 ignition_event: List[Location] = [ignition]
                 future_events: List[Location] = []
                 final_strike_base: List[Location] = []
-                if isinstance(water_bomber.event_queue.peak_first().position, Lightning):
+                if isinstance(water_bomber.event_queue.peak_last().position, Lightning):
                     if self.precomputed is None:
                         final_strike_base = [
                             bases[int(np.argmin(list(map(ignition.distance, bases))))]
@@ -147,7 +147,7 @@ class InsertionWBCoordinator(WBCoordinator):
                             bases[self.precomputed.closest_wb_base(ignition, water_bomber.type)]
                         ]
 
-                for event, prev_event in water_bomber.event_queue:
+                for event, prev_event in water_bomber.event_queue.iterate_backwards():
                     future_events.insert(0, event.position)
                     temp_arr_time = None
                     if prev_event is None:  # no more events in queue, use aircraft current state
@@ -256,7 +256,7 @@ class InsertionWBCoordinator(WBCoordinator):
                 if isinstance(start_from, str):
                     best_water_bomber.event_queue.clear()
                 else:
-                    best_water_bomber.event_queue.delete_up_to(start_from)
+                    best_water_bomber.event_queue.delete_after(start_from)
             for location in assigned_locations:
                 best_water_bomber.add_location_to_queue(location, ignition.inspected_time)
 
