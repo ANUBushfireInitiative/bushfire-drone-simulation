@@ -747,7 +747,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         """Add update to past locations."""
         previous_update = self.past_locations[-1]
         distance_hovered = 0.0
-        if previous_update.status == Status.HOVERING:
+        if previous_update.status in [Status.HOVERING, Status.INSPECTING_STRIKE]:
             distance_hovered = (self.time - previous_update.time) * self.flight_speed
         next_events: List[str] = []
         for event in self.event_queue:
@@ -805,7 +805,9 @@ class UAV(Aircraft):
         self.total_range: float = Distance(int(attributes["range"]), "km").get(
             DEFAULT_DISTANCE_UNITS
         )
-        self.inspection_time: float = Duration(1.0, "min").get(DEFAULT_DURATION_UNITS)
+        self.inspection_time: float = Duration(attributes["inspection_time"], "min").get(
+            DEFAULT_DURATION_UNITS
+        )
         self.past_locations = [
             UpdateEvent(
                 self.get_name(),

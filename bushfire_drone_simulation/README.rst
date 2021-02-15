@@ -139,6 +139,7 @@ The JSON parameters file should contain the following information formatted as i
                     "flight_speed": "flight speed of uav in km/hr",
                     "fuel_refill_time": "fuel refill time of uav in min",
                     "range": "total range of uav traveling at 'flight_speed' with a full tank in km"
+                    "inspection_time": "time spent inspecting strike in min"
                 }
             }
         }
@@ -336,13 +337,16 @@ please see bushfire_drone_simulation/example_input.
         "wb_coordinator": "MatlabWBCoordinator",
         "uav_mean_time_power": 1,
         "wb_mean_time_power": 1,
+        "target_maximum_inspection_time": 0.5,
+        "target_maximum_suppression_time": 1,
         "ignition_probability": 0.072,
         "uavs": {
             "spawn_loc_file": "uav_spawn_locations.csv",
             "attributes": {
                 "flight_speed": "?",
                 "fuel_refill_time": 30,
-                "range": 650
+                "range": 650,
+                "inspection_time": 1
             }
         },
         "water_bombers": {

@@ -17,7 +17,8 @@
         "attributes": {
             "flight_speed": "?",
             "fuel_refill_time": 30,
-            "range": 650
+            "range": 650,
+            "inspection_time": 1
         }
     },
 
