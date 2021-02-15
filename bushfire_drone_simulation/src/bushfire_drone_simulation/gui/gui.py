@@ -1,8 +1,9 @@
 """GUI Module for bushfire drone simulation."""
 
 import tkinter as tk
-from tkinter import Button, Event
-from typing import Dict, List, Tuple
+from abc import abstractmethod
+from tkinter import Button, Canvas, Event
+from typing import Callable, Dict, List, Sequence, Tuple
 
 from PIL import ImageTk
 
@@ -12,6 +13,122 @@ from bushfire_drone_simulation.gui.map_image import MapImage
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.simulator import Simulator
 
+WIDTH = 800
+HEIGHT = 600
+ZOOM = 7
+LATITUDE = -36.25
+LONGITUDE = 147.9
+
+
+class GUIObject:
+    """GUIObject.
+
+    This class defines the functions that all GUI objects must implement.
+    """
+
+    @abstractmethod
+    def show(self) -> None:
+        """Show the object."""
+
+    def hide(self) -> None:
+        """Hide the object."""
+
+    def update(self) -> None:
+        """Update the position etc. of the object."""
+
+
+class GUIPoint(GUIObject):
+    """GUI Point.
+
+    This class defines a GUI Point (AKA a circle).
+    """
+
+    def __init__(
+        self,
+        location: Location,
+        canvas: Canvas,
+        to_coordinates: Callable[[float, float], Tuple[int, int]],
+        radius: int = 5,
+    ):
+        """__init__.
+
+        Args:
+            location (Location): location of point (Global coordinates)
+            canvas (Canvas): canvas on which point belongs
+            to_coordinates (Callable[[float, float], Tuple[int, int]]): Function converting location
+                to coordinates on the canvas.
+            radius (int): radius of point
+        """
+        self.radius = radius
+        self.canvas = canvas
+        self.to_coordinates = to_coordinates
+        self.x, self.y = to_coordinates(location.lat, location.lon)
+        self.point = canvas.create_oval(  # type: ignore
+            self.x - radius,
+            self.y - radius,
+            self.x + radius,
+            self.y + radius,
+            fill=type_to_colour(location),
+        )
+        self.lat = location.lat
+        self.lon = location.lon
+
+    def update(self) -> None:
+        """Update position of the point."""
+        x, y = self.to_coordinates(self.lat, self.lon)
+        self.canvas.move(self.point, x - self.x, y - self.y)  # type: ignore
+        self.x, self.y = x, y
+
+    def hide(self) -> None:
+        """Hide point."""
+        self.canvas.itemconfigure(self.point, state="hidden")
+
+    def show(self) -> None:
+        """Show point."""
+        self.canvas.itemconfigure(self.point, state="normal")
+
+
+class GUILine(GUIObject):
+    """GUI object representing a line between two global coordinates."""
+
+    def __init__(
+        self,
+        p_1: Location,
+        p_2: Location,
+        canvas: Canvas,
+        to_coordinates: Callable[[float, float], Tuple[int, int]],
+    ):
+        """__init__.
+
+        Args:
+            p_1 (Location): Global coordinates of start of line.
+            p_2 (Location): Global coordinates of end of line.
+            canvas (Canvas): canvas on which line belongs
+            to_coordinates (Callable[[float, float], Tuple[int, int]]): Function converting global
+                coordinates to pixel coordinates.
+        """
+        self.canvas = canvas
+        self.to_coordinates = to_coordinates
+        c_1 = to_coordinates(p_1.lat, p_1.lon)
+        c_2 = to_coordinates(p_2.lat, p_2.lon)
+        self.line = canvas.create_line(c_1, c_2, fill=type_to_colour(p_1), width=1)  # type: ignore
+        self.p_1 = p_1
+        self.p_2 = p_2
+
+    def update(self) -> None:
+        """Update position of line."""
+        c_1 = self.to_coordinates(self.p_1.lat, self.p_1.lon)
+        c_2 = self.to_coordinates(self.p_2.lat, self.p_2.lon)
+        self.canvas.coords(self.line, c_1 + c_2)  # type: ignore
+
+    def hide(self) -> None:
+        """Hide line."""
+        self.canvas.itemconfigure(self.line, state="hidden")
+
+    def show(self) -> None:
+        """Show line."""
+        self.canvas.itemconfigure(self.line, state="normal")
+
 
 class GUI:
     """GUI class for bushfire drone simulation."""
@@ -20,8 +137,26 @@ class GUI:
         """Run GUI from simulator."""
         self.window = tk.Tk()
         self.window.title("ANU Bushfire Initiative Drone Simulation")
-        self.canvas = tk.Canvas(self.window, width=800, height=800)
+        title = tk.Label(self.window, text="ANU Bushfire Initiative Drone Simulation")
+        title.pack()
+        self.canvas = tk.Canvas(self.window, width=WIDTH, height=HEIGHT)
         self.simulator = simulator
+
+        self.window.bind("<B1-Motion>", self.drag)
+        self.window.bind("<Button-1>", self.click)
+
+        self.label = tk.Label(self.canvas)
+        self.zoom = ZOOM
+        self.map_image = MapImage((WIDTH, HEIGHT), LATITUDE, LONGITUDE, self.zoom)
+
+        self.zoom_in_button = self.add_zoom_button("+", +1)
+        self.zoom_out_button = self.add_zoom_button("-", -1)
+
+        self.coords = (0, 0)
+        self.image = None
+        self.tk_image = None
+
+        self.restart()
 
         self.lightning_points, self.ignition_points = self.create_lightning()
         self.uav_points, self.uav_paths, self.uav_base_points = self.create_uavs()
@@ -32,34 +167,24 @@ class GUI:
             self.water_bomber_paths,
         ) = self.create_water_bombers()
 
-        checkbox_dict = self.create_checkboxes()
+        self.checkbox_dict = self.create_checkboxes()
 
         y = 2
-        for key in checkbox_dict:
-            checkbox_dict[key][1].select()  # type: ignore
+        for key in self.checkbox_dict:
+            self.checkbox_dict[key][1].select()  # type: ignore
             # self.canvas.create_window(10, 10, anchor="w", window=checkbox_dict[key][1])
-            checkbox_dict[key][1].place(x=20, y=y)
+            self.checkbox_dict[key][1].place(x=20, y=y)
             y += 20
 
-        self.update(checkbox_dict)
-
-        update_button = tk.Button(
-            self.canvas, text="Update", fg="red", command=lambda: self.update(checkbox_dict)
-        )
-        # self.canvas.create_window(20, y+20, anchor="w", window=update_button)
-        update_button.place(x=20, y=y + 20)
+        self.update()
 
         self.canvas.pack()
-
-        title = tk.Label(self.window, text="ANU Bushfire Initiative Drone Simulation")
-        title.pack()
-
         self.window.mainloop()
 
-    def create_lightning(self) -> Tuple[List[int], List[int]]:
+    def create_lightning(self) -> Tuple[List[GUIPoint], List[GUIPoint]]:
         """Create lists of points of lightning and ignitions and add to canvas."""
-        lightning_points: List[int] = []
-        ignition_points: List[int] = []
+        lightning_points: List[GUIPoint] = []
+        ignition_points: List[GUIPoint] = []
         for strike in self.simulator.lightning_strikes:
             if strike.ignition:
                 self.create_point_from_elm(strike, ignition_points)
@@ -67,25 +192,25 @@ class GUI:
                 self.create_point_from_elm(strike, lightning_points)
         return lightning_points, ignition_points
 
-    def create_uavs(self) -> Tuple[List[int], List[int], List[int]]:
+    def create_uavs(self) -> Tuple[List[GUIPoint], List[GUILine], List[GUIPoint]]:
         """Create lists of uav points, paths and bases and add to canvas."""
-        uav_points: List[int] = []
-        uav_paths: List[int] = []
+        uav_points: List[GUIPoint] = []
+        uav_paths: List[GUILine] = []
         for uav in self.simulator.uavs:
             for idx, past_loc in enumerate(uav.past_locations):
                 if idx != 0:
                     self.connect_points(past_loc, uav.past_locations[idx - 1], uav_paths)
             self.create_point_from_elm(uav, uav_points, rad=4)
-        uav_base_points: List[int] = []
+        uav_base_points: List[GUIPoint] = []
         for base in self.simulator.uav_bases:
             self.create_point_from_elm(base, uav_base_points, rad=2)
         return uav_points, uav_paths, uav_base_points
 
-    def create_water_bombers(self) -> Tuple[List[int], List[int], List[int]]:
+    def create_water_bombers(self) -> Tuple[List[GUIPoint], List[GUIPoint], List[GUILine]]:
         """Create lists of water bomber points, paths and bases and add to canvas."""
-        water_bomber_base_points: List[int] = []
-        water_bomber_points: List[int] = []
-        water_bomber_paths: List[int] = []
+        water_bomber_base_points: List[GUIPoint] = []
+        water_bomber_points: List[GUIPoint] = []
+        water_bomber_paths: List[GUILine] = []
         for water_bomber_type in self.simulator.water_bomber_bases_dict:
             for base in self.simulator.water_bomber_bases_dict[water_bomber_type]:
                 self.create_point_from_elm(base, water_bomber_base_points, rad=2)
@@ -98,16 +223,16 @@ class GUI:
                 self.create_point_from_elm(water_bomber, water_bomber_points, rad=4)
         return water_bomber_base_points, water_bomber_points, water_bomber_paths
 
-    def create_water_tanks(self) -> List[int]:
+    def create_water_tanks(self) -> List[GUIPoint]:
         """Create list of water tanks and add to canvas."""
-        water_tank_points: List[int] = []
+        water_tank_points: List[GUIPoint] = []
         for tank in self.simulator.water_tanks:
             self.create_point_from_elm(tank, water_tank_points, rad=2)
         return water_tank_points
 
-    def create_checkboxes(self) -> Dict[str, Tuple[tk.IntVar, tk.Checkbutton, List[int]]]:
+    def create_checkboxes(self) -> Dict[str, Tuple[tk.IntVar, tk.Checkbutton, Sequence[GUIObject]]]:
         """Create check boxes for interating with GUI."""
-        return_dict = {}
+        return_dict: Dict[str, Tuple[tk.IntVar, tk.Checkbutton, Sequence[GUIObject]]] = {}
 
         toggle_uav_bases = tk.IntVar()
         uav_base_checkbox = tk.Checkbutton(
@@ -182,39 +307,111 @@ class GUI:
         return return_dict
 
     def create_point_from_elm(
-        self, element: Location, list_name: List[int], rad: int = 5
+        self, element: Location, list_name: List[GUIPoint], rad: int = 5
     ) -> None:  # center coordinates, radius
         """Create a point given an element extending Location."""
-        x, y = element.to_coordinates()
-        point = self.canvas.create_oval(  # type: ignore
-            x - rad, y - rad, x + rad, y + rad, fill=type_to_colour(element)
-        )
+        # x, y = element.to_coordinates()
+        # x, y = self.map_image.get_coordinates(element.lat, element.lon)
+        # point = self.canvas.create_oval(  # type: ignore
+        # x - rad, y - rad, x + rad, y + rad, fill=type_to_colour(element)
+        # )
+        point = GUIPoint(element, self.canvas, self.map_image.get_coordinates, radius=rad)
         list_name.append(point)
 
-    def connect_points(self, p_1: Location, p_2: Location, list_name: List[int]) -> None:
+    def connect_points(self, p_1: Location, p_2: Location, list_name: List[GUILine]) -> None:
         """Connect two points with a line."""
-        line = self.canvas.create_line(  # type: ignore
-            p_1.to_coordinates(), p_2.to_coordinates(), fill=type_to_colour(p_1), width=1
-        )
+        # line = self.canvas.create_line(  # type: ignore
+        # self.map_image.get_coordinates(p_1.lat, p_1.lon),
+        # self.map_image.get_coordinates(p_2.lat, p_2.lon),
+        # fill=type_to_colour(p_1),
+        # width=1,
+        # )
+        line = GUILine(p_1, p_2, self.canvas, self.map_image.get_coordinates)
         list_name.append(line)
 
-    def hide(self, points_list: List[int]) -> None:
-        """Hide list of points from canvas_name."""
-        for point in points_list:
-            self.canvas.itemconfigure(point, state="hidden")
-
-    def show(self, points_list: List[int]) -> None:
-        """Hide list of points from canvas_name."""
-        for point in points_list:
-            self.canvas.itemconfigure(point, state="normal")
-
-    def update(self, checkbox_dict: Dict[str, Tuple[tk.IntVar, tk.Checkbutton, List[int]]]) -> None:
+    def update(self) -> None:
         """Update whether a set of points is displayed on the canvas."""
-        for key in checkbox_dict:
-            if checkbox_dict[key][0].get() == 0:  # type: ignore
-                self.hide(checkbox_dict[key][2])
+        for key in self.checkbox_dict:
+            if self.checkbox_dict[key][0].get() == 0:  # type: ignore
+                for point in self.checkbox_dict[key][2]:
+                    point.hide()
+                    point.update()
             else:
-                self.show(checkbox_dict[key][2])
+                for point in self.checkbox_dict[key][2]:
+                    point.show()
+                    point.update()
+
+    def add_zoom_button(self, text: str, change: int) -> Button:
+        """Add zoom button.
+
+        Args:
+            text (str): text
+            change (int): change
+        """
+        button = tk.Button(
+            self.canvas, text=text, width=1, command=lambda: self.change_zoom(change)
+        )
+        return button
+
+    def change_zoom(self, change: int) -> None:
+        """Change map zoom.
+
+        Args:
+            change (int): change
+        """
+        new_zoom = self.zoom + change
+        if 0 < new_zoom < 20:
+            self.zoom = new_zoom
+            self.map_image.change_zoom(self.zoom)
+            self.restart()
+
+    def drag(self, event: Event) -> None:
+        """Process mouse drag.
+
+        Args:
+            event: Mouse drag event
+        """
+        self.map_image.move(self.coords[0] - event.x, self.coords[1] - event.y)  # type: ignore
+        self.redraw()
+        self.coords = event.x, event.y  # type: ignore
+
+    def click(self, event: Event) -> None:
+        """Process click.
+
+        Args:
+            event: Click event
+        """
+        self.coords = event.x, event.y  # type: ignore
+        self.redraw()
+
+    def reload(self) -> None:
+        """Reload."""
+        self.redraw()
+        self.window["cursor"] = ""
+
+    def restart(self) -> None:
+        """Restart."""
+        self.window["cursor"] = "watch"
+        self.window.after(1, self.reload)
+
+    def redraw(self) -> None:
+        """Redraw display."""
+        width = int(self.canvas["width"])
+        height = int(self.canvas["height"])
+
+        self.image = self.map_image.get_image()
+        self.tk_image = ImageTk.PhotoImage(self.image)
+        map_object = self.canvas.create_image(
+            width / 2, height / 2, image=self.tk_image
+        )  # type:ignore
+        # self.label["image"] = self.tk_image
+        # self.label.place(x=0, y=0, width=WIDTH, height=HEIGHT)
+
+        self.zoom_in_button.place(x=width - 50, y=height - 80)
+        self.zoom_out_button.place(x=width - 50, y=height - 50)
+
+        self.canvas.lower(map_object)
+        self.update()
 
 
 def type_to_colour(element: Location) -> str:
@@ -235,13 +432,6 @@ def type_to_colour(element: Location) -> str:
 def start_gui(simulation: Simulator) -> None:
     """Start GUI of simulation."""
     GUI(simulation)
-
-
-WIDTH = 800
-HEIGHT = 600
-ZOOM = 7
-LATITUDE = -36.25
-LONGITUDE = 147.9
 
 
 class MapUI(tk.Tk):
@@ -271,6 +461,8 @@ class MapUI(tk.Tk):
         self.coords = (0, 0)
         self.image = None
         self.tk_image = None
+
+        self.mainloop()
 
     # def mouse_wheel(self, event):
     # # respond to Linux or Windows wheel event
@@ -349,4 +541,4 @@ class MapUI(tk.Tk):
 
 def start_map_gui() -> None:
     """Start a basic GUI version of the drone simulation."""
-    MapUI().mainloop()
+    MapUI()
