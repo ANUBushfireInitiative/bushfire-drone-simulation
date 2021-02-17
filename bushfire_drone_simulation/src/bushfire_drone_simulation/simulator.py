@@ -2,7 +2,7 @@
 
 from math import inf
 from queue import PriorityQueue, Queue
-from typing import List, Tuple
+from typing import Dict, List, Tuple, Union
 
 from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoordinator
 from bushfire_drone_simulation.lightning import Lightning
@@ -32,6 +32,7 @@ class Simulator:
         self.precomputed = PreComputedDistances(
             self.lightning_strikes, self.uav_bases, self.water_bomber_bases_dict, self.water_tanks
         )
+        self.summary_results: Dict[str, List[Union[float, str]]] = {}
 
     def run_simulation(
         self, uav_coordinator: UAVCoordinator, wb_coordinator: WBCoordinator
@@ -114,7 +115,7 @@ class Simulator:
         params.write_to_uav_updates_file(self.uavs, prefix)
         params.write_to_wb_updates_file(self.water_bombers, prefix)
         params.write_to_input_parameters_folder(scenario_idx)
-        params.create_plots(
+        self.summary_results = params.create_plots(
             inspection_times,
             suppression_times,
             self.water_bombers,

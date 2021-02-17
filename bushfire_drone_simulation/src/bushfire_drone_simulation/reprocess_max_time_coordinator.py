@@ -50,7 +50,6 @@ class ReprocessMaxTimeUAVCoordinator(UAVCoordinator):
         self, lightning: Lightning
     ) -> None:
         """Receive lightning strike that just occurred and assign best uav."""
-        print(f"Processing strike {lightning.id_no}")
         mean_time_power = float(
             self.parameters.get_attribute("uav_mean_time_power", self.scenario_idx)
         )
@@ -240,7 +239,6 @@ class ReprocessMaxTimeUAVCoordinator(UAVCoordinator):
                             if inspection_time > self.max_inspection_time:
                                 self.max_inspection_time = inspection_time
                     assert isinstance(strike_to_reprocess, Lightning)
-                    print(f"reprocessing {strike_to_reprocess.id_no}")
                     self.process_new_strike(strike_to_reprocess)
 
         else:  # Don't reprocess anything!

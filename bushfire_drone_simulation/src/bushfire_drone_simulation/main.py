@@ -1,5 +1,6 @@
 """Main entry point for bushfire-drone-simulation."""
 
+import csv
 import logging
 from pathlib import Path
 from sys import stderr
@@ -92,7 +93,50 @@ def run_simulation(
 
         simulator.output_results(params, scenario_idx)
         to_return.append(simulator)
+    write_to_summary_file(to_return, params)
     return to_return
+
+
+def write_to_summary_file(simulations: List[Simulator], params: JSONParameters) -> None:
+    """Write summary results from each simulation to summary file."""
+    with open(
+        params.output_folder / ("summary_file.csv"),
+        "w",
+        newline="",
+    ) as outputfile:
+        filewriter = csv.writer(outputfile)
+        filewriter.writerow(
+            [
+                "Scenario Name",
+                "",
+                "Mean time (hr)",
+                "Max time (hr)",
+                "99th percentile (hr)",
+                "90th percentile (hr)",
+                "50th percentile (hr)",
+            ]
+        )
+        for scenario_idx, simulator in enumerate(simulations):
+            name: str
+            if "scenario_name" in params.scenarios[scenario_idx]:
+                name = str(params.get_attribute("scenario_name", scenario_idx))
+            else:
+                name = str(scenario_idx)
+            if "uavs" in simulator.summary_results:
+                inspection_results: List[Union[str, float]] = simulator.summary_results["uavs"]
+                inspection_results.insert(0, "Inspections")
+                inspection_results.insert(0, name)
+                filewriter.writerow(inspection_results)
+            else:
+                filewriter.writerow(["", "Inspections", "No strikes were insepcted"])
+            if "wbs" in simulator.summary_results:
+                suppression_results: List[Union[str, float]] = simulator.summary_results["wbs"]
+                suppression_results.insert(0, "Suppressions")
+                suppression_results.insert(0, "")
+                filewriter.writerow(suppression_results)
+            else:
+                filewriter.writerow(["", "Suppressions", "No strikes were suppressed"])
+            filewriter.writerow([])
 
 
 if __name__ == "__main__":

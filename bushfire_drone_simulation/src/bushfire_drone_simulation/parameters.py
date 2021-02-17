@@ -307,27 +307,31 @@ class JSONParameters:
         water_bombers: List[WaterBomber],
         water_tanks: List[WaterTank],
         prefix: str,
-    ) -> None:
+    ) -> Dict[str, List[Union[float, str]]]:
         """Create plots and write to output."""
         title = ""
+        summary_results: Dict[str, List[Union[float, str]]] = {}
         if len(inspection_times) != 0:
             mean_inspection_time = sum(inspection_times) / len(inspection_times)
             title = f"Mean inspection time of {mean_inspection_time} hrs"
-            title += f"\n99% of strikes were inspected in {np.percentile(inspection_times, 99)} hrs"
-            title += f"\n90% of strikes were inspected in {np.percentile(inspection_times, 90)} hrs"
-            title += f"\n50% of strikes were inspected in {np.percentile(inspection_times, 50)} hrs"
+            summary_results["uavs"] = [
+                mean_inspection_time,
+                np.max(inspection_times),
+                np.percentile(inspection_times, 99),
+                np.percentile(inspection_times, 90),
+                np.percentile(inspection_times, 50),
+            ]
         if len(suppression_times) != 0:
             mean_suppression_time = sum(suppression_times) / len(suppression_times)
             title += f"\nMean suppression time of {mean_suppression_time} hrs"
-            title += (
-                f"\n99% of strikes were suppressed in {np.percentile(suppression_times, 99)} hrs"
-            )
-            title += (
-                f"\n90% of strikes were suppressed in {np.percentile(suppression_times, 90)} hrs"
-            )
-            title += (
-                f"\n50% of strikes were suppressed in {np.percentile(suppression_times, 50)} hrs"
-            )
+            summary_results["wbs"] = [
+                mean_suppression_time,
+                np.max(suppression_times),
+                np.percentile(suppression_times, 99),
+                np.percentile(suppression_times, 90),
+                np.percentile(suppression_times, 50),
+            ]
+
         fig, axs = plt.subplots(2, 2, figsize=(12, 8), dpi=300)
 
         fig.suptitle(title)
@@ -378,6 +382,7 @@ class JSONParameters:
                 prefix + "inspection_times_plot.png",
             )
         )
+        return summary_results
 
     def write_to_simulation_output_file(
         self, lightning_strikes: List[Lightning], prefix: str
