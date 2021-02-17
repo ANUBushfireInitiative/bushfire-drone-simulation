@@ -3,7 +3,7 @@
 import tkinter as tk
 from abc import abstractmethod
 from tkinter import Button, Canvas, Event
-from typing import Callable, Dict, List, Sequence, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 from PIL import ImageTk
 
@@ -19,6 +19,8 @@ ZOOM = 7
 LATITUDE = -36.25
 LONGITUDE = 147.9
 
+EPSILON: float = 0.0000001
+
 
 class GUIObject:
     """GUIObject.
@@ -26,14 +28,21 @@ class GUIObject:
     This class defines the functions that all GUI objects must implement.
     """
 
+    def get_coordinates(self) -> List[int]:
+        """Get the coordinates of the object."""
+        if isinstance(self, (GUIPoint, GUILine)):
+            return self.get_coordinates()
+        raise NotImplementedError
+
     @abstractmethod
-    def show(self) -> None:
+    def show(self, canvas: Canvas) -> None:
         """Show the object."""
 
-    def hide(self) -> None:
+    def hide(self, canvas: Canvas) -> None:
         """Hide the object."""
 
-    def update(self) -> None:
+    @abstractmethod
+    def update(self, canvas: Canvas, coordinates: Optional[List[int]] = None) -> None:
         """Update the position etc. of the object."""
 
 
@@ -60,7 +69,6 @@ class GUIPoint(GUIObject):
             radius (int): radius of point
         """
         self.radius = radius
-        self.canvas = canvas
         self.to_coordinates = to_coordinates
         self.x, self.y = to_coordinates(location.lat, location.lon)
         self.point = canvas.create_oval(  # type: ignore
@@ -72,20 +80,32 @@ class GUIPoint(GUIObject):
         )
         self.lat = location.lat
         self.lon = location.lon
+        self.cur_shown = True
 
-    def update(self) -> None:
+    def get_coordinates(self) -> List[int]:
+        """Get the coordinates of the object."""
+        return list(self.to_coordinates(self.lat, self.lon))
+
+    def update(self, canvas: Canvas, coordinates: Optional[List[int]] = None) -> None:
         """Update position of the point."""
-        x, y = self.to_coordinates(self.lat, self.lon)
-        self.canvas.move(self.point, x - self.x, y - self.y)  # type: ignore
+        if coordinates is None:
+            x, y = self.to_coordinates(self.lat, self.lon)
+        else:
+            x, y = coordinates[0], coordinates[1]
+        canvas.move(self.point, x - self.x, y - self.y)  # type: ignore
         self.x, self.y = x, y
 
-    def hide(self) -> None:
+    def hide(self, canvas: Canvas) -> None:
         """Hide point."""
-        self.canvas.itemconfigure(self.point, state="hidden")
+        if self.cur_shown:
+            canvas.itemconfigure(self.point, state="hidden")
+            self.cur_shown = False
 
-    def show(self) -> None:
+    def show(self, canvas: Canvas) -> None:
         """Show point."""
-        self.canvas.itemconfigure(self.point, state="normal")
+        if not self.cur_shown:
+            canvas.itemconfigure(self.point, state="normal")
+            self.cur_shown = True
 
 
 class GUILine(GUIObject):
@@ -107,27 +127,38 @@ class GUILine(GUIObject):
             to_coordinates (Callable[[float, float], Tuple[int, int]]): Function converting global
                 coordinates to pixel coordinates.
         """
-        self.canvas = canvas
         self.to_coordinates = to_coordinates
-        c_1 = to_coordinates(p_1.lat, p_1.lon)
-        c_2 = to_coordinates(p_2.lat, p_2.lon)
-        self.line = canvas.create_line(c_1, c_2, fill=type_to_colour(p_1), width=1)  # type: ignore
-        self.p_1 = p_1
-        self.p_2 = p_2
-
-    def update(self) -> None:
-        """Update position of line."""
+        self.p_1, self.p_2 = p_1, p_2
         c_1 = self.to_coordinates(self.p_1.lat, self.p_1.lon)
         c_2 = self.to_coordinates(self.p_2.lat, self.p_2.lon)
-        self.canvas.coords(self.line, c_1 + c_2)  # type: ignore
+        self.line = canvas.create_line(c_1, c_2, fill=type_to_colour(p_1), width=1)  # type: ignore
+        self.cur_shown = True
 
-    def hide(self) -> None:
+    def get_coordinates(self) -> List[int]:
+        """Get the coordinates of the object."""
+        c_1 = self.to_coordinates(self.p_1.lat, self.p_1.lon)
+        c_2 = self.to_coordinates(self.p_2.lat, self.p_2.lon)
+        return list(c_1 + c_2)
+
+    def update(self, canvas: Canvas, coordinates: Optional[List[int]] = None) -> None:
+        """Update position of line."""
+        if coordinates is None:
+            c_1 = self.to_coordinates(self.p_1.lat, self.p_1.lon)
+            c_2 = self.to_coordinates(self.p_2.lat, self.p_2.lon)
+            coordinates = list(c_1 + c_2)
+        canvas.coords(self.line, coordinates)  # type: ignore
+
+    def hide(self, canvas: Canvas) -> None:
         """Hide line."""
-        self.canvas.itemconfigure(self.line, state="hidden")
+        if self.cur_shown:
+            canvas.itemconfigure(self.line, state="hidden")
+            self.cur_shown = False
 
-    def show(self) -> None:
+    def show(self, canvas: Canvas) -> None:
         """Show line."""
-        self.canvas.itemconfigure(self.line, state="normal")
+        if not self.cur_shown:
+            canvas.itemconfigure(self.line, state="normal")
+            self.cur_shown = True
 
 
 class GUI:
@@ -176,7 +207,7 @@ class GUI:
             self.checkbox_dict[key][1].place(x=20, y=y)
             y += 20
 
-        self.update()
+        self.update_objects()
 
         self.canvas.pack()
         self.window.mainloop()
@@ -197,9 +228,20 @@ class GUI:
         uav_points: List[GUIPoint] = []
         uav_paths: List[GUILine] = []
         for uav in self.simulator.uavs:
-            for idx, past_loc in enumerate(uav.past_locations):
+            last_point: Location = uav.past_locations[0]
+            for idx, point in enumerate(uav.past_locations):
                 if idx != 0:
-                    self.connect_points(past_loc, uav.past_locations[idx - 1], uav_paths)
+                    if idx == len(uav.past_locations) - 1:
+                        self.connect_points(point, last_point, uav_paths)
+                    else:
+                        dx1 = point.lon - last_point.lon
+                        dy1 = point.lat - last_point.lat
+                        dx2 = uav.past_locations[idx + 1].lon - point.lon
+                        dy2 = uav.past_locations[idx + 1].lat - point.lat
+                        if abs(dx2 * dy1 - dx1 * dy2) > EPSILON:
+                            self.connect_points(point, last_point, uav_paths)
+                            last_point = point
+
             self.create_point_from_elm(uav, uav_points, rad=4)
         uav_base_points: List[GUIPoint] = []
         for base in self.simulator.uav_bases:
@@ -215,12 +257,20 @@ class GUI:
             for base in self.simulator.water_bomber_bases_dict[water_bomber_type]:
                 self.create_point_from_elm(base, water_bomber_base_points, rad=2)
         for water_bomber in self.simulator.water_bombers:
-            for (idx, past_loc) in enumerate(water_bomber.past_locations):
+            last_point: Location = water_bomber.past_locations[0]
+            for idx, point in enumerate(water_bomber.past_locations):
                 if idx != 0:
-                    self.connect_points(
-                        past_loc, water_bomber.past_locations[idx - 1], water_bomber_paths
-                    )
-                self.create_point_from_elm(water_bomber, water_bomber_points, rad=4)
+                    if idx == len(water_bomber.past_locations) - 1:
+                        self.connect_points(point, last_point, water_bomber_paths)
+                    else:
+                        dx1 = point.lon - last_point.lon
+                        dy1 = point.lat - last_point.lat
+                        dx2 = water_bomber.past_locations[idx + 1].lon - point.lon
+                        dy2 = water_bomber.past_locations[idx + 1].lat - point.lat
+                        if abs(dx2 * dy1 - dx1 * dy2) > EPSILON:
+                            self.connect_points(point, last_point, water_bomber_paths)
+                            last_point = point
+            self.create_point_from_elm(water_bomber, water_bomber_points, rad=4)
         return water_bomber_base_points, water_bomber_points, water_bomber_paths
 
     def create_water_tanks(self) -> List[GUIPoint]:
@@ -310,11 +360,6 @@ class GUI:
         self, element: Location, list_name: List[GUIPoint], rad: int = 5
     ) -> None:  # center coordinates, radius
         """Create a point given an element extending Location."""
-        # x, y = element.to_coordinates()
-        # x, y = self.map_image.get_coordinates(element.lat, element.lon)
-        # point = self.canvas.create_oval(  # type: ignore
-        # x - rad, y - rad, x + rad, y + rad, fill=type_to_colour(element)
-        # )
         point = GUIPoint(element, self.canvas, self.map_image.get_coordinates, radius=rad)
         list_name.append(point)
 
@@ -329,17 +374,16 @@ class GUI:
         line = GUILine(p_1, p_2, self.canvas, self.map_image.get_coordinates)
         list_name.append(line)
 
-    def update(self) -> None:
+    def update_objects(self) -> None:
         """Update whether a set of points is displayed on the canvas."""
         for key in self.checkbox_dict:
             if self.checkbox_dict[key][0].get() == 0:  # type: ignore
-                for point in self.checkbox_dict[key][2]:
-                    point.hide()
-                    point.update()
+                for obj in self.checkbox_dict[key][2]:
+                    obj.hide(self.canvas)
             else:
-                for point in self.checkbox_dict[key][2]:
-                    point.show()
-                    point.update()
+                for obj in self.checkbox_dict[key][2]:
+                    obj.update(self.canvas)
+                    obj.show(self.canvas)
 
     def add_zoom_button(self, text: str, change: int) -> Button:
         """Add zoom button.
@@ -372,7 +416,7 @@ class GUI:
             event: Mouse drag event
         """
         self.map_image.move(self.coords[0] - event.x, self.coords[1] - event.y)  # type: ignore
-        self.redraw()
+        self.restart()
         self.coords = event.x, event.y  # type: ignore
 
     def click(self, event: Event) -> None:
@@ -396,6 +440,8 @@ class GUI:
 
     def redraw(self) -> None:
         """Redraw display."""
+        # profiler = cProfile.Profile()
+        # profiler.enable()
         width = int(self.canvas["width"])
         height = int(self.canvas["height"])
 
@@ -404,14 +450,15 @@ class GUI:
         map_object = self.canvas.create_image(
             width / 2, height / 2, image=self.tk_image
         )  # type:ignore
-        # self.label["image"] = self.tk_image
-        # self.label.place(x=0, y=0, width=WIDTH, height=HEIGHT)
 
         self.zoom_in_button.place(x=width - 50, y=height - 80)
         self.zoom_out_button.place(x=width - 50, y=height - 50)
 
         self.canvas.lower(map_object)
-        self.update()
+        self.update_objects()
+        # profiler.disable()
+        # stats = pstats.Stats(profiler).sort_stats('cumtime')
+        # stats.print_stats()
 
 
 def type_to_colour(element: Location) -> str:
@@ -427,6 +474,11 @@ def type_to_colour(element: Location) -> str:
     if isinstance(element, UAV):
         return "brown"
     return "black"
+
+
+# class GUIInfo:
+# def __init__(self, simulation: Simulator):
+# self.lightning : List[]
 
 
 def start_gui(simulation: Simulator) -> None:
