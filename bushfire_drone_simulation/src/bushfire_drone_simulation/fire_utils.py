@@ -100,12 +100,38 @@ class Base(Location):
     def __init__(self, latitude: float, longitude: float, capacity: float, id_no: int):
         """Initialise aircraft base from location and fuel capacity."""
         super().__init__(latitude, longitude)
-        self.capacity = capacity
-        self.id_no = id_no
+        self.capacity: float = capacity
+        self.unallocated_capacity: float = capacity
+        self.id_no: int = id_no
 
     def remove_fuel(self, volume: float) -> None:
         """Remove a given volume of fuel from the base."""
         self.capacity -= volume
+
+    def remove_unallocated_fuel(self, volume: float) -> None:
+        """Remove a given volume from unallocated water in the water tank."""
+        self.unallocated_capacity -= volume
+
+    def return_allocated_fuel(self, volume: float) -> None:
+        """Return a given volume to the unallocated water tank in the water tank."""
+        self.unallocated_capacity += volume
+
+    def get_fuel_capacity(self, future_capacity: bool = False) -> float:
+        """Return water capacity of tank.
+
+        The actual capacity (self.capacity) by default or the future capacity if future_capacity
+        is True
+
+        Args:
+            future_capacity (bool): Select whether to return current or future capacity.
+            Defaults to False
+
+        Returns:
+            Volume: Water capacity
+        """
+        if future_capacity:
+            return self.unallocated_capacity
+        return self.capacity
 
 
 def month_to_days(month: int, leap_year: bool = False) -> int:

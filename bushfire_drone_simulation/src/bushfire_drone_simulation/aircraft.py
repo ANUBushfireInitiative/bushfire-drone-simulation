@@ -172,6 +172,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         self.closest_base: Optional[Base] = None
         self.required_departure_time: Optional[float] = None
         self.precomputed: Optional[PreComputedDistances] = None
+        self.fuel_tank_capacity: float = 1  # TODO(read from input) pylint: disable=fixme
 
     def accept_precomputed_distances(self, precomputed: PreComputedDistances) -> None:
         """Accept precomputed distance class with distances already evaluated."""
@@ -306,8 +307,8 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                 event.position.suppressed(self.time)
                 self.strikes_visited.append((event.position, self.time))
                 suppression = event.position
-        # elif isinstance(event.position, Base):
-        # base.empty()
+        elif isinstance(event.position, Base):
+            event.position.remove_fuel(self.fuel_tank_capacity * (1 - self.current_fuel_capacity))
         if isinstance(self, WaterBomber):
             self._set_water_on_board(event.water)
         self.status = event.completion_status
@@ -446,6 +447,9 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
 
         elif isinstance(position, Base):
             event_completion_time = event_arrival_time + self.fuel_refill_time
+            position.remove_unallocated_fuel(
+                self.fuel_tank_capacity * (1 - self._get_future_fuel())
+            )
             completion_fuel = 1.0
             self.event_queue.put(
                 Event(
@@ -504,7 +508,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         self._update_location(base)
         self.status = Status.REFUELING_AT_BASE
         self._add_update(base.id_no)
-        # base.empty()
+        base.remove_fuel(self.fuel_tank_capacity * (1 - self.current_fuel_capacity))
         self.current_fuel_capacity = 1.0
         self.time += self.fuel_refill_time
         # event queue is always empty
@@ -770,6 +774,12 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             )
         )
 
+    def check_base(self, base: Base) -> bool:
+        """Return whether a given base has enough fuel to refuel the aircraft."""
+        return base.get_fuel_capacity(not self.use_current_status) >= self.fuel_tank_capacity * (
+            1 - self._get_future_fuel()
+        )
+
 
 class UAV(Aircraft):
     """UAV class for unmanned aircraft searching lightning strikes."""
@@ -941,12 +951,6 @@ class WaterBomber(Aircraft):
             water_tank.get_water_capacity(not self.use_current_status)
             >= self.water_capacity - self._get_future_water()
         )
-
-    def _water_refill(self, water_tank: WaterTank) -> None:
-        """Update time and range of water bomber after water refill."""
-        water_tank.remove_water(self.water_capacity - self.water_on_board)
-        self.water_on_board = self.water_capacity
-        self.time += self.water_refill_time
 
     def enough_water(
         self, positions: List[Location], state: Optional[Union[Event, str]] = None

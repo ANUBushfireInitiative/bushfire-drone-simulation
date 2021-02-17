@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 
 from bushfire_drone_simulation.aircraft import UAV, UpdateEvent, WaterBomber
 from bushfire_drone_simulation.fire_utils import Base, Time, WaterTank, assert_bool, assert_number
@@ -158,8 +159,8 @@ class JSONParameters:
                 if attribute not in attributes:
                     raise Exception(
                         f"Error: Parameter '{attribute}' is missing in '{self.filepath}'.\n"
-                        f"Please add '{attribute}' to '{self.filepath}' "
-                        f"and run the simulation again"
+                        f"Please add '{attribute}' to 'water_bombers/attributes' in "
+                        f"'{self.filepath}' and run the simulation again"
                     )
             for i, lat in enumerate(lats):
                 lat = assert_number(
@@ -250,7 +251,7 @@ class JSONParameters:
             if attribute not in attributes:
                 raise Exception(
                     f"Error: Parameter '{attribute}' is missing in '{self.filepath}'.\n"
-                    f"Please add '{attribute}' to '{self.filepath}' "
+                    f"Please add '{attribute}' to 'uavs/attributes' in '{self.filepath}' "
                     f"and run the simulation again"
                 )
         for i, lat in enumerate(lats):
@@ -312,9 +313,21 @@ class JSONParameters:
         if len(inspection_times) != 0:
             mean_inspection_time = sum(inspection_times) / len(inspection_times)
             title = f"Mean inspection time of {mean_inspection_time} hrs"
+            title += f"\n99% of strikes were inspected in {np.percentile(inspection_times, 99)} hrs"
+            title += f"\n90% of strikes were inspected in {np.percentile(inspection_times, 90)} hrs"
+            title += f"\n50% of strikes were inspected in {np.percentile(inspection_times, 50)} hrs"
         if len(suppression_times) != 0:
             mean_suppression_time = sum(suppression_times) / len(suppression_times)
             title += f"\nMean suppression time of {mean_suppression_time} hrs"
+            title += (
+                f"\n99% of strikes were suppressed in {np.percentile(suppression_times, 99)} hrs"
+            )
+            title += (
+                f"\n90% of strikes were suppressed in {np.percentile(suppression_times, 90)} hrs"
+            )
+            title += (
+                f"\n50% of strikes were suppressed in {np.percentile(suppression_times, 50)} hrs"
+            )
         fig, axs = plt.subplots(2, 2, figsize=(12, 8), dpi=300)
 
         fig.suptitle(title)
