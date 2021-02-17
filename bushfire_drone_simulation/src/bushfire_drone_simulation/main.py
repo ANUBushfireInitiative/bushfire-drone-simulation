@@ -25,7 +25,10 @@ from bushfire_drone_simulation.new_strikes_first_coordinator import (
     NewStrikesFirstWBCoordinator,
 )
 from bushfire_drone_simulation.parameters import JSONParameters
-from bushfire_drone_simulation.reprocess_max_time_coordinator import ReprocessMaxTimeUAVCoordinator
+from bushfire_drone_simulation.reprocess_max_time_coordinator import (
+    ReprocessMaxTimeUAVCoordinator,
+    ReprocessMaxTimeWBCoordinator,
+)
 from bushfire_drone_simulation.simulator import Simulator
 
 _LOG = logging.getLogger(__name__)
@@ -45,6 +48,7 @@ WB_COORDINATORS: Dict[str, Union[Type[WBCoordinator]]] = {
     "NewStrikesFirstWBCoordinator": NewStrikesFirstWBCoordinator,
     "InsertionWBCoordinator": InsertionWBCoordinator,
     "MinimiseMeanTimeWBCoordinator": MinimiseMeanTimeWBCoordinator,
+    "ReprocessMaxTimeWBCoordinator": ReprocessMaxTimeWBCoordinator,
 }
 
 
