@@ -8,7 +8,7 @@ from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 from PIL import ImageTk
 
-from bushfire_drone_simulation.aircraft import Aircraft
+from bushfire_drone_simulation.aircraft import Aircraft, UpdateEvent
 from bushfire_drone_simulation.fire_utils import Location
 from bushfire_drone_simulation.gui.map_image import MapImage
 from bushfire_drone_simulation.simulator import Simulator
@@ -127,7 +127,9 @@ class GUIPoint(GUIObject):
 class GUILine(GUIObject):
     """GUI object representing a line between two global coordinates."""
 
-    def __init__(self, p_1: Location, p_2: Location, width: int = 1, colour: str = "black"):
+    def __init__(
+        self, event1: UpdateEvent, event2: UpdateEvent, width: int = 1, colour: str = "black"
+    ):
         """__init__.
 
         Args:
@@ -137,11 +139,14 @@ class GUILine(GUIObject):
             to_coordinates (Callable[[float, float], Tuple[int, int]]): Function converting global
                 coordinates to pixel coordinates.
         """
-        self.p_1 = p_1
-        self.p_2 = p_2
+        super().__init__()
+        self.event1 = event1
+        self.event2 = event2
         self.width = width
         self.colour = colour
         self.tags.append("line")
+        self.cur_loc_1: Location = event1
+        self.cur_loc_2: Location = event2
 
     def place_on_canvas(
         self, canvas: Canvas, to_coordinates: Callable[[Location], Tuple[int, int]]
@@ -153,18 +158,19 @@ class GUILine(GUIObject):
             to_coordinates (Callable[[float, float], Tuple[int,int]]): to_coordinates
         """
         self.to_coordinates = to_coordinates
-        c_1 = self.to_coordinates(self.p_1)
-        c_2 = self.to_coordinates(self.p_2)
+        c_1 = self.to_coordinates(self.cur_loc_1)
+        c_2 = self.to_coordinates(self.cur_loc_2)
         self.canvas_object = canvas.create_line(
             c_1, c_2, fill=self.colour, width=self.width, tags=self.tags
         )  # type: ignore
 
     def update(self, canvas: Canvas) -> None:
         """Update position of line."""
-        c_1 = self.to_coordinates(self.p_1)
-        c_2 = self.to_coordinates(self.p_2)
-        coordinates = list(c_1 + c_2)
-        canvas.coords(self.canvas_object, coordinates)  # type: ignore
+        if self.cur_shown:
+            c_1 = self.to_coordinates(self.cur_loc_1)
+            c_2 = self.to_coordinates(self.cur_loc_2)
+            coordinates = list(c_1 + c_2)
+            canvas.coords(self.canvas_object, coordinates)  # type: ignore
 
     def show_given_time(self, canvas: Canvas, start_time: float, end_time: float) -> None:
         """Show line at the given time.
@@ -176,7 +182,20 @@ class GUILine(GUIObject):
             start_time (float): start_time
             end_time (float): end_time
         """
-        self.show(canvas)
+        if start_time >= self.event2.time or end_time <= self.event1.time:
+            self.hide(canvas)
+        else:
+            if self.event1.time < start_time:
+                percentage = (start_time - self.event1.time) / (self.event2.time - self.event1.time)
+                self.cur_loc_1 = self.event1.intermediate_point(self.event2, percentage)
+            else:
+                self.cur_loc_1 = self.event1
+            if self.event2.time > end_time:
+                percentage = (self.event2.time - end_time) / (self.event2.time - self.event1.time)
+                self.cur_loc_2 = self.event2.intermediate_point(self.event1, percentage)
+            else:
+                self.cur_loc_2 = self.event2
+            self.show(canvas)
 
 
 class GUILightning(GUIPoint):
@@ -268,9 +287,7 @@ class GUIAircraft(GUIObject):
 
     def __init__(  # pylint: disable=too-many-arguments
         self,
-        locations: List[Location],
-        times: List[float],
-        allocated_at_time: List[bool],
+        events: List[UpdateEvent],
         point_colour: str,
         line_colour: str = "black",
     ) -> None:
@@ -283,33 +300,86 @@ class GUIAircraft(GUIObject):
             point_colour (str): point_colour
             line_colour (str): line_colour
         """
+        self.aircraft_point = GUIPoint(events[-1], radius=3, colour=point_colour)
+        self.aircraft_lines: List[GUILine] = []
+        last_event = events[0]
+        for i, event in enumerate(events):
+            if i == 0:
+                continue
+            if i == len(events) - 1:
+                if event.lat - last_event.lat != 0 or event.lon - last_event.lon != 0:
+                    self.aircraft_lines.append(GUILine(last_event, event, colour=line_colour))
+            else:
+                dx1 = event.lon - last_event.lon
+                dy1 = event.lat - last_event.lat
+                dx2 = events[i + 1].lon - event.lon
+                dy2 = events[i + 1].lat - event.lat
+                if dx1 == 0 and dy1 == 0:
+                    last_event = event
+                elif dx2 == 0 and dy2 == 0:
+                    self.aircraft_lines.append(GUILine(last_event, event, colour=line_colour))
+                    last_event = event  #
+                elif abs(dx2 * dy1 - dx1 * dy2) > EPSILON:
+                    self.aircraft_lines.append(GUILine(last_event, event, colour=line_colour))
+                    last_event = event
+        self.events = events
         super().__init__()
 
     def place_on_canvas(
         self, canvas: Canvas, to_coordinates: Callable[[Location], Tuple[int, int]]
     ) -> None:
-        """place_on_canvas.
+        """Place aircraft on canvas.
 
         Args:
             canvas (Canvas): canvas
             to_coordinates (Callable[[Location], Tuple[int, int]]): to_coordinates
         """
+        self.aircraft_point.place_on_canvas(canvas, to_coordinates)
 
     def show_given_time(self, canvas: Canvas, start_time: float, end_time: float) -> None:
-        """show_given_time.
+        """Show aircraft at given time.
 
         Args:
             canvas (Canvas): canvas
             start_time (float): start_time
             end_time (float): end_time
         """
+        if end_time >= self.events[-1].time:
+            self.aircraft_point.location = self.events[-1]
+        for i, event in enumerate(self.events):
+            if event.time >= end_time:
+                if i == 0:
+                    self.hide(canvas)
+                else:
+                    if event.lat == self.events[i - 1].lat and event.lon == self.events[i - 1].lon:
+                        self.aircraft_point.location = event
+                    else:
+                        percentage = (end_time - self.events[i - 1].time) / (
+                            event.time - self.events[i - 1].time
+                        )
+                        self.aircraft_point.location = self.events[i - 1].intermediate_point(
+                            event, percentage
+                        )
+                    self.aircraft_point.update(canvas)
+                break
 
-    def update(self, canvas: Canvas) -> None:
-        """update.
+        self.aircraft_point.show_given_time(canvas, start_time, end_time)
+
+    def hide(self, canvas: Canvas) -> None:
+        """Hide Aircraft.
 
         Args:
             canvas (Canvas): canvas
         """
+        self.aircraft_point.hide(canvas)
+
+    def update(self, canvas: Canvas) -> None:
+        """Update aircraft.
+
+        Args:
+            canvas (Canvas): canvas
+        """
+        self.aircraft_point.update(canvas)
 
 
 class GUIData:
@@ -339,7 +409,9 @@ class GUIData:
         self.lightning = lightning
         self.ignitions = ignitions
         self.uavs = uavs
+        self.uav_lines = [line for uav in uavs for line in uav.aircraft_lines]
         self.water_bombers = water_bombers
+        self.wb_lines = [line for wb in water_bombers for line in wb.aircraft_lines]
         self.uav_bases = uav_bases
         self.wb_bases = wb_bases
         self.watertanks = watertanks
@@ -401,7 +473,9 @@ def extract_simulation_aircraft(simulation: Simulator, aircraft_type: str) -> Li
         simulation.water_bombers if aircraft_type == "wb" else simulation.uavs
     )
     for aircraft in aircraft_list:
-        to_return.append(GUIAircraft([], [], [], "orange" if aircraft_type == "wb" else "green"))
+        to_return.append(
+            GUIAircraft(aircraft.past_locations, "orange" if aircraft_type == "wb" else "green")
+        )
     return to_return
 
 
@@ -455,7 +529,7 @@ def extract_simulation_water_tanks(simulation: Simulator) -> List[GUIPoint]:
 class GUI:
     """GUI class for bushfire drone simulation."""
 
-    def __init__(self, simulator: Simulator, gui_data: GUIData) -> None:
+    def __init__(self, gui_data: GUIData) -> None:
         """Run GUI from simulator."""
         self.gui_data = gui_data
         self.width, self.height = WIDTH, HEIGHT
@@ -466,7 +540,6 @@ class GUI:
         title.pack()
         self.canvas: Canvas = tk.Canvas(self.window, width=self.width, height=self.height)
         self.canvas.pack(fill=BOTH, expand=True)
-        self.simulator = simulator
 
         self.canvas.bind("<B1-Motion>", self.drag)
         self.window.bind("<Button-1>", self.click)
@@ -507,28 +580,25 @@ class GUI:
             command=self.slider_update,
         )
         self.end_scale.set(24)  # type: ignore
-        self.start_scale.pack(fill=X, expand=True)
-        self.end_scale.pack(fill=X, expand=True)
+        self.start_scale.pack(fill=X)
+        self.end_scale.pack(fill=X)
 
         self.coords = (0, 0)
         self.image = None
         self.tk_image = None
 
         self.restart()
-
         self.checkbox_dict = self.create_checkboxes()
 
         y = 2
         for key in self.checkbox_dict:
             self.checkbox_dict[key][1].select()  # type: ignore
-            # self.canvas.create_window(10, 10, anchor="w", window=checkbox_dict[key][1])
             self.checkbox_dict[key][1].place(x=20, y=y)
             y += 20
             for obj in self.checkbox_dict[key][3]:
                 obj.place_on_canvas(self.canvas, self.map_image.get_coordinates)
 
         self.update_objects()
-
         self.window.mainloop()
 
     def create_checkboxes(
@@ -539,12 +609,14 @@ class GUI:
 
         checkboxes_to_create = {
             "water_tanks": {"text": "Show Water Tanks", "list": self.gui_data.watertanks},
-            "wb_bases": {"text": "Show Water Bomber Bases", "list": self.gui_data.wb_bases},
             "uav_bases": {"text": "Show UAV Bases", "list": self.gui_data.uav_bases},
-            "uavs": {"text": "Show UAVs", "list": self.gui_data.uavs},
-            "water_bombers": {"text": "Show Water Bombers", "list": self.gui_data.water_bombers},
+            "wb_bases": {"text": "Show Water Bomber Bases", "list": self.gui_data.wb_bases},
+            "uav_lines": {"text": "Show UAV Paths", "list": self.gui_data.uav_lines},
+            "wb_lines": {"text": "Show WB Paths", "list": self.gui_data.wb_lines},
             "lightning": {"text": "Show Lightning", "list": self.gui_data.lightning},
             "ignitions": {"text": "Show Ignitions", "list": self.gui_data.ignitions},
+            "uavs": {"text": "Show UAVs", "list": self.gui_data.uavs},
+            "water_bombers": {"text": "Show Water Bombers", "list": self.gui_data.water_bombers},
         }
 
         for checkbox_name in checkboxes_to_create:
@@ -569,12 +641,12 @@ class GUI:
                     obj.hide(self.canvas)
             else:
                 for obj in self.checkbox_dict[key][3]:
-                    obj.update(self.canvas)
                     obj.show_given_time(
                         self.canvas,
                         self.start_time.get() * 60 * 60,  # type: ignore
                         self.end_time.get() * 60 * 60,  # type: ignore
                     )
+                    obj.update(self.canvas)
 
     def add_zoom_button(self, text: str, change: int) -> Button:
         """Add zoom button.
@@ -659,7 +731,7 @@ class GUI:
             self.window.after(1, self.reload)
             self.map_image.set_size(self.width, self.height)
 
-    def slider_update(self, time: str) -> None:
+    def slider_update(self, time: str) -> None:  # pylint: disable = unused-argument
         """Update times given slider update.
 
         Args:
@@ -672,4 +744,4 @@ class GUI:
 
 def start_gui(simulation: Simulator) -> None:
     """Start GUI of simulation."""
-    GUI(simulation, GUIData.from_simulator(simulation))
+    GUI(GUIData.from_simulator(simulation))
