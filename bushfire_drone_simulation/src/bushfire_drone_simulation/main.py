@@ -14,7 +14,7 @@ from bushfire_drone_simulation.abstract_coordinator import (
     UnassigedCoordinator,
     WBCoordinator,
 )
-from bushfire_drone_simulation.gui.gui import start_gui
+from bushfire_drone_simulation.gui.gui import start_gui, start_gui_from_file
 from bushfire_drone_simulation.insertion_coordinator import (
     InsertionUAVCoordinator,
     InsertionWBCoordinator,
@@ -71,6 +71,15 @@ def gui(
     simulator = run_simulation(parameters_filename)[0]
     if simulator is not None:
         start_gui(simulator)
+
+
+@app.command()
+def gui_from_file(
+    scenario_name: str = typer.Argument(..., help="Name of scenario to display in GUI"),
+    path: Path = typer.Option("", help="Path to output data folder."),
+) -> None:
+    """Start a GUI version of the drone simulation."""
+    start_gui_from_file(path, scenario_name)
 
 
 @app.command()
