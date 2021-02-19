@@ -17,9 +17,23 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from bushfire_drone_simulation.aircraft import UAV, UpdateEvent, WaterBomber
-from bushfire_drone_simulation.fire_utils import Base, Time, WaterTank, assert_bool, assert_number
+from bushfire_drone_simulation.fire_utils import (
+    Base,
+    Location,
+    Target,
+    Time,
+    WaterTank,
+    assert_bool,
+    assert_number,
+)
 from bushfire_drone_simulation.lightning import Lightning
-from bushfire_drone_simulation.read_csv import CSVFile, read_lightning, read_locations_with_capacity
+from bushfire_drone_simulation.read_csv import (
+    CSVFile,
+    read_lightning,
+    read_locations,
+    read_locations_with_capacity,
+    read_targets,
+)
 from bushfire_drone_simulation.units import Distance, Volume
 
 _LOG = logging.getLogger(__name__)
@@ -283,6 +297,17 @@ class JSONParameters:
                 ),
             )
         return uavs
+
+    def process_unassigned_drones(
+        self, scenario_idx: int
+    ) -> Tuple[Dict[str, Any], List[Target], List[Location], Path]:
+        """Process targets, polygon and attributes assocaited with unassiged drone."""
+        assert "unassigned_drones" in self.parameters
+        attribute_dict = self.get_attribute("unassigned_drones", scenario_idx)
+        assert isinstance(attribute_dict, dict)
+        targets = read_targets(self.folder / attribute_dict["targets_filename"])
+        polygon = read_locations(self.folder / attribute_dict["boudary_polygon_filename"])
+        return attribute_dict, targets, polygon, self.output_folder
 
     def get_attribute(self, attribute: str, scenario_idx: int) -> Any:
         """Return attribute of JSON file."""
@@ -554,10 +579,11 @@ class JSONParameters:
         shutil.copy2(
             str(self.get_relative_filepath("lightning_filename", scenario_idx)), str(input_folder)
         )
-        shutil.copy2(
-            str(self.get_relative_filepath("scenario_parameters_filename", scenario_idx)),
-            str(input_folder),
-        )
+        if "scenario_parameters_filename" in self.parameters:
+            shutil.copy2(
+                str(self.get_relative_filepath("scenario_parameters_filename", scenario_idx)),
+                str(input_folder),
+            )
         shutil.copy2(
             str(os.path.join(self.folder, self.scenarios[scenario_idx]["uavs"]["spawn_loc_file"])),
             str(input_folder),

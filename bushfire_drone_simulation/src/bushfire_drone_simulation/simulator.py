@@ -2,9 +2,13 @@
 
 from math import inf
 from queue import PriorityQueue, Queue
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
-from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoordinator
+from bushfire_drone_simulation.abstract_coordinator import (
+    UAVCoordinator,
+    UnassigedCoordinator,
+    WBCoordinator,
+)
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.precomupted import PreComputedDistances
@@ -33,9 +37,13 @@ class Simulator:
             self.lightning_strikes, self.uav_bases, self.water_bomber_bases_dict, self.water_tanks
         )
         self.summary_results: Dict[str, List[Union[float, str]]] = {}
+        self.animation_data: Dict[str, List[List[float]]] = {}
 
-    def run_simulation(
-        self, uav_coordinator: UAVCoordinator, wb_coordinator: WBCoordinator
+    def run_simulation(  # pylint: disable=too-many-branches
+        self,
+        uav_coordinator: UAVCoordinator,
+        wb_coordinator: WBCoordinator,
+        unassigned_coordinator: Optional[UnassigedCoordinator] = None,
     ) -> None:
         """Run bushfire drone simulation."""
         uav_coordinator.accept_precomputed_distances(self.precomputed)
@@ -45,9 +53,13 @@ class Simulator:
         for water_bomber in self.water_bombers:
             water_bomber.accept_precomputed_distances(self.precomputed)
 
+        if unassigned_coordinator is None or self.lightning_queue.empty():
+            update_unassigned_time = inf
+        else:
+            update_unassigned_time = self.lightning_queue.queue[0].spawn_time
+
         while not self.lightning_queue.empty():
             strike = self.lightning_queue.get()
-            # print("UPDATING UAVS TO TIME " + str(strike.spawn_time))
             inspections = self._update_uavs_to_time(strike.spawn_time)
             uav_coordinator.lightning_strike_inspected(inspections)
             uav_coordinator.new_strike(strike)
@@ -55,7 +67,18 @@ class Simulator:
                 if inspected.ignition:
                     self.ignitions.put(inspected)
 
-        # print("UPDATING UAVS TO TIME INF")
+            if not self.lightning_queue.empty():
+                while self.lightning_queue.queue[0].spawn_time > update_unassigned_time:
+                    assert unassigned_coordinator is not None
+                    # print("UPDATING UAVS TO TIME " + str(update_unassigned_time / 60) + " mins")
+                    inspections = self._update_uavs_to_time(update_unassigned_time)
+                    unassigned_coordinator.assign_unassigned_uavs(update_unassigned_time)
+                    update_unassigned_time += unassigned_coordinator.dt
+                    for (inspected, _) in inspections:
+                        if inspected.ignition:
+                            self.ignitions.put(inspected)
+
+        print("UPDATING UAVS TO TIME INF")
         inspections = self._update_uavs_to_time(inf)
         for (inspected, _) in inspections:
             if inspected.ignition:
@@ -76,6 +99,9 @@ class Simulator:
 
         # print("UPDATING WBS TO TIME INF")
         suppressions = self._update_water_bombers_to_time(inf)
+
+        if unassigned_coordinator is not None:
+            self.animation_data = unassigned_coordinator.output
 
     def _update_to_time(
         self, time: float

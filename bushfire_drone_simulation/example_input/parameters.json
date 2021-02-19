@@ -51,5 +51,19 @@
                 "water_capacity": 11500
             }
         }
+    },
+
+    "unassigned_drones": {
+        "targets_filename": "input_data/targets.csv",
+        "boudary_polygon_filename": "input_data/boundary_polygon.csv",
+        "dt": 300,
+        "uav_repulsion_const": 1.0,
+        "uav_repulsion_power": -3,
+        "target_attraction_const": 0.5,
+        "target_attraction_power": -2,
+        "boundary_repulsion_const": 0.7,
+        "boundary_repulsion_power": -2,
+        "centre_lat": -36.5,
+        "centre_lon": 148
     }
 }

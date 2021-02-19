@@ -144,7 +144,7 @@ The JSON parameters file should contain the following information formatted as i
             }
         }
 
-*  And a dictionary containing the following information about water bombers
+*  A dictionary containing the following information about water bombers
 
 .. code-block:: json
 
@@ -167,6 +167,42 @@ The JSON parameters file should contain the following information formatted as i
                 "Same attribute structure as above"
             },
             "Additional water bombers can be added using the same structure shown above"
+        }
+    }
+
+*  And an optional dictionary containing the following information about how the coordinator should treat unassigned drones.
+    If this dictionary is included in the parameters file, then at the end of every time interval dt,
+    the unassigned aircraft will move according to the following instructions:
+    they will be attracted to any targets provided in the target file (details specified below),
+    and repelled from all other unassigned aircraft and the closest point on the boundary (given in the boundary
+    polygon file, details below). These attractions and repulsions are definied by the following formula
+
+.. math::
+
+    const \times (dist\ from\ unassigned\ aircraft\ to\ position) ^ {power}
+
+    where the const and power and defined in the parameters file.
+
+
+    If these instructions tell a drone to leave the boundary, it will
+    ignore these instrctions and remain stationary (hovering). If an aircraft is found outside the boundary
+    it will fly towards the provided centre coordinates.
+
+.. code-block :: json
+
+    {
+        "unassigned_drones": {
+            "targets_filename": "input_data/targets.csv",
+            "boudary_polygon_filename": "input_data/boundary_polygon.csv",
+            "dt": time in seconds between unassigned aircraft updates,
+            "uav_repulsion_const": uav repulsion coefficient (positive for repulsion),
+            "uav_repulsion_power": uav repulsion power (adviced to be negative),
+            "target_attraction_const": target attraction coefficient (positive for attraction),
+            "target_attraction_power": target attraction power (adviced to be negative),
+            "boundary_repulsion_const": boundary repulsion coefficient (positive for repulsion),
+            "boundary_repulsion_power": boundary repulsion power (adviced to be negative),
+            "centre_lat": centre latitude for drones outside boundary to return to,
+            "centre_lon": centre longitude for drones outside boundary to return to
         }
     }
 
@@ -264,6 +300,28 @@ is just sample input.
     Where starting at base indicates whether the aircraft should start hovering at time 0 or not (indicated
     by a boolean, see above for accepted boolean input) and inital fuel a decimal between 0 and 1
     indicating the percentage capacity of the fuel tank the aircraft begins with.
+
+*  target_file
+
+    The optional targets file, required if the unassigned_drones dictionary is included,
+    designates the locations and active duration of various targets that aircraft should travel towards when unassigned.
+
+    .. csv-table::
+        :header: "latitude", "longitude", start time,finish time
+
+        -37.81,144.97,0,80000
+
+    Note that as always it is possible to enter "inf" to indicate a time that comes after all other times.
+
+* boundary_polygon_file
+
+    The optional boundary polygon file, required if the unassigned_drones dictionary is included,
+    designates the verticies of a boundary polygon of the desired simulation area.
+
+    .. csv-table::
+        :header: "latitude", "longitude"
+
+        -37.81,144.97
 
 
 Multiple Simulations

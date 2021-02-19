@@ -1,10 +1,13 @@
 """Module for the centralized coordinator/HQ controlling the UAVs and aircraft."""
 
 from abc import abstractmethod
-from typing import Dict, List, Optional, Set, Tuple
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+from matplotlib import path
 
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
-from bushfire_drone_simulation.fire_utils import Base, WaterTank
+from bushfire_drone_simulation.fire_utils import Base, Location, Target, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.precomupted import PreComputedDistances
@@ -45,6 +48,59 @@ class UAVCoordinator:
                 self.uninspected_strikes.remove(strike)
             except KeyError:
                 assert False, f"{strike.id_no} was inspected but not in set of uninspected strikes"
+
+
+class UnassigedCoordinator:
+    """Class for centrally coordinatoring unassiged aircraft."""
+
+    def __init__(  # pylint: disable=too-many-arguments
+        self,
+        uavs: List[UAV],
+        uav_bases: List[Base],
+        targets: List[Target],
+        output_folder: Path,
+        polygon: List[Location],
+        attributes: Dict[str, Any],
+    ) -> None:
+        """Initialize unassigned drone coordinator."""
+        self.uavs = uavs
+        self.uav_bases = uav_bases
+        self.targets = targets
+        self.uav_const: float = attributes["uav_repulsion_const"]
+        self.uav_pwr: float = attributes["uav_repulsion_power"]
+        self.target_const: float = attributes["target_attraction_const"]
+        self.target_pwr: float = attributes["target_attraction_power"]
+        self.boundary_const: float = attributes["boundary_repulsion_const"]
+        self.boundary_pwr: float = attributes["boundary_repulsion_power"]
+        self.centre_loc: Location = Location(attributes["centre_lat"], attributes["centre_lon"])
+        self.dt = attributes["dt"]
+        self.polygon = polygon
+        self.polygon_points = [(loc.lat, loc.lon) for loc in self.polygon]
+        self.boundary = path.Path(self.polygon_points)
+        self.output_folder = output_folder
+        self.output: Dict[str, List[List[float]]] = {}
+        self.output["uav_lats"] = []
+        self.output["uav_lons"] = []
+        self.output["assigned_uav_lats"] = []
+        self.output["assigned_uav_lons"] = []
+
+    @abstractmethod
+    def assign_unassigned_uavs(self, current_time: float) -> None:
+        """Assign unassigned uavs."""
+
+    def outside_boundary(self, location: Location) -> bool:
+        """Determine whether a given location falls outside the simulation boundary."""
+        return not self.boundary.contains_point([location.lat, location.lon])
+
+
+def average_location(locations: List[Location]) -> Location:
+    """Return the average location given a list of locations."""
+    lat_sum: float = 0
+    lon_sum: float = 0
+    for location in locations:
+        lat_sum += location.lat
+        lon_sum += location.lon
+    return Location(lat_sum / len(locations), lon_sum / len(locations))
 
 
 class WBCoordinator:

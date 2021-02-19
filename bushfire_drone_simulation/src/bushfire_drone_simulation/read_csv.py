@@ -6,7 +6,7 @@ from typing import Any, List, Protocol, Type, TypeVar, Union
 
 import pandas as pd
 
-from bushfire_drone_simulation.fire_utils import Time, assert_bool, assert_number
+from bushfire_drone_simulation.fire_utils import Location, Target, Time, assert_bool, assert_number
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Volume
 
@@ -108,6 +108,25 @@ def read_locations_with_capacity(
     return to_return
 
 
+def read_locations(filename: Path) -> List[Location]:
+    """Return a list of Locations contained in the first two columns of a given a csv file."""
+    location_data = CSVFile(filename)
+    to_return = []
+    lats = location_data["latitude"]
+    lons = location_data["longitude"]
+    for i, lat in enumerate(lats):
+        lat = assert_number(
+            lat,
+            f"Error: The latitude on row {i+1} of '{filename}' ('{lat}') is not a number",
+        )
+        lon = assert_number(
+            lons[i],
+            f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number",
+        )
+        to_return.append(Location(lat, lon))
+    return to_return
+
+
 def read_lightning(filename: Path, ignition_probability: float) -> List[Lightning]:
     """Return a list of Locations contained in the first two columns of a given a csv file."""
     lightning = []
@@ -151,3 +170,41 @@ def read_lightning(filename: Path, ignition_probability: float) -> List[Lightnin
         )
 
     return lightning
+
+
+def read_targets(filename: Path) -> List[Target]:
+    """Return a list of targets from given file path."""
+    targets: List[Target] = []
+    target_data = CSVFile(filename)
+    lats = target_data["latitude"]
+    lons = target_data["longitude"]
+    start_times = target_data["start time"]
+    finish_times = target_data["finish time"]
+    for i, lat in enumerate(lats):
+        lat = assert_number(
+            lat, f"Error: The latitude on row {i+1} of '{filename}' ('{lat}') is not a number."
+        )
+        lon = assert_number(
+            lons[i],
+            f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number.",
+        )
+        start_time = assert_number(
+            start_times[i],
+            f"Error: The longitude on row {i+1} of '{filename}' ('{start_times[i]}') "
+            f"is not a number.",
+        )
+        finish_time = assert_number(
+            finish_times[i],
+            f"Error: The longitude on row {i+1} of '{filename}' ('{finish_times[i]}') "
+            f"is not a number.",
+        )
+        targets.append(
+            Target(
+                lat,
+                lon,
+                start_time,
+                finish_time,
+            ),
+        )
+
+    return targets

@@ -39,6 +39,7 @@ class Status(Enum):
     WAITING_AT_WATER = "Waiting at watertank"
     GOING_TO_WATER = "Going to watertank"
     REFILLING_WATER = "Refilling at watertank"
+    UNASSIGNED = "Unassigned"
 
 
 class StatusWithId:  # pylint: disable=too-few-public-methods
@@ -173,6 +174,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         self.required_departure_time: Optional[float] = None
         self.precomputed: Optional[PreComputedDistances] = None
         self.fuel_tank_capacity: float = 1  # TODO(read from input) pylint: disable=fixme
+        self.unassigned_target: Optional[Location] = None
 
     def accept_precomputed_distances(self, precomputed: PreComputedDistances) -> None:
         """Accept precomputed distance class with distances already evaluated."""
@@ -315,7 +317,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         self._add_update(id_no)
         return inspection, suppression
 
-    def update_to_time(  # pylint: disable=too-many-branches
+    def update_to_time(  # pylint: disable=too-many-branches, too-many-statements
         self, update_time: float
     ) -> Tuple[List[Lightning], List[Lightning]]:
         """Update aircraft to given time and delete all updates beyond this time.
@@ -330,6 +332,34 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         assert isinstance(update_time, float)
         strikes_inspected: List[Lightning] = []
         strikes_suppressed: List[Lightning] = []
+        if (
+            self.event_queue.is_empty()
+            and self.unassigned_target is not None
+            and not math.isinf(update_time)
+            and self.time < update_time
+        ):
+            percentage = (
+                (update_time - self.time)
+                * self.flight_speed
+                / self.distance(self.unassigned_target)
+            )
+            if self.get_name() == "uav 26":
+                print(f"percentage is {percentage}")
+            if percentage < 1:
+                destination = self.intermediate_point(self.unassigned_target, percentage)
+                self._reduce_current_fuel(self.distance(destination) / self.get_range())
+            else:
+                destination = self.unassigned_target
+                self.unassigned_target = None
+                self._reduce_current_fuel(
+                    (self.flight_speed * (update_time - self.time)) / self.get_range()
+                )
+                self.time += self.distance(destination) / self.flight_speed
+            self._update_location(destination)
+            self.status = Status.UNASSIGNED
+            if self.get_name() == "uav 169":
+                print(f"uav 169 thinks time is {self.time/60}")
+            self._add_update()
         # If we can get to the next position then complete update, otherwise make it half way there
         while not self.event_queue.is_empty():
             next_event = self.event_queue.peak()
@@ -370,10 +400,10 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                         * self.flight_speed
                         / self.distance(next_event.position)
                     )
-                    intermediate_point = self.intermediate_point(next_event.position, percentage)
-                    self._reduce_current_fuel(self.distance(intermediate_point) / self.get_range())
-                    self.time += self.distance(intermediate_point) / self.flight_speed
-                    self._update_location(intermediate_point)
+                    destination = self.intermediate_point(next_event.position, percentage)
+                    self._reduce_current_fuel(self.distance(destination) / self.get_range())
+                    self.time += self.distance(destination) / self.flight_speed
+                    self._update_location(destination)
                 break
         # Lose fuel if hovering and update self.time to update_time
         if (
@@ -495,7 +525,10 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
     def go_to_base(self, base: Base, departure_time: float) -> None:
         """Go to and refill Aircraft at base."""
         if departure_time - self.time > EPSILON:
-            assert self.status == Status.HOVERING  # Must have been called from consider
+            assert self.status in [
+                Status.HOVERING,
+                Status.UNASSIGNED,
+            ], f"status was {self.status}"  # Must have been called from consider
             self._reduce_current_fuel(
                 (departure_time - self.time) * (self.flight_speed) / self.get_range()
             )
@@ -570,7 +603,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             departure_time (Time): time of triggering event of consider going to base
             percentage (float, optional): fraction of fuel tank. Defaults to 0.3, must be <= 1.
         """
-        if self._get_future_status() == Status.HOVERING:
+        if self._get_future_status() in [Status.HOVERING, Status.UNASSIGNED]:
             base_index = int(np.argmin(list(map(self._get_future_position().distance, bases))))
             dist_to_base = self._get_future_position().distance(bases[base_index])
             percentage_range = self._get_future_fuel() * self.get_range() * percentage
@@ -711,41 +744,13 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
 
         return current_time
 
-    def enough_fuel2(self, positions: List[Location]) -> Optional[float]:
-        """Return whether an Aircraft has enough fuel to traverse a given array of positions.
-
-        The fuel is tested when the positions are added to the targets queue with the given
-        departure time.
-
-        If the aircraft does not have enough fuel, the function returns None.
-        Otherwise the arrival time of the aircraft is returned.
-
-        Args:
-            positions (List[Location]): array of locations for the aircraft to traverse
-
-        Returns:
-            Optional[Time]: The arrival time of the aircraft after traversing the array of positions
-            or None if not enough fuel
-        """
-        current_fuel = self._get_future_fuel()
-        current_time = self._get_future_time()
-        departure_position = self._get_future_position()
-        for position in positions:
-            dist = departure_position.distance(position)
-            current_fuel -= dist / self.get_range()
-            current_time += dist / self.flight_speed
-            if isinstance(position, Lightning):
-                current_fuel -= self._get_time_at_strike() * self.flight_speed / self.get_range()
-                current_time += self._get_time_at_strike()
-            if current_fuel < 0:
-                return None
-            if isinstance(position, WaterTank):
-                current_time += self._get_water_refill_time()
-            if isinstance(position, Base):
-                current_time += self.fuel_refill_time
-                current_fuel = 1.0
-            departure_position = position
-        return current_time
+    def unassiged_aircraft_to_location(self, location: Location, duration: float) -> None:
+        """Send an aircraft in the direction of the given location for the given duration."""
+        assert self.event_queue.is_empty()
+        percentage = duration / (self.distance(location) / self.flight_speed)
+        if percentage > 1:
+            percentage = 1
+        self.unassigned_target = self.intermediate_point(location, percentage)
 
     def _add_update(self, loc_id_no: Optional[int] = None) -> None:
         """Add update to past locations."""
@@ -939,9 +944,6 @@ class WaterBomber(Aircraft):
 
     def check_water_tank(self, water_tank: WaterTank) -> bool:
         """Return whether a given water tank has enough capacity to refill the water bomber.
-
-        Args:
-            water_tank (WaterTank): water tank
 
         Returns:
             bool: Returns false if water tank has enough to extinguish a single fire

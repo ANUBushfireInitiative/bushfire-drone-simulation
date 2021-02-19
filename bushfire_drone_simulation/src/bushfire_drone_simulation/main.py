@@ -4,12 +4,16 @@ import csv
 import logging
 from pathlib import Path
 from sys import stderr
-from typing import Dict, List, Type, Union
+from typing import Dict, List, Optional, Type, Union
 
 import typer
 from tqdm import tqdm
 
-from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoordinator
+from bushfire_drone_simulation.abstract_coordinator import (
+    UAVCoordinator,
+    UnassigedCoordinator,
+    WBCoordinator,
+)
 from bushfire_drone_simulation.gui.gui import start_gui, start_map_gui
 from bushfire_drone_simulation.insertion_coordinator import (
     InsertionUAVCoordinator,
@@ -30,6 +34,7 @@ from bushfire_drone_simulation.reprocess_max_time_coordinator import (
     ReprocessMaxTimeWBCoordinator,
 )
 from bushfire_drone_simulation.simulator import Simulator
+from bushfire_drone_simulation.unassigned_coordinator import SimpleUnassigedCoordinator
 
 _LOG = logging.getLogger(__name__)
 app = typer.Typer()
@@ -93,7 +98,13 @@ def run_simulation(
             params,
             scenario_idx,
         )
-        simulator.run_simulation(uav_coordinator, wb_coordinator)
+        unassigned_coordinator: Optional[UnassigedCoordinator] = None
+        if "unassigned_drones" in params.parameters:
+            attributes, targets, polygon, folder = params.process_unassigned_drones(scenario_idx)
+            unassigned_coordinator = SimpleUnassigedCoordinator(
+                simulator.uavs, simulator.uav_bases, targets, folder, polygon, attributes
+            )
+        simulator.run_simulation(uav_coordinator, wb_coordinator, unassigned_coordinator)
 
         simulator.output_results(params, scenario_idx)
         to_return.append(simulator)

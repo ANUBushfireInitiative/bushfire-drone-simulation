@@ -30,6 +30,8 @@ class Location:
     def intermediate_point(self, other: "Location", percentage: float) -> "Location":
         """Find intermediate point percentage of the way between self and other."""
         angular = self.distance(other) / 6371
+        if angular == 0:
+            return self.copy_loc()
         h_1 = sin(radians((1 - percentage) * angular)) / sin(radians(angular))
         h_2 = sin(radians(percentage * angular)) / sin(radians(angular))
         x = h_1 * cos(radians(self.lat)) * cos(radians(self.lon)) + h_2 * cos(
@@ -41,14 +43,62 @@ class Location:
         z = h_1 * sin(radians(self.lat)) + h_2 * sin(radians(other.lat))
         return Location(degrees(atan2(z, sqrt(x * x + y * y))), degrees(atan2(y, x)))
 
-    # def to_coordinates(self) -> Tuple[float, float]:
-    # """Return pixel coordinates of location."""
-    # # FIXME(not converting lat lon to coordinates)  # pylint: disable=fixme
-    # return (self.lon - 144) * 100, (-34 - self.lat) * 150
-
     def copy_loc(self) -> "Location":
         """Create a new instance of Location."""
         return Location(self.lat, self.lon)
+
+    def closest_point_on_line(  # pylint: disable=too-many-return-statements, too-many-branches
+        self, start: "Location", end: "Location"
+    ) -> "Location":
+        """Return the closest point to self on line given start and end points."""
+        if start.lon == end.lon:
+            if self.lat > start.lat and self.lat > end.lat:
+                if start.lat > end.lat:
+                    return start.copy_loc()
+                return end.copy_loc()
+            if self.lat < start.lat and self.lat < end.lat:
+                if start.lat < end.lat:
+                    return start.copy_loc()
+                return end.copy_loc()
+            return Location(self.lat, start.lon)
+        if start.lat == end.lat:
+            if self.lon > start.lon and self.lon > end.lon:
+                if start.lon > end.lon:
+                    return start.copy_loc()
+                return end.copy_loc()
+            if self.lon < start.lon and self.lon < end.lon:
+                if start.lon < end.lon:
+                    return start.copy_loc()
+                return end.copy_loc()
+            return Location(start.lat, self.lon)
+        grad = (start.lat - end.lat) / (start.lon - end.lon)
+        line_intercept = start.lat - grad * start.lon
+        perp_intercept = self.lat + self.lon / grad
+        ret_lon = (perp_intercept - line_intercept) / (grad + 1 / grad)
+        ret_lat = grad * ret_lon + line_intercept
+        if ret_lon < start.lon and ret_lon < end.lon:
+            if start.lon < end.lon:
+                return start.copy_loc()
+            return end.copy_loc()
+        if ret_lon > start.lon and ret_lon > end.lon:
+            if start.lon > end.lon:
+                return start.copy_loc()
+            return end.copy_loc()
+        return Location(ret_lat, ret_lon)
+
+
+class Target(Location):
+    """Location and time frame for aircraft to target."""
+
+    def __init__(self, latitude: float, longitude: float, start_time: float, end_time: float):
+        """Initialize target."""
+        super().__init__(latitude, longitude)
+        self.start_time = start_time
+        self.end_time = end_time
+
+    def currently_active(self, time: float) -> bool:
+        """Return whether or not a given time falls between the start and finish time."""
+        return self.start_time <= time <= self.end_time
 
 
 class WaterTank(Location):
