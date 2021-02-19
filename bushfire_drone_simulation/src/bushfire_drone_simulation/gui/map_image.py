@@ -10,6 +10,8 @@ from geotiler.cache import caching_downloader
 from geotiler.tile.io import fetch_tiles
 from PIL.Image import Image
 
+from bushfire_drone_simulation.fire_utils import Location
+
 cache_folder = Path(os.path.dirname(os.path.realpath(__file__))) / "map_tile_cache"
 cache_folder.mkdir(parents=True, exist_ok=True)
 
@@ -97,13 +99,29 @@ class MapImage:
         self.zoom = zoom
 
         self.display_image = PIL.Image.new("RGB", (width, height))
+        self.big_image = PIL.Image.new("RGB", (0, 0))
+        self.geotiler_map = geotiler.Map(
+            center=(self.display_lon, self.display_lat),
+            zoom=self.zoom,
+            size=(0, 0),
+        )
 
         self.left = 0
         self.top = 0
 
-        self._fetch_image()
+        self._fetch_and_update()
 
-        self._update_image()
+    def set_size(self, width: int, height: int) -> None:
+        """Set size of map image.
+
+        Args:
+            width (int): width
+            height (int): height
+        """
+        self.width = width
+        self.height = height
+        self.display_image = PIL.Image.new("RGB", (width, height))
+        self._fetch_and_update()
 
     def get_image(self) -> Image:
         """Return map image to be displayed."""
@@ -123,13 +141,12 @@ class MapImage:
         )
         self.lat = self.display_lat
         self.lon = self.display_lon
-        self.extent = self.geotiler_map.extent
         self.reload_required = False
-        self.big_image: PIL.Image.Image = render_map(self.geotiler_map)
+        self.big_image = render_map(self.geotiler_map)
         self.left = int((self.big_image.width - self.width) / 2)
         self.top = int((self.big_image.height - self.height) / 2)
 
-    def get_coordinates(self, latitude: float, longitude: float) -> Tuple[int, int]:
+    def get_coordinates(self, location: Location) -> Tuple[int, int]:
         """Get pixel coordinates on the map image from a latitude and longitude.
 
         Args:
@@ -139,7 +156,7 @@ class MapImage:
         Returns:
             Tuple[int, int]: Pixel coordinates
         """
-        big_x, big_y = self.geotiler_map.rev_geocode((longitude, latitude))
+        big_x, big_y = self.geotiler_map.rev_geocode((location.lon, location.lat))
         return big_x - self.left, big_y - self.top
 
     def _update_image(self) -> None:
@@ -155,12 +172,13 @@ class MapImage:
         """
         self.top = self._constrain(self.top, dy, self.big_image.height - self.height)
         self.left = self._constrain(self.left, dx, self.big_image.width - self.width)
-        self.display_lat = (self.top + int(self.height / 2)) * (self.extent[1] - self.extent[3]) / (
+        extent = self.geotiler_map.extent
+        self.display_lat = (self.top + int(self.height / 2)) * (extent[1] - extent[3]) / (
             self.big_image.height
-        ) + self.extent[3]
-        self.display_lon = (self.left + int(self.width / 2)) * (self.extent[2] - self.extent[0]) / (
+        ) + extent[3]
+        self.display_lon = (self.left + int(self.width / 2)) * (extent[2] - extent[0]) / (
             self.big_image.width
-        ) + self.extent[0]
+        ) + extent[0]
         if self.reload_required:
             self._fetch_and_update()
         else:

@@ -10,7 +10,7 @@ import typer
 from tqdm import tqdm
 
 from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoordinator
-from bushfire_drone_simulation.gui.gui import start_gui, start_map_gui
+from bushfire_drone_simulation.gui.gui import start_gui
 from bushfire_drone_simulation.insertion_coordinator import (
     InsertionUAVCoordinator,
     InsertionWBCoordinator,
@@ -66,12 +66,6 @@ def gui(
     simulator = run_simulation(parameters_filename)[0]
     if simulator is not None:
         start_gui(simulator)
-
-
-@app.command()
-def map_gui() -> None:
-    """Start a GUI version of the drone simulation."""
-    start_map_gui()
 
 
 @app.command()
