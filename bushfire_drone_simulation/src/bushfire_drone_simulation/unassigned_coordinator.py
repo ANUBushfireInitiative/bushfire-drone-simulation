@@ -34,6 +34,7 @@ class SimpleUnassigedCoordinator(UnassigedCoordinator):
         plt.cla()
         plt.scatter(uav_lats, uav_lons)
         plt.scatter(assigned_uav_lats, assigned_uav_lons)
+        plt.gca().set_aspect("equal")
         plt.plot(poly_x, poly_y)
 
         plt.savefig(
@@ -88,7 +89,6 @@ class SimpleUnassigedCoordinator(UnassigedCoordinator):
                             min_dist = dist
                             closest_boundary_point = closest_point
                         prev_point = point
-
                     if min_dist != 0:
                         assert closest_boundary_point is not None
                         contributing_locs.append(
@@ -98,9 +98,10 @@ class SimpleUnassigedCoordinator(UnassigedCoordinator):
                             )
                         )
                     uav_target_loc = average_location(contributing_locs)
-                    actual_loc = uav.intermediate_point(
-                        uav_target_loc, self.dt / (uav.distance(uav_target_loc) * uav.flight_speed)
-                    )
+                    actual_loc = uav_target_loc
+                    percentage = (uav.distance(uav_target_loc) * uav.flight_speed) / self.dt
+                    if percentage > 1:
+                        actual_loc = uav.intermediate_point(uav_target_loc, percentage)
                     if self.outside_boundary(actual_loc):
                         uav.unassigned_target = None
                     else:

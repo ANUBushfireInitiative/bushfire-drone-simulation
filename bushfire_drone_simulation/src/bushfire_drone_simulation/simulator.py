@@ -78,7 +78,7 @@ class Simulator:
                         if inspected.ignition:
                             self.ignitions.put(inspected)
 
-        print("UPDATING UAVS TO TIME INF")
+        # print("UPDATING UAVS TO TIME INF")
         inspections = self._update_uavs_to_time(inf)
         for (inspected, _) in inspections:
             if inspected.ignition:

@@ -343,8 +343,6 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                 * self.flight_speed
                 / self.distance(self.unassigned_target)
             )
-            if self.get_name() == "uav 26":
-                print(f"percentage is {percentage}")
             if percentage < 1:
                 destination = self.intermediate_point(self.unassigned_target, percentage)
                 self._reduce_current_fuel(self.distance(destination) / self.get_range())
@@ -357,8 +355,6 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                 self.time += self.distance(destination) / self.flight_speed
             self._update_location(destination)
             self.status = Status.UNASSIGNED
-            if self.get_name() == "uav 169":
-                print(f"uav 169 thinks time is {self.time/60}")
             self._add_update()
         # If we can get to the next position then complete update, otherwise make it half way there
         while not self.event_queue.is_empty():
