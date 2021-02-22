@@ -338,22 +338,23 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             and not math.isinf(update_time)
             and self.time < update_time
         ):
-            percentage = (
-                (update_time - self.time)
-                * self.flight_speed
-                / self.distance(self.unassigned_target)
-            )
-            if percentage < 1:
-                destination = self.intermediate_point(self.unassigned_target, percentage)
-                self._reduce_current_fuel(self.distance(destination) / self.get_range())
-            else:
-                destination = self.unassigned_target
-                self.unassigned_target = None
-                self._reduce_current_fuel(
-                    (self.flight_speed * (update_time - self.time)) / self.get_range()
+            if self.lat != self.unassigned_target.lat or self.lon != self.unassigned_target.lon:
+                percentage = (
+                    (update_time - self.time)
+                    * self.flight_speed
+                    / self.distance(self.unassigned_target)
                 )
-                self.time += self.distance(destination) / self.flight_speed
-            self._update_location(destination)
+                if percentage < 1:
+                    destination = self.intermediate_point(self.unassigned_target, percentage)
+                    self._reduce_current_fuel(self.distance(destination) / self.get_range())
+                else:
+                    destination = self.unassigned_target
+                    self.unassigned_target = None
+                    self._reduce_current_fuel(
+                        (self.flight_speed * (update_time - self.time)) / self.get_range()
+                    )
+                    self.time += self.distance(destination) / self.flight_speed
+                self._update_location(destination)
             self.status = Status.UNASSIGNED
             self._add_update()
         # If we can get to the next position then complete update, otherwise make it half way there

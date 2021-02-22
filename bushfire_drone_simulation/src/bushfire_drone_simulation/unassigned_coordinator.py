@@ -48,7 +48,7 @@ class SimpleUnassigedCoordinator(UnassigedCoordinator):
                 if self.outside_boundary(uav):
                     actual_loc = uav.intermediate_point(
                         self.centre_loc,
-                        (uav.distance(self.centre_loc) * uav.flight_speed) / self.dt,
+                        self.dt / (uav.distance(self.centre_loc) / uav.flight_speed),
                     )
                     base = self.uav_bases[
                         int(np.argmin(list(map(actual_loc.distance, self.uav_bases))))
@@ -70,10 +70,6 @@ class SimpleUnassigedCoordinator(UnassigedCoordinator):
                                         -self.uav_const * dist ** self.uav_pwr,
                                     )
                                 )
-                                # print(f"dist is {dist}")
-                                # print(f"percentage is {-self.uav_const * dist ** self.uav_pwr}")
-                            # else:
-                            #     print("this is awkward")
                     for target in self.targets:
                         if target.currently_active(current_time):
                             dist = uav.distance(target)
@@ -105,11 +101,12 @@ class SimpleUnassigedCoordinator(UnassigedCoordinator):
                     if contributing_locs != []:
                         uav_target_loc = average_location(contributing_locs)
                         actual_loc = uav_target_loc
-                        percentage = (uav.distance(uav_target_loc) * uav.flight_speed) / self.dt
-                        if percentage > 1:
+                        percentage = self.dt / (uav.distance(uav_target_loc) / uav.flight_speed)
+                        if percentage < 1:
                             actual_loc = uav.intermediate_point(uav_target_loc, percentage)
                         if self.outside_boundary(actual_loc):
-                            uav.unassigned_target = None
+                            boundary_target = self.find_point_on_boundary(uav, actual_loc)
+                            uav.unassigned_target = boundary_target
                         else:
                             base = self.uav_bases[
                                 int(np.argmin(list(map(actual_loc.distance, self.uav_bases))))

@@ -1,6 +1,7 @@
 """Module for the centralized coordinator/HQ controlling the UAVs and aircraft."""
 
 from abc import abstractmethod
+from math import inf
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -91,6 +92,60 @@ class UnassigedCoordinator:
     def outside_boundary(self, location: Location) -> bool:
         """Determine whether a given location falls outside the simulation boundary."""
         return not self.boundary.contains_point([location.lat, location.lon])
+
+    def find_point_on_boundary(self, inside_point: Location, outside_point: Location) -> Location:
+        """Return point on boundary where the line between the inside and outside points intersect.
+
+        Return the closest point to inside_point if there are multiple intersections.
+        """
+        prev_point = self.polygon[-1]
+        min_dist = inf
+        closest_boundary_point: Optional[Location] = None
+        for point in self.polygon:
+            intersection_point = intersection(inside_point, outside_point, point, prev_point)
+            if intersection_point is not None:
+                dist = inside_point.distance(intersection_point)
+                if dist < min_dist:
+                    min_dist = dist
+                    closest_boundary_point = intersection_point
+            prev_point = point
+        assert closest_boundary_point is not None
+        epsilon = 0.001
+        if inside_point.lat > closest_boundary_point.lat:
+            closest_boundary_point.lat += epsilon
+        else:
+            closest_boundary_point.lat -= epsilon
+        if inside_point.lon < closest_boundary_point.lon:
+            closest_boundary_point.lon += epsilon
+        else:
+            closest_boundary_point.lon -= epsilon
+        return closest_boundary_point
+
+
+def intersection(
+    loc_1: Location, loc_2: Location, loc_3: Location, loc_4: Location
+) -> Optional[Location]:
+    """Return the intersection between the line segments connecting loc 1 and 2 and loc 3 and 4.
+
+    Or None if they do not intersect
+    """
+    if ccw(loc_1, loc_3, loc_4) != ccw(loc_2, loc_3, loc_4) and ccw(loc_1, loc_2, loc_3) != ccw(
+        loc_1, loc_2, loc_4
+    ):
+        grad_1 = (loc_1.lat - loc_2.lat) / (loc_1.lon - loc_2.lon)
+        grad_2 = (loc_3.lat - loc_4.lat) / (loc_3.lon - loc_4.lon)
+        int_1 = -grad_1 * loc_1.lon + loc_1.lat
+        ret_lon = (grad_2 * loc_3.lon - loc_3.lat + int_1) / (grad_2 - grad_1)
+        ret_lat = grad_1 * ret_lon + int_1
+        return Location(ret_lat, ret_lon)
+    return None
+
+
+def ccw(loc_1: Location, loc_2: Location, loc_3: Location) -> bool:
+    """Return whether or not loc_1, loc_2 and loc_3 are ordered counterclockwise."""
+    return (loc_3.lat - loc_1.lat) * (loc_2.lon - loc_1.lon) > (loc_2.lat - loc_1.lat) * (
+        loc_3.lon - loc_1.lon
+    )
 
 
 def average_location(locations: List[Location]) -> Location:

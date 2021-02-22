@@ -27,6 +27,10 @@ class Location:
         )
         return 6371 * 2 * atan2(sqrt(temp), sqrt(1 - temp))
 
+    def __str__(self) -> str:
+        """To string method for location."""
+        return f"{self.lat} {self.lon}"
+
     def intermediate_point(self, other: "Location", percentage: float) -> "Location":
         """Find intermediate point percentage of the way between self and other."""
         angular = self.distance(other) / 6371

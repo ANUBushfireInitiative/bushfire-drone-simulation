@@ -153,3 +153,5 @@ bushfire_drone_simulation/src/bushfire_drone_simulation/gui/map_tile_cache
 *output
 *.vim
 swarm_test
+tightswarm2
+outputvarfuel2
