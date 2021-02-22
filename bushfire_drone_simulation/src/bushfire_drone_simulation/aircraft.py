@@ -743,10 +743,11 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
     def unassiged_aircraft_to_location(self, location: Location, duration: float) -> None:
         """Send an aircraft in the direction of the given location for the given duration."""
         assert self.event_queue.is_empty()
-        percentage = duration / (self.distance(location) / self.flight_speed)
-        if percentage > 1:
-            percentage = 1
-        self.unassigned_target = self.intermediate_point(location, percentage)
+        if self.distance(location) != 0:
+            percentage = duration / (self.distance(location) / self.flight_speed)
+            if percentage > 1:
+                percentage = 1
+            self.unassigned_target = self.intermediate_point(location, percentage)
 
     def _add_update(self, loc_id_no: Optional[int] = None) -> None:
         """Add update to past locations."""

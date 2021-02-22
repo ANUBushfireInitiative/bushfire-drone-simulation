@@ -48,7 +48,7 @@ class SimpleUnassigedCoordinator(UnassigedCoordinator):
                 if self.outside_boundary(uav):
                     actual_loc = uav.intermediate_point(
                         self.centre_loc,
-                        self.dt / (uav.distance(self.centre_loc) * uav.flight_speed),
+                        (uav.distance(self.centre_loc) * uav.flight_speed) / self.dt,
                     )
                     base = self.uav_bases[
                         int(np.argmin(list(map(actual_loc.distance, self.uav_bases))))
@@ -61,6 +61,7 @@ class SimpleUnassigedCoordinator(UnassigedCoordinator):
                     contributing_locs: List[Location] = []
                     for other_uav in self.uavs:
                         if other_uav.id_no != uav.id_no and other_uav.event_queue.is_empty():
+                            # print(f"{uav.get_name()} is being repelled by {other_uav.get_name()}")
                             dist = uav.distance(other_uav)
                             if dist != 0:
                                 contributing_locs.append(
@@ -69,6 +70,10 @@ class SimpleUnassigedCoordinator(UnassigedCoordinator):
                                         -self.uav_const * dist ** self.uav_pwr,
                                     )
                                 )
+                                # print(f"dist is {dist}")
+                                # print(f"percentage is {-self.uav_const * dist ** self.uav_pwr}")
+                            # else:
+                            #     print("this is awkward")
                     for target in self.targets:
                         if target.currently_active(current_time):
                             dist = uav.distance(target)
@@ -97,20 +102,21 @@ class SimpleUnassigedCoordinator(UnassigedCoordinator):
                                 -self.boundary_const * min_dist ** self.boundary_pwr,
                             )
                         )
-                    uav_target_loc = average_location(contributing_locs)
-                    actual_loc = uav_target_loc
-                    percentage = (uav.distance(uav_target_loc) * uav.flight_speed) / self.dt
-                    if percentage > 1:
-                        actual_loc = uav.intermediate_point(uav_target_loc, percentage)
-                    if self.outside_boundary(actual_loc):
-                        uav.unassigned_target = None
-                    else:
-                        base = self.uav_bases[
-                            int(np.argmin(list(map(actual_loc.distance, self.uav_bases))))
-                        ]
-                        if uav.enough_fuel([actual_loc, base]) is not None:
-                            uav.unassiged_aircraft_to_location(uav_target_loc, self.dt)
-                        else:
+                    if contributing_locs != []:
+                        uav_target_loc = average_location(contributing_locs)
+                        actual_loc = uav_target_loc
+                        percentage = (uav.distance(uav_target_loc) * uav.flight_speed) / self.dt
+                        if percentage > 1:
+                            actual_loc = uav.intermediate_point(uav_target_loc, percentage)
+                        if self.outside_boundary(actual_loc):
                             uav.unassigned_target = None
+                        else:
+                            base = self.uav_bases[
+                                int(np.argmin(list(map(actual_loc.distance, self.uav_bases))))
+                            ]
+                            if uav.enough_fuel([actual_loc, base]) is not None:
+                                uav.unassiged_aircraft_to_location(uav_target_loc, self.dt)
+                            else:
+                                uav.unassigned_target = None
         for uav in self.uavs:
             uav.go_to_base_when_necessary(self.uav_bases, current_time)
