@@ -556,7 +556,7 @@ class JSONParameters:
                         wb_update.fuel * 100,
                         Distance(wb_update.current_range).get("km"),
                         Volume(wb_update.water).get("L"),
-                        str(wb_update.status),
+                        wb_update.status_str,
                         wb_update.list_of_next_events,
                     ]
                 )

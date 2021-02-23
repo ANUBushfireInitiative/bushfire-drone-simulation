@@ -2,15 +2,16 @@
 
 import math
 from pathlib import Path
-from typing import List, Sequence
+from typing import Dict, List, Sequence
 
-from bushfire_drone_simulation.aircraft import Aircraft
-from bushfire_drone_simulation.fire_utils import Location
+from bushfire_drone_simulation.aircraft import Aircraft, Status, UpdateEvent
+from bushfire_drone_simulation.fire_utils import Location, Time
 from bushfire_drone_simulation.gui.gui_objects import GUIAircraft, GUILightning, GUIPoint
 from bushfire_drone_simulation.read_csv import CSVFile
 from bushfire_drone_simulation.simulator import Simulator
 
 HOURS_TO_SECONDS = 3600
+MINUTES_TO_SECONDS = 60
 
 
 class GUIData:
@@ -79,8 +80,8 @@ class GUIData:
         """
         lightning = extract_lightning_from_output(path, scenario_name, ignited=False)
         ignitions = extract_lightning_from_output(path, scenario_name, ignited=True)
-        uavs: List[GUIAircraft] = []
-        water_bombers: List[GUIAircraft] = []
+        uavs = extract_aircraft_from_output(path, scenario_name, "uav")
+        water_bombers = extract_aircraft_from_output(path, scenario_name, "water_bomber")
         uav_bases: List[GUIPoint] = []
         wb_bases: List[GUIPoint] = []
         watertanks: List[GUIPoint] = []
@@ -209,4 +210,56 @@ def extract_lightning_from_output(
                     ignited,
                 )
             )
+    return to_return
+
+
+def extract_aircraft_from_output(
+    path: Path, scenario_name: str, aircraft_type: str
+) -> List[GUIAircraft]:
+    """extract_aircraft_from_output.
+
+    Args:
+        path (Path): path
+        scenario_name (str): scenario_name
+        aircraft_type (str): aircraft_type
+
+    Returns:
+        List[GUIAircraft]:
+    """
+    to_return: List[GUIAircraft] = []
+    aircraft_csv = CSVFile(
+        path / f"{scenario_name}{'_' if scenario_name else ''}{aircraft_type}_event_updates.csv"
+    )
+    aircraft_updates: Dict[str, List[UpdateEvent]] = {}
+    for row in aircraft_csv:
+        aircraft_id = row[1]
+        status_str = row.Status  # type: ignore
+        try:
+            int(status_str.split()[-1])
+            status = Status(" ".join(status_str.split()[:-1]))
+        except ValueError:
+            status = Status(status_str)
+        update_event = UpdateEvent(
+            aircraft_id,
+            row[2],
+            row[3],
+            Time.from_time(row[4] * MINUTES_TO_SECONDS).get(),
+            status,
+            row[5],
+            row[7],
+            row[8],
+            row[6],
+            0 if aircraft_type == "uav" else row[9],
+            [],
+            None,
+        )
+        if aircraft_id in aircraft_updates:
+            aircraft_updates[aircraft_id].append(update_event)
+        else:
+            aircraft_updates[aircraft_id] = [update_event]
+
+    for aircraft in aircraft_updates:
+        to_return.append(
+            GUIAircraft(aircraft_updates[aircraft], "green" if aircraft_type == "uav" else "orange")
+        )
     return to_return
