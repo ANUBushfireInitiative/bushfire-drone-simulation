@@ -1,12 +1,16 @@
 """Container class for GUI Data."""
 
+import math
 from pathlib import Path
 from typing import List, Sequence
 
 from bushfire_drone_simulation.aircraft import Aircraft
 from bushfire_drone_simulation.fire_utils import Location
 from bushfire_drone_simulation.gui.gui_objects import GUIAircraft, GUILightning, GUIPoint
+from bushfire_drone_simulation.read_csv import CSVFile
 from bushfire_drone_simulation.simulator import Simulator
+
+HOURS_TO_SECONDS = 3600
 
 
 class GUIData:
@@ -42,7 +46,10 @@ class GUIData:
         self.uav_bases = uav_bases
         self.wb_bases = wb_bases
         self.watertanks = watertanks
-        self.max_time = max(event.time for a in water_bombers + uavs for event in a.events)
+        if len(water_bombers) + len(uavs) == 0:
+            self.max_time = 0.0
+        else:
+            self.max_time = max(event.time for a in water_bombers + uavs for event in a.events)
 
     @classmethod
     def from_simulator(cls, simulation: Simulator) -> "GUIData":
@@ -52,12 +59,12 @@ class GUIData:
             simulation (Simulator): simulation
         """
         lightning = extract_simulation_lightning(simulation, ignited=False)
-        ignitions: List[GUILightning] = extract_simulation_lightning(simulation, ignited=True)
-        uavs: List[GUIAircraft] = extract_simulation_aircraft(simulation, "uav")
-        water_bombers: List[GUIAircraft] = extract_simulation_aircraft(simulation, "wb")
-        uav_bases: List[GUIPoint] = extract_simulation_uav_bases(simulation)
-        wb_bases: List[GUIPoint] = extract_simulation_wb_bases(simulation)
-        watertanks: List[GUIPoint] = extract_simulation_water_tanks(simulation)
+        ignitions = extract_simulation_lightning(simulation, ignited=True)
+        uavs = extract_simulation_aircraft(simulation, "uav")
+        water_bombers = extract_simulation_aircraft(simulation, "wb")
+        uav_bases = extract_simulation_uav_bases(simulation)
+        wb_bases = extract_simulation_wb_bases(simulation)
+        watertanks = extract_simulation_water_tanks(simulation)
         return cls(lightning, ignitions, uavs, water_bombers, uav_bases, wb_bases, watertanks)
 
     @classmethod
@@ -70,7 +77,14 @@ class GUIData:
             path (Path): path
             scenario_name (str): scenario_name
         """
-        return cls([], [], [], [], [], [], [])
+        lightning = extract_lightning_from_output(path, scenario_name, ignited=False)
+        ignitions = extract_lightning_from_output(path, scenario_name, ignited=True)
+        uavs: List[GUIAircraft] = []
+        water_bombers: List[GUIAircraft] = []
+        uav_bases: List[GUIPoint] = []
+        wb_bases: List[GUIPoint] = []
+        watertanks: List[GUIPoint] = []
+        return cls(lightning, ignitions, uavs, water_bombers, uav_bases, wb_bases, watertanks)
 
 
 def extract_simulation_lightning(simulation: Simulator, ignited: bool) -> List[GUILightning]:
@@ -109,8 +123,8 @@ def extract_simulation_aircraft(simulation: Simulator, aircraft_type: str) -> Li
     """
     to_return: List[GUIAircraft] = []
     assert aircraft_type in ["uav", "wb"]
-    aircraft_list: Sequence[Aircraft] = (  # type: ignore
-        simulation.water_bombers if aircraft_type == "wb" else simulation.uavs
+    aircraft_list: Sequence[Aircraft] = (
+        simulation.water_bombers if aircraft_type == "wb" else simulation.uavs  # type: ignore
     )
     for aircraft in aircraft_list:
         to_return.append(
@@ -163,4 +177,36 @@ def extract_simulation_water_tanks(simulation: Simulator) -> List[GUIPoint]:
         to_return.append(
             GUIPoint(Location(water_tank.lat, water_tank.lon), radius=2, colour="blue")
         )
+    return to_return
+
+
+def extract_lightning_from_output(
+    path: Path, scenario_name: str, ignited: bool
+) -> List[GUILightning]:
+    """extract_lightning_from_output.
+
+    Args:
+        path (Path): path
+        scenario_name (str): scenario_name
+        ignited (bool): ignited
+
+    Returns:
+        List[GUILightning]:
+    """
+    to_return: List[GUILightning] = []
+    lightning_csv = CSVFile(
+        path / f"{scenario_name}{'_' if scenario_name else ''}simulation_output.csv"
+    )
+    for row in lightning_csv:
+        if math.isnan(row[6]) != ignited:
+            to_return.append(
+                GUILightning(
+                    Location(row[2], row[3]),
+                    row[1],
+                    row[4] * HOURS_TO_SECONDS,
+                    row[5] * HOURS_TO_SECONDS,
+                    row[6] * HOURS_TO_SECONDS if ignited else None,
+                    ignited,
+                )
+            )
     return to_return

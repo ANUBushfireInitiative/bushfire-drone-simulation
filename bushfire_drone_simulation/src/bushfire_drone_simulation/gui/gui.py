@@ -14,7 +14,7 @@ from bushfire_drone_simulation.gui.map_image import MapImage
 from bushfire_drone_simulation.simulator import Simulator
 
 WIDTH = 1000
-HEIGHT = 750
+HEIGHT = 600
 ZOOM = 7
 LATITUDE = -36.25
 LONGITUDE = 147.9
@@ -117,7 +117,7 @@ class GUI:
             toggle = tk.IntVar()
             checkbox = tk.Checkbutton(
                 self.window,
-                text=checkboxes_to_create[checkbox_name]["text"],
+                text=checkboxes_to_create[checkbox_name]["text"],  # type: ignore
                 variable=toggle,
                 onvalue=1,
                 offvalue=0,
@@ -130,15 +130,15 @@ class GUI:
     def update_objects(self) -> None:
         """Update whether a set of points is displayed on the canvas."""
         for key in self.checkbox_dict:
-            if self.checkbox_dict[key][0].get() == 0:  # type: ignore
+            if self.checkbox_dict[key][0].get() == 0:
                 for obj in self.checkbox_dict[key][3]:
                     obj.hide(self.canvas)
             else:
                 for obj in self.checkbox_dict[key][3]:
                     obj.show_given_time(
                         self.canvas,
-                        self.start_time.get() * 60 * 60,  # type: ignore
-                        self.end_time.get() * 60 * 60,  # type: ignore
+                        self.start_time.get() * 60 * 60,
+                        self.end_time.get() * 60 * 60,
                     )
                     obj.update(self.canvas)
 
@@ -166,23 +166,23 @@ class GUI:
             self.map_image.change_zoom(self.zoom)
             self.restart()
 
-    def drag(self, event: Event) -> None:
+    def drag(self, event: Event) -> None:  # type: ignore
         """Process mouse drag.
 
         Args:
             event: Mouse drag event
         """
-        self.map_image.move(self.coords[0] - event.x, self.coords[1] - event.y)  # type: ignore
+        self.map_image.move(self.coords[0] - event.x, self.coords[1] - event.y)
         self.restart()
-        self.coords = event.x, event.y  # type: ignore
+        self.coords = event.x, event.y
 
-    def click(self, event: Event) -> None:
+    def click(self, event: Event) -> None:  # type: ignore
         """Process click.
 
         Args:
             event: Click event
         """
-        self.coords = event.x, event.y  # type: ignore
+        self.coords = event.x, event.y
         self.redraw()
 
     def reload(self) -> None:
@@ -214,14 +214,16 @@ class GUI:
         # stats = pstats.Stats(profiler).sort_stats('cumtime')
         # stats.print_stats()
 
-    def resize(self, event: Event) -> None:  # pylint: disable=unused-argument
+    def resize(  # pylint: disable=unused-argument
+        self, event: Event  # type: ignore
+    ) -> None:
         """Resize canvas."""
         if (
-            int(self.canvas.winfo_height() != self.height)  # type: ignore
-            or int(self.canvas.winfo_width()) != self.width  # type: ignore
+            int(self.canvas.winfo_height() != self.height)
+            or int(self.canvas.winfo_width()) != self.width
         ):
-            self.height = int(self.canvas.winfo_height())  # type: ignore
-            self.width = int(self.canvas.winfo_width())  # type: ignore
+            self.height = int(self.canvas.winfo_height())
+            self.width = int(self.canvas.winfo_width())
             self.window.after(1, self.reload)
             self.map_image.set_size(self.width, self.height)
 
@@ -231,8 +233,8 @@ class GUI:
         Args:
             time (str): time
         """
-        if self.start_time.get() > self.end_time.get():  # type: ignore
-            self.end_time.set(self.start_time.get())  # type: ignore
+        if self.start_time.get() > self.end_time.get():
+            self.end_time.set(self.start_time.get())
         self.update_objects()
 
 

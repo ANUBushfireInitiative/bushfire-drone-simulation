@@ -2,7 +2,7 @@
 
 from abc import abstractmethod
 from pathlib import Path
-from typing import Any, List, Protocol, Type, TypeVar, Union
+from typing import Any, Iterator, List, NamedTuple, Protocol, Type, TypeVar, Union
 
 import pandas as pd
 
@@ -71,6 +71,15 @@ class CSVFile:
             i (Union[str, int]): i
         """
         return self.get_column(i)
+
+    def __iter__(self) -> Iterator[NamedTuple]:
+        """Iterate over rows in csv file.
+
+        Returns:
+            Iterable[NamedTuple]:
+        """
+        for row in self.csv_dataframe.itertuples():
+            yield row
 
 
 class LocWithCapacityInit(Protocol):

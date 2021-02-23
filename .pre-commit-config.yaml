@@ -47,7 +47,7 @@ repos:
     - id: autoflake
       args: ['--in-place', '--remove-all-unused-imports', '--remove-unused-variable']
 -   repo: https://github.com/pre-commit/mirrors-mypy.git
-    rev: v0.730
+    rev: v0.800
     hooks:
     -   id: mypy
         args: [--strict, --config-file, .mypy.ini, --allow-untyped-decorators, --follow-imports=normal]
