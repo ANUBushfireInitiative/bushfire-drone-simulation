@@ -17,14 +17,6 @@ class SimpleUnassigedCoordinator(UnassigedCoordinator):
         self, current_time: float
     ) -> None:
         """Assign unassigned uavs."""
-        # self.output["uav_lats"].append([u.lat for u in self.uavs if u.event_queue.is_empty()])
-        # self.output["uav_lons"].append([u.lon for u in self.uavs if u.event_queue.is_empty()])
-        # self.output["assigned_uav_lats"].append(
-        #     [u.lat for u in self.uavs if not u.event_queue.is_empty()]
-        # )
-        # self.output["assigned_uav_lons"].append(
-        #     [u.lon for u in self.uavs if not u.event_queue.is_empty()]
-        # )
         if self.output_plots:
             uav_lats = [u.lat for u in self.uavs if u.event_queue.is_empty()]
             uav_lons = [u.lon for u in self.uavs if u.event_queue.is_empty()]

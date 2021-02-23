@@ -37,7 +37,6 @@ class Simulator:
             self.lightning_strikes, self.uav_bases, self.water_bomber_bases_dict, self.water_tanks
         )
         self.summary_results: Dict[str, List[Union[float, str]]] = {}
-        self.animation_data: Dict[str, List[List[float]]] = {}
 
     def run_simulation(  # pylint: disable=too-many-branches
         self,
@@ -99,9 +98,6 @@ class Simulator:
 
         # print("UPDATING WBS TO TIME INF")
         suppressions = self._update_water_bombers_to_time(inf)
-
-        if unassigned_coordinator is not None:
-            self.animation_data = unassigned_coordinator.output
 
     def _update_to_time(
         self, time: float

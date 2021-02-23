@@ -45,7 +45,14 @@ class Location:
             radians(other.lat)
         ) * sin(radians(other.lon))
         z = h_1 * sin(radians(self.lat)) + h_2 * sin(radians(other.lat))
-        return Location(degrees(atan2(z, sqrt(x * x + y * y))), degrees(atan2(y, x)))
+        lon = degrees(atan2(y, x))
+        lat = degrees(atan2(z, sqrt(x * x + y * y)))
+        if lon < 0:
+            lon = 179
+        if lat > 0:
+            lat = 0
+        # TODO(make this nice) #pylint: disable=fixme
+        return Location(lat, lon)
 
     def copy_loc(self) -> "Location":
         """Create a new instance of Location."""

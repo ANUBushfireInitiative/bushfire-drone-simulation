@@ -88,11 +88,6 @@ class UnassigedCoordinator:
         self.polygon_points = [(loc.lat, loc.lon) for loc in self.polygon]
         self.boundary = path.Path(self.polygon_points)
         self.output_folder = output_folder
-        self.output: Dict[str, List[List[float]]] = {}
-        self.output["uav_lats"] = []
-        self.output["uav_lons"] = []
-        self.output["assigned_uav_lats"] = []
-        self.output["assigned_uav_lons"] = []
 
     @abstractmethod
     def assign_unassigned_uavs(self, current_time: float) -> None:
