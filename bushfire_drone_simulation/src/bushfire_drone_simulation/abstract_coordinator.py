@@ -51,7 +51,7 @@ class UAVCoordinator:
                 assert False, f"{strike.id_no} was inspected but not in set of uninspected strikes"
 
 
-class UnassigedCoordinator:
+class UnassignedCoordinator:
     """Class for centrally coordinatoring unassiged aircraft."""
 
     def __init__(  # pylint: disable=too-many-arguments

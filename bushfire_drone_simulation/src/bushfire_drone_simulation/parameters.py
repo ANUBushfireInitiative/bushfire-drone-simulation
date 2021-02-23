@@ -117,8 +117,8 @@ class JSONParameters:
                 if cont.lower() != "y":
                     _LOG.info("Aborting")
                     sys.exit()
-        else:
-            self.output_folder.mkdir(parents=True)
+        shutil.rmtree(self.output_folder)
+        self.output_folder.mkdir(parents=True)
 
     def get_uav_bases(self, scenario_idx: int) -> List[Base]:
         """Return list of UAV bases."""
@@ -301,14 +301,14 @@ class JSONParameters:
     def process_unassigned_drones(
         self, scenario_idx: int
     ) -> Tuple[Dict[str, Any], List[Target], List[Location], Path]:
-        """Process targets, polygon and attributes assocaited with unassiged drone."""
+        """Process targets, polygon and attributes associated with unassigned drone."""
         assert "unassigned_drones" in self.parameters
         attribute_dict = self.get_attribute("unassigned_drones", scenario_idx)
         assert isinstance(attribute_dict, dict)
         targets: List[Target] = []
         if "targets_filename" in attribute_dict:
             targets = read_targets(self.folder / attribute_dict["targets_filename"])
-        polygon = read_locations(self.folder / attribute_dict["boudary_polygon_filename"])
+        polygon = read_locations(self.folder / attribute_dict["boundary_polygon_filename"])
         return attribute_dict, targets, polygon, self.output_folder
 
     def get_attribute(self, attribute: str, scenario_idx: int) -> Any:
@@ -469,6 +469,44 @@ class JSONParameters:
                 filewriter.writerow(row)
         return inspection_times_to_return, suppression_times_to_return
 
+    def write_to_water_tanks_file(self, water_tanks: List[WaterTank], prefix: str) -> None:
+        """Write water tanks to output file."""
+        with open(
+            self.output_folder / (prefix + "water_tanks.csv"),
+            "w",
+            newline="",
+        ) as outputfile:
+            filewriter = csv.writer(outputfile)
+            filewriter.writerow(
+                ["Water Tank ID", "Latitude", "Longitude", "Initial Capacity", "Remaining Capacity"]
+            )
+            for water_tank in water_tanks:
+                filewriter.writerow(
+                    [
+                        water_tank.id_no,
+                        water_tank.lat,
+                        water_tank.lon,
+                        water_tank.initial_capacity,
+                        water_tank.capacity,
+                    ]
+                )
+
+    def write_to_bases_file(self, bases: List[Base], prefix: str) -> None:
+        """Write bases to output file."""
+        with open(
+            self.output_folder / (prefix + "bases.csv"),
+            "w",
+            newline="",
+        ) as outputfile:
+            filewriter = csv.writer(outputfile)
+            filewriter.writerow(
+                ["Base ID", "Latitude", "Longitude", "Initial Capacity", "Remaining Capacity"]
+            )
+            for base in bases:
+                filewriter.writerow(
+                    [base.id_no, base.lat, base.lon, base.initial_capacity, base.capacity]
+                )
+
     def write_to_uav_updates_file(self, uavs: List[UAV], prefix: str) -> None:
         """Write UAV event update data to output file."""
         with open(
@@ -619,7 +657,7 @@ class JSONParameters:
                     os.path.join(
                         self.folder,
                         self.scenarios[scenario_idx]["unassigned_drones"][
-                            "boudary_polygon_filename"
+                            "boundary_polygon_filename"
                         ],
                     )
                 ),

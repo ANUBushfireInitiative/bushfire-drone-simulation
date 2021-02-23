@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 from bushfire_drone_simulation.abstract_coordinator import (
     UAVCoordinator,
-    UnassigedCoordinator,
+    UnassignedCoordinator,
     WBCoordinator,
 )
 from bushfire_drone_simulation.lightning import Lightning
@@ -42,7 +42,7 @@ class Simulator:
         self,
         uav_coordinator: UAVCoordinator,
         wb_coordinator: WBCoordinator,
-        unassigned_coordinator: Optional[UnassigedCoordinator] = None,
+        unassigned_coordinator: Optional[UnassignedCoordinator] = None,
     ) -> None:
         """Run bushfire drone simulation."""
         uav_coordinator.accept_precomputed_distances(self.precomputed)
@@ -135,7 +135,10 @@ class Simulator:
             self.lightning_strikes, prefix
         )
         params.write_to_uav_updates_file(self.uavs, prefix)
+        params.write_to_water_tanks_file(self.water_tanks, prefix)
         params.write_to_wb_updates_file(self.water_bombers, prefix)
+        params.write_to_bases_file(self.uav_bases, prefix + "uav_")
+        params.write_to_bases_file(self.water_bomber_bases_list, prefix + "water_bomber_")
         params.write_to_input_parameters_folder(scenario_idx)
         self.summary_results = params.create_plots(
             inspection_times,

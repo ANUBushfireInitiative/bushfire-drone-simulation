@@ -82,9 +82,9 @@ class GUIData:
         ignitions = extract_lightning_from_output(path, scenario_name, ignited=True)
         uavs = extract_aircraft_from_output(path, scenario_name, "uav")
         water_bombers = extract_aircraft_from_output(path, scenario_name, "water_bomber")
-        uav_bases: List[GUIPoint] = []
-        wb_bases: List[GUIPoint] = []
-        watertanks: List[GUIPoint] = []
+        uav_bases: List[GUIPoint] = extract_bases_from_output(path, scenario_name, "uav")
+        wb_bases: List[GUIPoint] = extract_bases_from_output(path, scenario_name, "water_bomber")
+        watertanks: List[GUIPoint] = extract_water_tanks_from_output(path, scenario_name)
         return cls(lightning, ignitions, uavs, water_bombers, uav_bases, wb_bases, watertanks)
 
 
@@ -210,6 +210,48 @@ def extract_lightning_from_output(
                     ignited,
                 )
             )
+    return to_return
+
+
+def extract_water_tanks_from_output(path: Path, scenario_name: str) -> List[GUIPoint]:
+    """Extract water tanks from output of previous simulation.
+
+    Args:
+        path (Path): path
+        scenario_name (str): scenario_name
+
+    Returns:
+        List[GUILightning]:
+    """
+    to_return: List[GUIPoint] = []
+    water_tank_csv = CSVFile(path / f"{scenario_name}{'_' if scenario_name else ''}water_tanks.csv")
+    for row in water_tank_csv:
+        to_return.append(GUIPoint(Location(row[2], row[3]), radius=2, colour="blue"))
+    return to_return
+
+
+def extract_bases_from_output(path: Path, scenario_name: str, aircraft_type: str) -> List[GUIPoint]:
+    """Extract bases from output of previous simulation.
+
+    Args:
+        path (Path): path
+        scenario_name (str): scenario_name
+
+    Returns:
+        List[GUIPoint]:
+    """
+    to_return: List[GUIPoint] = []
+    base_csv = CSVFile(
+        path / f"{scenario_name}{'_' if scenario_name else ''}{aircraft_type}_bases.csv"
+    )
+    for row in base_csv:
+        to_return.append(
+            GUIPoint(
+                Location(row[2], row[3]),
+                radius=2 if aircraft_type == "uav" else 3,
+                colour="grey" if aircraft_type == "uav" else "black",
+            )
+        )
     return to_return
 
 
