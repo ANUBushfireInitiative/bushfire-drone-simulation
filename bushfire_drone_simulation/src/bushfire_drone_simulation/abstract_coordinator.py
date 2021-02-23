@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from matplotlib import path
 
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
-from bushfire_drone_simulation.fire_utils import Base, Location, Target, WaterTank
+from bushfire_drone_simulation.fire_utils import Base, Location, Target, WaterTank, assert_bool
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.precomupted import PreComputedDistances
@@ -73,6 +73,15 @@ class UnassigedCoordinator:
         self.target_pwr: float = attributes["target_attraction_power"]
         self.boundary_const: float = attributes["boundary_repulsion_const"]
         self.boundary_pwr: float = attributes["boundary_repulsion_power"]
+        if "output_plots" in attributes:
+            self.output_plots: bool = assert_bool(
+                attributes["output_plots"],
+                "Expected a bool in 'unassigned_drones/output_plots' but got '"
+                + str({attributes["output_plots"]})
+                + "'",
+            )
+        else:
+            self.output_plots = False
         self.centre_loc: Location = Location(attributes["centre_lat"], attributes["centre_lon"])
         self.dt = attributes["dt"]
         self.polygon = polygon

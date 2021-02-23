@@ -305,7 +305,9 @@ class JSONParameters:
         assert "unassigned_drones" in self.parameters
         attribute_dict = self.get_attribute("unassigned_drones", scenario_idx)
         assert isinstance(attribute_dict, dict)
-        targets = read_targets(self.folder / attribute_dict["targets_filename"])
+        targets: List[Target] = []
+        if "targets_filename" in attribute_dict:
+            targets = read_targets(self.folder / attribute_dict["targets_filename"])
         polygon = read_locations(self.folder / attribute_dict["boudary_polygon_filename"])
         return attribute_dict, targets, polygon, self.output_folder
 
@@ -595,6 +597,29 @@ class JSONParameters:
                         self.folder,
                         self.scenarios[scenario_idx]["water_bombers"][water_bomber_type][
                             "spawn_loc_file"
+                        ],
+                    )
+                ),
+                str(input_folder),
+            )
+        if "unassigned_drones" in self.parameters:
+            unassigned_dict = self.scenarios[scenario_idx]["unassigned_drones"]
+            if "targets_filename" in unassigned_dict:
+                shutil.copy2(
+                    str(
+                        os.path.join(
+                            self.folder,
+                            self.scenarios[scenario_idx]["unassigned_drones"]["targets_filename"],
+                        )
+                    ),
+                    str(input_folder),
+                )
+            shutil.copy2(
+                str(
+                    os.path.join(
+                        self.folder,
+                        self.scenarios[scenario_idx]["unassigned_drones"][
+                            "boudary_polygon_filename"
                         ],
                     )
                 ),

@@ -25,24 +25,25 @@ class SimpleUnassigedCoordinator(UnassigedCoordinator):
         # self.output["assigned_uav_lons"].append(
         #     [u.lon for u in self.uavs if not u.event_queue.is_empty()]
         # )
-        uav_lats = [u.lat for u in self.uavs if u.event_queue.is_empty()]
-        uav_lons = [u.lon for u in self.uavs if u.event_queue.is_empty()]
-        assigned_uav_lats = [u.lat for u in self.uavs if not u.event_queue.is_empty()]
-        assigned_uav_lons = [u.lon for u in self.uavs if not u.event_queue.is_empty()]
-        poly_x = [point[0] for point in self.polygon_points]
-        poly_y = [point[1] for point in self.polygon_points]
-        plt.cla()
-        plt.scatter(uav_lats, uav_lons)
-        plt.scatter(assigned_uav_lats, assigned_uav_lons)
-        plt.gca().set_aspect("equal")
-        plt.plot(poly_x, poly_y)
+        if self.output_plots:
+            uav_lats = [u.lat for u in self.uavs if u.event_queue.is_empty()]
+            uav_lons = [u.lon for u in self.uavs if u.event_queue.is_empty()]
+            assigned_uav_lats = [u.lat for u in self.uavs if not u.event_queue.is_empty()]
+            assigned_uav_lons = [u.lon for u in self.uavs if not u.event_queue.is_empty()]
+            poly_x = [point[0] for point in self.polygon_points]
+            poly_y = [point[1] for point in self.polygon_points]
+            plt.cla()
+            plt.scatter(uav_lats, uav_lons)
+            plt.scatter(assigned_uav_lats, assigned_uav_lons)
+            plt.gca().set_aspect("equal")
+            plt.plot(poly_x, poly_y)
 
-        plt.savefig(
-            os.path.join(
-                self.output_folder,
-                str(current_time) + " plot.png",
+            plt.savefig(
+                os.path.join(
+                    self.output_folder,
+                    str(current_time) + " plot.png",
+                )
             )
-        )
         for uav in self.uavs:  # pylint: disable=too-many-nested-blocks
             if uav.event_queue.is_empty():
                 if self.outside_boundary(uav):

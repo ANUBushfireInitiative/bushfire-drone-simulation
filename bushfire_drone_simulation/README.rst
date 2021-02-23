@@ -203,6 +203,7 @@ The JSON parameters file should contain the following information formatted as i
             "boundary_repulsion_power": boundary repulsion power (adviced to be negative),
             "centre_lat": centre latitude for drones outside boundary to return to,
             "centre_lon": centre longitude for drones outside boundary to return to
+            "output_plots": Optional. If "true" will output plots in the specified output folder, otherwise will not.
         }
     }
 
@@ -303,8 +304,9 @@ is just sample input.
 
 *  target_file
 
-    The optional targets file, required if the unassigned_drones dictionary is included,
-    designates the locations and active duration of various targets that aircraft should travel towards when unassigned.
+    The optional targets file designates the locations and active duration of various targets that
+    aircraft should travel towards when unassigned. Note that this file does not have to be specified
+    even if an unassigned_drones dictionary is included.
 
     .. csv-table::
         :header: "latitude", "longitude", start time,finish time
