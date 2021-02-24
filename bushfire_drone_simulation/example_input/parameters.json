@@ -55,7 +55,7 @@
 
     "unassigned_drones": {
         "targets_filename": "input_data/targets.csv",
-        "boudary_polygon_filename": "input_data/boundary_polygon.csv",
+        "boundary_polygon_filename": "input_data/boundary_polygon.csv",
         "dt": 60,
         "uav_repulsion_const": 50000.0,
         "uav_repulsion_power": -3,

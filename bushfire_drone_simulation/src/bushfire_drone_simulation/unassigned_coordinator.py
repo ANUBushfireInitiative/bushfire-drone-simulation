@@ -6,11 +6,11 @@ from typing import List, Optional
 import matplotlib.pyplot as plt
 import numpy as np
 
-from bushfire_drone_simulation.abstract_coordinator import UnassigedCoordinator, average_location
+from bushfire_drone_simulation.abstract_coordinator import UnassignedCoordinator, average_location
 from bushfire_drone_simulation.fire_utils import Location
 
 
-class SimpleUnassigedCoordinator(UnassigedCoordinator):
+class SimpleUnassignedCoordinator(UnassignedCoordinator):
     """Class for simple coordinator for unassigned uavs."""
 
     def assign_unassigned_uavs(  # pylint: disable=too-many-branches, too-many-statements

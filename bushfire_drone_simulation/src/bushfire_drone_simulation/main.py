@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from bushfire_drone_simulation.abstract_coordinator import (
     UAVCoordinator,
-    UnassigedCoordinator,
+    UnassignedCoordinator,
     WBCoordinator,
 )
 from bushfire_drone_simulation.gui.gui import start_gui, start_gui_from_file
@@ -34,7 +34,7 @@ from bushfire_drone_simulation.reprocess_max_time_coordinator import (
     ReprocessMaxTimeWBCoordinator,
 )
 from bushfire_drone_simulation.simulator import Simulator
-from bushfire_drone_simulation.unassigned_coordinator import SimpleUnassigedCoordinator
+from bushfire_drone_simulation.unassigned_coordinator import SimpleUnassignedCoordinator
 
 _LOG = logging.getLogger(__name__)
 app = typer.Typer()
@@ -101,10 +101,10 @@ def run_simulation(
             params,
             scenario_idx,
         )
-        unassigned_coordinator: Optional[UnassigedCoordinator] = None
+        unassigned_coordinator: Optional[UnassignedCoordinator] = None
         if "unassigned_drones" in params.parameters:
             attributes, targets, polygon, folder = params.process_unassigned_drones(scenario_idx)
-            unassigned_coordinator = SimpleUnassigedCoordinator(
+            unassigned_coordinator = SimpleUnassignedCoordinator(
                 simulator.uavs, simulator.uav_bases, targets, folder, polygon, attributes
             )
         simulator.run_simulation(uav_coordinator, wb_coordinator, unassigned_coordinator)
@@ -146,7 +146,7 @@ def write_to_summary_file(simulations: List[Simulator], params: JSONParameters) 
                 inspection_results.insert(0, name)
                 filewriter.writerow(inspection_results)
             else:
-                filewriter.writerow(["", "Inspections", "No strikes were insepcted"])
+                filewriter.writerow(["", "Inspections", "No strikes were inspected"])
             if "wbs" in simulator.summary_results:
                 suppression_results: List[Union[str, float]] = simulator.summary_results["wbs"]
                 suppression_results.insert(0, "Suppressions")

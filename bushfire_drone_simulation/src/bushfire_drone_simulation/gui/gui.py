@@ -58,7 +58,7 @@ class GUI:
             length=self.width,
             sliderlength=20,
             tickinterval=1,
-            command=self.slider_update,
+            command=self.start_slider_update,
         )
         self.end_scale = Scale(
             self.window,
@@ -71,7 +71,7 @@ class GUI:
             length=self.width,
             sliderlength=20,
             tickinterval=1,
-            command=self.slider_update,
+            command=self.end_slider_update,
         )
         self.end_scale.set(int(self.gui_data.max_time / 3600 + 1.0))  # type: ignore
         self.start_scale.pack(fill=X)
@@ -227,7 +227,7 @@ class GUI:
             self.window.after(1, self.reload)
             self.map_image.set_size(self.width, self.height)
 
-    def slider_update(self, time: str) -> None:  # pylint: disable = unused-argument
+    def start_slider_update(self, time: str) -> None:  # pylint: disable = unused-argument
         """Update times given slider update.
 
         Args:
@@ -235,6 +235,16 @@ class GUI:
         """
         if self.start_time.get() > self.end_time.get():
             self.end_time.set(self.start_time.get())
+        self.update_objects()
+
+    def end_slider_update(self, time: str) -> None:  # pylint: disable = unused-argument
+        """Update times given slider update.
+
+        Args:
+            time (str): time
+        """
+        if self.start_time.get() > self.end_time.get():
+            self.start_time.set(self.end_time.get())
         self.update_objects()
 
 

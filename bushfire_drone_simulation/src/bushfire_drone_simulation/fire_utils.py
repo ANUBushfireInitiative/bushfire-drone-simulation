@@ -173,6 +173,7 @@ class Base(Location):
     def __init__(self, latitude: float, longitude: float, capacity: float, id_no: int):
         """Initialise aircraft base from location and fuel capacity."""
         super().__init__(latitude, longitude)
+        self.initial_capacity = capacity
         self.capacity: float = capacity
         self.unallocated_capacity: float = capacity
         self.id_no: int = id_no

@@ -177,9 +177,9 @@ The JSON parameters file should contain the following information formatted as i
     and repelled from all other unassigned aircraft and the closest point on the boundary (given in the boundary
     polygon file, details below). These attractions and repulsions are definied by the following formula
 
-.. math::
+    .. math::
 
-    const \times (dist\ from\ unassigned\ aircraft\ to\ position) ^ {power}
+        const \times (dist\ from\ unassigned\ aircraft\ to\ position) ^ {power}
 
     where the const and power and defined in the parameters file.
 
@@ -193,17 +193,17 @@ The JSON parameters file should contain the following information formatted as i
     {
         "unassigned_drones": {
             "targets_filename": "input_data/targets.csv",
-            "boudary_polygon_filename": "input_data/boundary_polygon.csv",
-            "dt": time in seconds between unassigned aircraft updates,
-            "uav_repulsion_const": uav repulsion coefficient (positive for repulsion),
-            "uav_repulsion_power": uav repulsion power (adviced to be negative),
-            "target_attraction_const": target attraction coefficient (positive for attraction),
-            "target_attraction_power": target attraction power (adviced to be negative),
-            "boundary_repulsion_const": boundary repulsion coefficient (positive for repulsion),
-            "boundary_repulsion_power": boundary repulsion power (adviced to be negative),
-            "centre_lat": centre latitude for drones outside boundary to return to,
-            "centre_lon": centre longitude for drones outside boundary to return to
-            "output_plots": Optional. If "true" will output plots in the specified output folder, otherwise will not.
+            "boundary_polygon_filename": "input_data/boundary_polygon.csv",
+            "dt": "time in seconds between unassigned aircraft updates",
+            "uav_repulsion_const": "uav repulsion coefficient (positive for repulsion)",
+            "uav_repulsion_power": "uav repulsion power (adviced to be negative)",
+            "target_attraction_const": "target attraction coefficient (positive for attraction)",
+            "target_attraction_power": "target attraction power (adviced to be negative)",
+            "boundary_repulsion_const": "boundary repulsion coefficient (positive for repulsion)",
+            "boundary_repulsion_power": "boundary repulsion power (adviced to be negative)",
+            "centre_lat": "centre latitude for drones outside boundary to return to",
+            "centre_lon": "centre longitude for drones outside boundary to return to",
+            "output_plots": "Optional. If 'true' will output plots in the specified output folder, otherwise will not."
         }
     }
 
@@ -521,3 +521,8 @@ The water bomber event updates are structed exactly as the UAV updates however t
 additional column:
 
 * **Water capacity** (L): the water on board of the aircraft upon departure
+
+GUI
+===
+
+The bushfire drone simulation also comes with a graphical user interface for viewing the simulation overlayed on a map (thanks to `OpenStreetMap <https://www.openstreetmap.org/>`_). There are two ways to run the GUI. Firstly, you can run the simulation from scratch and then view the results in the GUI using the command ``bushfire_drone_simulation gui`` with the same input format as the ``run-simulation`` command described above. In addition, you can open the GUI for a previously run simulation by navigating to the output folder of that simulation and running the command ``bushfire_drone_simulation gui-from-output SCENARIO_NAME`` replacing ``SCENARIO_NAME`` with the name of the scenario you wish to view (or ``""`` if only a single scenario was run). This output must be in the same format as the output from the simulation for the GUI to be able to read it.
