@@ -54,11 +54,10 @@ class SimpleUnassigedCoordinator(UnassigedCoordinator):
                     contributing_locs: List[Location] = []
                     for other_uav in self.uavs:
                         if other_uav.id_no != uav.id_no and other_uav.event_queue.is_empty():
-                            # print(f"{uav.get_name()} is being repelled by {other_uav.get_name()}")
                             dist = uav.distance(other_uav)
                             if dist != 0:
                                 contributing_locs.append(
-                                    uav.intermediate_point(
+                                    uav.plane_intermediate_point(
                                         other_uav,
                                         -self.uav_const * dist ** self.uav_pwr,
                                     )
@@ -68,7 +67,7 @@ class SimpleUnassigedCoordinator(UnassigedCoordinator):
                             dist = uav.distance(target)
                             if dist != 0:
                                 contributing_locs.append(
-                                    uav.intermediate_point(
+                                    uav.plane_intermediate_point(
                                         target,
                                         self.target_const * dist ** self.target_pwr,
                                     )
@@ -86,7 +85,7 @@ class SimpleUnassigedCoordinator(UnassigedCoordinator):
                     if min_dist != 0:
                         assert closest_boundary_point is not None
                         contributing_locs.append(
-                            uav.intermediate_point(
+                            uav.plane_intermediate_point(
                                 closest_boundary_point,
                                 -self.boundary_const * min_dist ** self.boundary_pwr,
                             )

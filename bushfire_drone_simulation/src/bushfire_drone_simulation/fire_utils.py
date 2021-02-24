@@ -48,11 +48,23 @@ class Location:
         lon = degrees(atan2(y, x))
         lat = degrees(atan2(z, sqrt(x * x + y * y)))
         if lon < 0:
-            lon = 179
+            lon += 360
         if lat > 0:
-            lat = 0
-        # TODO(make this nice) #pylint: disable=fixme
+            lat -= 360
         return Location(lat, lon)
+
+    def plane_intermediate_point(self, other: "Location", percentage: float) -> "Location":
+        """Find intermediate point percentage of the way between self and other.
+
+        As if the locations were on a plane.
+        """
+        if self.lon == other.lon:
+            new_lat = (1 - percentage) * self.lat + percentage * other.lat
+            return Location(new_lat, self.lon)
+        new_lon = (1 - percentage) * self.lon + percentage * other.lon
+        grad = (self.lat - other.lat) / (self.lon - other.lon)
+        new_lat = grad * new_lon + self.lat - grad * self.lon
+        return Location(new_lat, new_lon)
 
     def copy_loc(self) -> "Location":
         """Create a new instance of Location."""
