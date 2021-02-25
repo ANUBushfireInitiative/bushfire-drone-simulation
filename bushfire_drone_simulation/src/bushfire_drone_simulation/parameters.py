@@ -117,7 +117,7 @@ class JSONParameters:
                 if cont.lower() != "y":
                     _LOG.info("Aborting")
                     sys.exit()
-        shutil.rmtree(self.output_folder)
+            shutil.rmtree(self.output_folder)
         self.output_folder.mkdir(parents=True)
 
     def get_uav_bases(self, scenario_idx: int) -> List[Base]:
