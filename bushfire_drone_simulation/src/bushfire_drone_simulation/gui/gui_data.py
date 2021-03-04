@@ -205,8 +205,8 @@ def extract_lightning_from_output(
                     Location(row[2], row[3]),
                     row[1],
                     row[4] * HOURS_TO_SECONDS,
-                    row[5] * HOURS_TO_SECONDS,
-                    row[6] * HOURS_TO_SECONDS if ignited else None,
+                    (row[4] + row[5]) * HOURS_TO_SECONDS,
+                    (row[4] + row[6]) * HOURS_TO_SECONDS if ignited else None,
                     ignited,
                 )
             )
