@@ -63,7 +63,7 @@ def downloader(tiles: Any, num_workers: int) -> Any:
     return caching_downloader(get_from_cache, put_in_cache, fetch_tiles, tiles, num_workers)
 
 
-def render_map(geotiler_map: geotiler.Map) -> PIL.Image.Image:
+def render_map(geotiler_map: geotiler.Map) -> Image:
     """Render a geotiler map as an image.
 
     Args:

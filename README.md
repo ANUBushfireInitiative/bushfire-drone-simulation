@@ -2,6 +2,8 @@
 
 This is a python application that allows the simulation of drones for fast lightning strike investigation and potential suppression by a fleet of water bombers.
 
+![pre-commit](https://github.com/ryanstocks00/anu-bushfire-initiative-simulation/actions/workflows/python-3.8-pre-commit/badge.svg)
+
 # Installation
 
 This application has been designed to run on either a windows or a unix style operating system or terminal. The windows installation will be sufficient if active development is not required, however active development will be much easier on a unix style system. On windows systems, this can be achieved using the windows subsystem for linux (WSL). The windows subsystem for linux can be installed by following the steps detailed [here](https://docs.microsoft.com/en-us/windows/wsl/install-win10).
