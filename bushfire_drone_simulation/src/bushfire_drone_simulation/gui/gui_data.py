@@ -300,8 +300,6 @@ def extract_aircraft_from_output(
         else:
             aircraft_updates[aircraft_id] = [update_event]
 
-    for aircraft in aircraft_updates:
-        to_return.append(
-            GUIAircraft(aircraft_updates[aircraft], "green" if aircraft_type == "uav" else "orange")
-        )
+    for _, aircraft in aircraft_updates.items():
+        to_return.append(GUIAircraft(aircraft, "green" if aircraft_type == "uav" else "orange"))
     return to_return

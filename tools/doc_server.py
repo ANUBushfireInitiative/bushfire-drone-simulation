@@ -48,15 +48,17 @@ def make_documentation() -> None:
         with open(
             f"docs/source/auto_generated/application/{application}/modules.rst",
             "r",
+            encoding="utf8",
         ) as application_rst:
             previous_text = application_rst.read().replace("=", "-")
 
         with open(
             f"docs/source/auto_generated/application/{application}/modules.rst",
             "w",
+            encoding="utf8",
         ) as application_rst:
             # Move readme into sphinx docs
-            with open(f"{application}/README.rst") as readme:
+            with open(f"{application}/README.rst", encoding="utf8") as readme:
                 application_rst.write(readme.read())
 
             application_rst.write("\n\n")

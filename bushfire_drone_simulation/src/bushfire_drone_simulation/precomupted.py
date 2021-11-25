@@ -3,12 +3,15 @@
 from typing import Dict, List, Sequence
 
 import numpy as np
+import numpy.typing as npt
 
 from bushfire_drone_simulation.fire_utils import Base, Location, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
 
 
-def create_distance_array(list1: Sequence[Location], list2: Sequence[Location]) -> np.ndarray:
+def create_distance_array(
+    list1: Sequence[Location], list2: Sequence[Location]
+) -> npt.NDArray[np.float64]:
     """Given 2 lists of locations, return a 2D distance array.
 
     The ith jth should contain the distance between the ith element from list1
@@ -49,9 +52,9 @@ class PreComputedDistances:
                 int(np.argmin(self.strike_to_base_array[strike.id_no]))
             )
 
-        self.closest_wb_base_dict: Dict[str, np.ndarray] = {}
-        self.ignition_to_base_dict: Dict[str, np.ndarray] = {}
-        self.water_to_base_dict: Dict[str, np.ndarray] = {}
+        self.closest_wb_base_dict: Dict[str, npt.NDArray[np.float64]] = {}
+        self.ignition_to_base_dict: Dict[str, npt.NDArray[np.float64]] = {}
+        self.water_to_base_dict: Dict[str, npt.NDArray[np.float64]] = {}
         self.to_base_id_dict: Dict[str, Dict[int, int]] = {}
         for water_bomber_name in water_bomber_bases_dict:
             self.ignition_to_base_dict[water_bomber_name] = create_distance_array(

@@ -48,9 +48,8 @@ def put_in_cache(url: str, image: bytes) -> None:
         if url not in session_cache:
             session_cache[url] = image
         if not (cache_folder / url).is_file():
-            image_file = open(cache_folder / url, "wb")
-            image_file.write(image)
-            image_file.close()
+            with open(cache_folder / url, "wb") as image_file:
+                image_file.write(image)
 
 
 def downloader(tiles: Any, num_workers: int) -> Any:

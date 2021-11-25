@@ -745,9 +745,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         """Send an aircraft in the direction of the given location for the given duration."""
         assert self.event_queue.is_empty()
         if self.distance(location) != 0:
-            percentage = duration / (self.distance(location) / self.flight_speed)
-            if percentage > 1:
-                percentage = 1
+            percentage = min(duration / (self.distance(location) / self.flight_speed), 1)
             self.unassigned_target = self.intermediate_point(location, percentage)
 
     def _add_update(self, loc_id_no: Optional[int] = None) -> None:

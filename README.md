@@ -80,13 +80,16 @@ WARNING: seems you still have not added 'pyenv' to the load path.
 # the following to ~/.bashrc:
 ```
 
-To add this text to ~./bashrc, first copy the text, then run the command
+To add this text to ~./bashrc, run the command
 
 ```bash
-echo '<copied_text>' >> ~/.bashrc
+echo 'export PATH="$HOME/.pyenv/bin:$PATH"
+export PATH="$HOME/.pyenv/shims:$PATH"
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc
 ```
 
-To create a pyenv environment called bushfires for this application, run the commands
+To create a pyenv environment called bushfires for this application with python version 3.8.5, run the commands
 
 1. ```pyenv install 3.8.5```
 2. ```pyenv virtualenv 3.8.5 bushfires```

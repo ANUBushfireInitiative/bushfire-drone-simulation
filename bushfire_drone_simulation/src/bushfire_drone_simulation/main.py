@@ -121,6 +121,7 @@ def write_to_summary_file(simulations: List[Simulator], params: JSONParameters) 
         params.output_folder / ("summary_file.csv"),
         "w",
         newline="",
+        encoding="utf8",
     ) as outputfile:
         filewriter = csv.writer(outputfile)
         filewriter.writerow(

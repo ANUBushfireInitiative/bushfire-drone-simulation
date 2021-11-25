@@ -66,7 +66,7 @@ class JSONParameters:
         """
         self.folder = parameters_file.parent
         self.filepath = parameters_file
-        with open(parameters_file) as file:
+        with open(parameters_file, encoding="utf8") as file:
             self.parameters = json.load(file)
 
         self.scenarios: List[Dict[str, Any]] = []
@@ -308,7 +308,14 @@ class JSONParameters:
         targets: List[Target] = []
         if "targets_filename" in attribute_dict:
             targets = read_targets(self.folder / attribute_dict["targets_filename"])
-        polygon = read_locations(self.folder / attribute_dict["boundary_polygon_filename"])
+        if "boundary_polygon_filename" in attribute_dict:
+            polygon = read_locations(self.folder / attribute_dict["boundary_polygon_filename"])
+        else:
+            raise Exception(
+                f"Error: Parameter 'boundary_polygon_filename' is missing in '{self.filepath}'.\n"
+                f"Please add 'boundary_polygon_filename' to 'unassigned_drones' in "
+                f"'{self.filepath}' and run the simulation again"
+            )
         return attribute_dict, targets, polygon, self.output_folder
 
     def get_attribute(self, attribute: str, scenario_idx: int) -> Any:
@@ -419,6 +426,7 @@ class JSONParameters:
             self.output_folder / (prefix + "simulation_output.csv"),
             "w",
             newline="",
+            encoding="utf8",
         ) as outputfile:
             filewriter = csv.writer(outputfile)
             id_nos: List[int] = []
@@ -475,6 +483,7 @@ class JSONParameters:
             self.output_folder / (prefix + "water_tanks.csv"),
             "w",
             newline="",
+            encoding="utf8",
         ) as outputfile:
             filewriter = csv.writer(outputfile)
             filewriter.writerow(
@@ -497,6 +506,7 @@ class JSONParameters:
             self.output_folder / (prefix + "bases.csv"),
             "w",
             newline="",
+            encoding="utf8",
         ) as outputfile:
             filewriter = csv.writer(outputfile)
             filewriter.writerow(
@@ -513,6 +523,7 @@ class JSONParameters:
             self.output_folder / (prefix + "uav_event_updates.csv"),
             "w",
             newline="",
+            encoding="utf8",
         ) as outputfile:
             filewriter = csv.writer(outputfile)
             filewriter.writerow(
@@ -560,6 +571,7 @@ class JSONParameters:
             ),
             "w",
             newline="",
+            encoding="utf8",
         ) as outputfile:
             filewriter = csv.writer(outputfile)
             filewriter.writerow(

@@ -85,11 +85,11 @@ class GUI:
         self.checkbox_dict = self.create_checkboxes()
 
         y = 2
-        for key in self.checkbox_dict:
-            self.checkbox_dict[key][1].select()  # type: ignore
-            self.checkbox_dict[key][1].place(x=20, y=y)
+        for _, value in self.checkbox_dict.items():
+            value[1].select()  # type: ignore
+            value[1].place(x=20, y=y)
             y += 20
-            for obj in self.checkbox_dict[key][3]:
+            for obj in value[3]:
                 obj.place_on_canvas(self.canvas, self.map_image.get_coordinates)
 
         self.update_objects()
@@ -113,28 +113,28 @@ class GUI:
             "water_bombers": {"text": "Show Water Bombers", "list": self.gui_data.water_bombers},
         }
 
-        for checkbox_name in checkboxes_to_create:
+        for checkbox_name, checkbox_details in checkboxes_to_create.items():
             toggle = tk.IntVar()
             checkbox = tk.Checkbutton(
                 self.window,
-                text=checkboxes_to_create[checkbox_name]["text"],  # type: ignore
+                text=checkbox_details["text"],  # type: ignore
                 variable=toggle,
                 onvalue=1,
                 offvalue=0,
             )
-            obj_list: List[GUIObject] = checkboxes_to_create[checkbox_name]["list"]  # type: ignore
+            obj_list: List[GUIObject] = checkbox_details["list"]  # type: ignore
             return_dict[checkbox_name] = (toggle, checkbox, checkbox_name, obj_list)
 
         return return_dict
 
     def update_objects(self) -> None:
         """Update whether a set of points is displayed on the canvas."""
-        for key in self.checkbox_dict:
-            if self.checkbox_dict[key][0].get() == 0:
-                for obj in self.checkbox_dict[key][3]:
+        for _, value in self.checkbox_dict.items():
+            if value[0].get() == 0:
+                for obj in value[3]:
                     obj.hide(self.canvas)
             else:
-                for obj in self.checkbox_dict[key][3]:
+                for obj in value[3]:
                     obj.show_given_time(
                         self.canvas,
                         self.start_time.get() * 60 * 60,
