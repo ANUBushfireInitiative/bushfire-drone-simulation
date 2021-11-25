@@ -30,7 +30,8 @@ def get_from_cache(url: str) -> Optional[bytes]:
     if url in session_cache:
         return session_cache[url]
     if (cache_folder / url).is_file():
-        image = open(cache_folder / url, "rb").read()
+        with open(cache_folder / url, "rb") as image_file:
+            image = image_file.read()
         session_cache[url] = image
         return image
     return None

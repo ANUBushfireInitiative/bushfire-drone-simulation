@@ -345,26 +345,21 @@ class JSONParameters:
         """Create plots and write to output."""
         title = ""
         summary_results: Dict[str, List[Union[float, str]]] = {}
-        if len(inspection_times) != 0:
-            mean_inspection_time = sum(inspection_times) / len(inspection_times)
-            title = f"Mean inspection time of {mean_inspection_time} hrs"
-            summary_results["uavs"] = [
-                mean_inspection_time,
-                np.max(inspection_times),
-                np.percentile(inspection_times, 99),
-                np.percentile(inspection_times, 90),
-                np.percentile(inspection_times, 50),
-            ]
-        if len(suppression_times) != 0:
-            mean_suppression_time = sum(suppression_times) / len(suppression_times)
-            title += f"\nMean suppression time of {mean_suppression_time} hrs"
-            summary_results["wbs"] = [
-                mean_suppression_time,
-                np.max(suppression_times),
-                np.percentile(suppression_times, 99),
-                np.percentile(suppression_times, 90),
-                np.percentile(suppression_times, 50),
-            ]
+        for times, name, aircraft_type in [
+            (inspection_times, "inspection time", "uavs"),
+            (suppression_times, "suppression time", "wbs"),
+        ]:
+            if len(times) != 0:
+                times_np = np.array(times)
+                mean_time = np.mean(times_np)
+                title += f"Mean {name} of {mean_time} hrs\n"
+                summary_results[aircraft_type] = [
+                    float(mean_time),
+                    float(np.amax(times_np)),
+                    float(np.percentile(times_np, 99)),  # type: ignore
+                    float(np.percentile(times_np, 90)),  # type: ignore
+                    float(np.percentile(times_np, 50)),  # type: ignore
+                ]
 
         fig, axs = plt.subplots(2, 2, figsize=(12, 8), dpi=300)
 
