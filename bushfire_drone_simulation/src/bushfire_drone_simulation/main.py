@@ -65,12 +65,15 @@ def main() -> None:
 
 @app.command()
 def gui(
-    parameters_filename: Path = typer.Option("parameters.json", help="Path to parameters file.")
+    parameters_filename: Optional[Path] = typer.Argument(None, help="Path to parameters file.")
 ) -> None:
     """Start a GUI version of the drone simulation."""
-    simulator = run_simulation(parameters_filename)[0]
-    if simulator is not None:
-        start_gui(simulator)
+    if parameters_filename is None:
+        start_gui()
+    else:
+        simulator = run_simulation(parameters_filename)[0]
+        if simulator is not None:
+            start_gui(simulation=simulator)
 
 
 @app.command()

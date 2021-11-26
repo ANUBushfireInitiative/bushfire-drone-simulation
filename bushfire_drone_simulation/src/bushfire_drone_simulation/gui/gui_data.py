@@ -6,7 +6,7 @@ from typing import Dict, List, Sequence
 
 from bushfire_drone_simulation.aircraft import Aircraft, Status, UpdateEvent
 from bushfire_drone_simulation.fire_utils import Location, Time
-from bushfire_drone_simulation.gui.gui_objects import GUIAircraft, GUILightning, GUIPoint
+from bushfire_drone_simulation.gui.gui_objects import GUIAircraft, GUILightning, GUIObject, GUIPoint
 from bushfire_drone_simulation.read_csv import CSVFile
 from bushfire_drone_simulation.simulator import Simulator
 
@@ -52,6 +52,30 @@ class GUIData:
         else:
             self.max_time = max(event.time for a in water_bombers + uavs for event in a.events)
 
+    @property
+    def dict(self) -> Dict[str, Sequence[GUIObject]]:
+        """Dictionary of contained GUIObjects by type.
+
+        Returns:
+            Dict[str, Sequence[GUIObject]]:
+        """
+        return {
+            "water_tanks": self.watertanks,
+            "uav_bases": self.uav_bases,
+            "wb_bases": self.wb_bases,
+            "uav_lines": self.uav_lines,
+            "wb_lines": self.wb_lines,
+            "lightning": self.lightning,
+            "ignitions": self.ignitions,
+            "uavs": self.uavs,
+            "water_bombers": self.water_bombers,
+        }
+
+    def __getitem__(self, key: str) -> Sequence[GUIObject]:
+        if key not in self.dict:
+            raise KeyError(f"Key {key} is not in GUI data")
+        return self.dict[key]
+
     @classmethod
     def from_simulator(cls, simulation: Simulator) -> "GUIData":
         """Create GUI data from a simulator object.
@@ -69,9 +93,7 @@ class GUIData:
         return cls(lightning, ignitions, uavs, water_bombers, uav_bases, wb_bases, watertanks)
 
     @classmethod
-    def from_output(
-        cls, path: Path, scenario_name: str  # pylint: disable=unused-argument
-    ) -> "GUIData":
+    def from_output(cls, path: Path, scenario_name: str) -> "GUIData":
         """Generate GUI data from output of a prior simulation scenario.
 
         Args:
@@ -86,6 +108,9 @@ class GUIData:
         wb_bases: List[GUIPoint] = extract_bases_from_output(path, scenario_name, "water_bomber")
         watertanks: List[GUIPoint] = extract_water_tanks_from_output(path, scenario_name)
         return cls(lightning, ignitions, uavs, water_bombers, uav_bases, wb_bases, watertanks)
+
+    def save_to(self, folder: Path) -> None:
+        """Save gui data to a folder."""
 
 
 def extract_simulation_lightning(simulation: Simulator, ignited: bool) -> List[GUILightning]:

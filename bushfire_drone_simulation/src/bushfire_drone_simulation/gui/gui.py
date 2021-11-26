@@ -1,20 +1,20 @@
 """GUI Module for bushfire drone simulation."""
 
 import tkinter as tk
+import tkinter.filedialog
 from pathlib import Path
-from tkinter import Button, Canvas, DoubleVar, Event, Scale
+from tkinter import Canvas, DoubleVar, Event, Menu, Scale, ttk
 from tkinter.constants import BOTH, HORIZONTAL, X
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, Optional
 
 from PIL import ImageTk
 
 from bushfire_drone_simulation.gui.gui_data import GUIData
-from bushfire_drone_simulation.gui.gui_objects import GUIObject
 from bushfire_drone_simulation.gui.map_image import MapImage
 from bushfire_drone_simulation.simulator import Simulator
 
 WIDTH = 1000
-HEIGHT = 600
+HEIGHT = 400
 ZOOM = 7
 LATITUDE = -36.25
 LONGITUDE = 147.9
@@ -23,6 +23,28 @@ LONGITUDE = 147.9
 class GUI:
     """GUI class for bushfire drone simulation."""
 
+    def open_file(self) -> None:
+        """Create open file dialog."""
+        dlg = tkinter.filedialog.Open(filetypes=[("CSV Files", "*.csv"), ("All files", "*")])
+        filename = Path(dlg.show())
+        try:
+            temp_gui_data = GUIData.from_output(filename.parent, filename.name.split("_")[0])
+            self.canvas.delete("object")  # type: ignore
+            self.gui_data = temp_gui_data
+            self.initialise_display()
+        except FileNotFoundError:
+            print(f"File not found {filename}")
+
+    def save_file(self) -> None:
+        """Create save file dialog."""
+        dlg = tkinter.filedialog.Directory()
+        folder = Path(dlg.show())
+        self.gui_data.save_to(Path(folder))
+
+    def new_simulation(self) -> None:
+        """Create new simulation dialog."""
+        self.gui_data = GUIData([], [], [], [], [], [], [])
+
     def __init__(self, gui_data: GUIData) -> None:
         """Run GUI from simulator."""
         self.gui_data = gui_data
@@ -30,14 +52,24 @@ class GUI:
 
         self.window = tk.Tk()
         self.window.title("ANU Bushfire Initiative Drone Simulation")
-        title = tk.Label(self.window, text="ANU Bushfire Initiative Drone Simulation")
-        title.pack()
         self.canvas: Canvas = tk.Canvas(self.window, width=self.width, height=self.height)
         self.canvas.pack(fill=BOTH, expand=True)
 
         self.canvas.bind("<B1-Motion>", self.drag)
         self.window.bind("<Button-1>", self.click)
         self.window.bind("<Configure>", self.resize)
+
+        menubar = Menu(self.window)
+        filemenu: Menu = Menu(menubar, tearoff=0)
+        filemenu.add_command(label="New Simulation", command=self.new_simulation)  # type: ignore
+        filemenu.add_command(label="Open", command=self.open_file)  # type: ignore
+        filemenu.add_command(label="Save", command=self.save_file)  # type: ignore
+        filemenu.add_separator()  # type: ignore
+        filemenu.add_command(label="Exit", command=self.window.quit)  # type: ignore
+        menubar.add_cascade(label="File", menu=filemenu)  # type: ignore
+        self.viewmenu = Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="View", menu=self.viewmenu)  # type: ignore
+        self.window.config(menu=menubar)
 
         self.label = tk.Label(self.canvas)
         self.zoom = ZOOM
@@ -47,6 +79,7 @@ class GUI:
         self.zoom_out_button = self.add_zoom_button("-", -1)
         self.start_time = DoubleVar()
         self.end_time = DoubleVar()
+
         self.start_scale = Scale(
             self.window,
             variable=self.start_time,
@@ -82,59 +115,58 @@ class GUI:
         self.tk_image = None
 
         self.restart()
-        self.checkbox_dict = self.create_checkboxes()
-
-        y = 2
-        for _, value in self.checkbox_dict.items():
-            value[1].select()  # type: ignore
-            value[1].place(x=20, y=y)
-            y += 20
-            for obj in value[3]:
-                obj.place_on_canvas(self.canvas, self.map_image.get_coordinates)
-
+        self.checkbox_dict = self.create_viewmenu()
+        self.initialise_display()
         self.update_objects()
         self.window.mainloop()
 
-    def create_checkboxes(
-        self,
-    ) -> Dict[str, Tuple[tk.IntVar, tk.Checkbutton, str, Sequence[GUIObject]]]:
-        """Create check boxes for interating with GUI."""
-        return_dict: Dict[str, Tuple[tk.IntVar, tk.Checkbutton, str, Sequence[GUIObject]]] = {}
+    def initialise_display(self) -> None:
+        """Initialize display by adding objects and updating scale."""
+        for name in self.gui_data.dict.keys():
+            for obj in self.gui_data[name]:
+                obj.place_on_canvas(self.canvas, self.map_image.get_coordinates)
+        self.end_scale["to"] = int(self.gui_data.max_time / 3600 + 1.0)
+        self.start_scale["to"] = int(self.gui_data.max_time / 3600 + 1.0)
+        self.update_objects()
 
-        checkboxes_to_create = {
-            "water_tanks": {"text": "Show Water Tanks", "list": self.gui_data.watertanks},
-            "uav_bases": {"text": "Show UAV Bases", "list": self.gui_data.uav_bases},
-            "wb_bases": {"text": "Show Water Bomber Bases", "list": self.gui_data.wb_bases},
-            "uav_lines": {"text": "Show UAV Paths", "list": self.gui_data.uav_lines},
-            "wb_lines": {"text": "Show WB Paths", "list": self.gui_data.wb_lines},
-            "lightning": {"text": "Show Lightning", "list": self.gui_data.lightning},
-            "ignitions": {"text": "Show Ignitions", "list": self.gui_data.ignitions},
-            "uavs": {"text": "Show UAVs", "list": self.gui_data.uavs},
-            "water_bombers": {"text": "Show Water Bombers", "list": self.gui_data.water_bombers},
+    def create_viewmenu(
+        self,
+    ) -> Dict[str, tk.BooleanVar]:
+        """Create view menu for interacting with GUI."""
+        return_dict: Dict[str, tk.BooleanVar] = {}
+        name_map = {
+            "water_tanks": "Show Water Tanks",
+            "uav_bases": "Show UAV Bases",
+            "wb_bases": "Show Water Bomber Bases",
+            "uav_lines": "Show UAV Paths",
+            "wb_lines": "Show WB Paths",
+            "lightning": "Show Lightning",
+            "ignitions": "Show Ignitions",
+            "uavs": "Show UAVs",
+            "water_bombers": "Show Water Bombers",
         }
 
-        for checkbox_name, checkbox_details in checkboxes_to_create.items():
-            toggle = tk.IntVar()
-            checkbox = tk.Checkbutton(
-                self.window,
-                text=checkbox_details["text"],  # type: ignore
-                variable=toggle,
+        for object_type in self.gui_data.dict.keys():
+            toggle = tk.BooleanVar()
+            toggle.set(True)
+            self.viewmenu.add_checkbutton(  # type: ignore
+                label=name_map[object_type],
                 onvalue=1,
                 offvalue=0,
+                variable=toggle,
+                command=self.update_objects,
             )
-            obj_list: List[GUIObject] = checkbox_details["list"]  # type: ignore
-            return_dict[checkbox_name] = (toggle, checkbox, checkbox_name, obj_list)
-
+            return_dict[object_type] = toggle
         return return_dict
 
     def update_objects(self) -> None:
         """Update whether a set of points is displayed on the canvas."""
-        for _, value in self.checkbox_dict.items():
-            if value[0].get() == 0:
-                for obj in value[3]:
+        for name, toggle in self.checkbox_dict.items():
+            if not toggle.get():
+                for obj in self.gui_data[name]:
                     obj.hide(self.canvas)
             else:
-                for obj in value[3]:
+                for obj in self.gui_data[name]:
                     obj.show_given_time(
                         self.canvas,
                         self.start_time.get() * 60 * 60,
@@ -142,14 +174,14 @@ class GUI:
                     )
                     obj.update(self.canvas)
 
-    def add_zoom_button(self, text: str, change: int) -> Button:
+    def add_zoom_button(self, text: str, change: int) -> ttk.Button:
         """Add zoom button.
 
         Args:
             text (str): text
             change (int): change
         """
-        button = tk.Button(
+        button = ttk.Button(
             self.canvas, text=text, width=1, command=lambda: self.change_zoom(change)
         )
         return button
@@ -248,9 +280,12 @@ class GUI:
         self.update_objects()
 
 
-def start_gui(simulation: Simulator) -> None:
+def start_gui(simulation: Optional[Simulator] = None) -> None:
     """Start GUI of simulation."""
-    GUI(GUIData.from_simulator(simulation))
+    if simulation is None:
+        GUI(GUIData([], [], [], [], [], [], []))
+    else:
+        GUI(GUIData.from_simulator(simulation))
 
 
 def start_gui_from_file(path: Path, scenario_name: str) -> None:

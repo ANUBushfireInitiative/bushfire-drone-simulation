@@ -20,13 +20,19 @@ class GUIObject:
         self.to_coordinates: Callable[[Location], Tuple[float, float]] = lambda _: (0, 0)
         self.canvas_object: int = -1
         self.cur_shown = True
-        self.tags: Tuple[str, ...] = ("all",)
+        self.tags: Tuple[str, ...] = ("object",)
 
     @abstractmethod
     def place_on_canvas(
         self, canvas: Canvas, to_coordinates: Callable[[Location], Tuple[int, int]]
     ) -> None:
         """Place object on canvas."""
+        assert self.canvas_object == -1
+
+    def remove_from_canvas(self, canvas: Canvas) -> None:
+        """Place object on canvas."""
+        canvas.delete(self.canvas_object)  # type: ignore
+        self.canvas_object = -1
 
     def hide(self, canvas: Canvas) -> None:
         """Hide line."""
@@ -81,6 +87,7 @@ class GUIPoint(GUIObject):
             canvas (Canvas): canvas
             to_coordinates (Callable[[float, float], Tuple[int,int]]): to_coordinates
         """
+        super().place_on_canvas(canvas, to_coordinates)
         self.to_coordinates = to_coordinates
         self.x, self.y = to_coordinates(self.location)
         self.canvas_object = canvas.create_oval(  # type: ignore
@@ -144,6 +151,7 @@ class GUILine(GUIObject):
             canvas (Canvas): canvas
             to_coordinates (Callable[[float, float], Tuple[int,int]]): to_coordinates
         """
+        super().place_on_canvas(canvas, to_coordinates)
         self.to_coordinates = to_coordinates
         c_1 = self.to_coordinates(self.cur_loc_1)
         c_2 = self.to_coordinates(self.cur_loc_2)
@@ -321,6 +329,7 @@ class GUIAircraft(GUIObject):
             canvas (Canvas): canvas
             to_coordinates (Callable[[Location], Tuple[int, int]]): to_coordinates
         """
+        super().place_on_canvas(canvas, to_coordinates)
         self.aircraft_point.place_on_canvas(canvas, to_coordinates)
 
     def show_given_time(self, canvas: Canvas, start_time: float, end_time: float) -> None:
