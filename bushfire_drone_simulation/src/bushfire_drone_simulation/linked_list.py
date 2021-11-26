@@ -15,8 +15,8 @@ class Node(Generic[T]):  # pylint: disable=too-few-public-methods
     def __init__(self, value: T) -> None:
         """Initialize node."""
         self.value: T = value
-        self.next: Optional[Node[T]] = None
-        self.prev: Optional[Node[T]] = None
+        self.next: "Optional[Node[T]]" = None
+        self.prev: "Optional[Node[T]]" = None
 
 
 class LinkedList(Generic[T]):
