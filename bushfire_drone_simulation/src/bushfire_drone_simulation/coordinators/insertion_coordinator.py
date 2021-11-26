@@ -1,4 +1,11 @@
-"""Insertion coordinator."""
+"""Insertion coordinator.
+
+This coordinator aims to minimise the inspection/supression time of the most recent strike
+by finding the place within each aircrafts list of locations to 'insert' this strike to
+minimizes the inspection/supression time.
+It does not consider also going via a base/water tank to facilitate 'inserting' this extra
+strike and rather discounts the option if it does not possess enough fuel or water.
+"""
 
 import logging
 from math import inf
@@ -6,8 +13,11 @@ from typing import List, Optional, Union
 
 import numpy as np
 
-from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoordinator
 from bushfire_drone_simulation.aircraft import UAV, Event, WaterBomber
+from bushfire_drone_simulation.coordinators.abstract_coordinator import (
+    UAVCoordinator,
+    WBCoordinator,
+)
 from bushfire_drone_simulation.fire_utils import Base, Location
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.linked_list import Node
@@ -279,4 +289,4 @@ class InsertionWBCoordinator(WBCoordinator):
             water_bomber.go_to_base_when_necessary(bases, ignition.inspected_time)
 
     def process_new_strike(self, lightning: Lightning) -> None:
-        """Decide on uavs movement with new strike."""
+        """Decide on water bombers movement with new strike."""

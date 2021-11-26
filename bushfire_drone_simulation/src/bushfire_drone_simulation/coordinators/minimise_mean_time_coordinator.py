@@ -10,15 +10,19 @@ strike and rather discounts the option if it does not possess enough fuel or wat
 
 import logging
 from math import inf
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 
-from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoordinator
 from bushfire_drone_simulation.aircraft import UAV, Event, WaterBomber
-from bushfire_drone_simulation.fire_utils import Base, Location
+from bushfire_drone_simulation.coordinators.abstract_coordinator import (
+    UAVCoordinator,
+    WBCoordinator,
+)
+from bushfire_drone_simulation.fire_utils import Base, Location, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.linked_list import Node
+from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Duration
 
 _LOG = logging.getLogger(__name__)
@@ -30,6 +34,15 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
     Coordinator will try to insert the new strike in between the uavs current tasks
     and minimise the new strikes inspection time.
     """
+
+    def __init__(
+        self, uavs: List[UAV], uav_bases: List[Base], parameters: JSONParameters, scenario_idx: int
+    ):
+        """Initialize coordinator."""
+        super().__init__(uavs, uav_bases, parameters, scenario_idx)
+        self.max_inspection_time: float = 0
+        self.consider_max_inspection_time: bool = True
+        self.reprocess_max = True
 
     def process_new_strike(  # pylint: disable=too-many-branches, too-many-statements
         self, lightning: Lightning
@@ -172,27 +185,78 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                             best_uav = uav
                             assigned_locations = [uav_base, lightning]
                             start_from = None
-        if best_uav is not None:
-            _LOG.debug("Best UAV is: %s", best_uav.get_name())
-            if start_from is not None:
-                if isinstance(start_from, str):
-                    best_uav.event_queue.clear()
-                else:
-                    best_uav.event_queue.delete_after(start_from)
-            for location in assigned_locations:
-                best_uav.add_location_to_queue(location, lightning.spawn_time)
-        elif best_uav_above_target is not None:
-            _LOG.debug("Couldn't stay below max inspection time target")
-            _LOG.debug("Best UAV is: %s", best_uav_above_target.get_name())
-            if start_from_above_target is not None:
-                if isinstance(start_from_above_target, str):
-                    best_uav_above_target.event_queue.clear()
-                else:
-                    best_uav_above_target.event_queue.delete_after(start_from_above_target)
-            for location in assigned_locations_above_target:
-                best_uav_above_target.add_location_to_queue(location, lightning.spawn_time)
-        else:
-            _LOG.error("No UAVs were available to process lightning strike %s", lightning.id_no)
+
+        if best_uav is None:
+            if best_uav_above_target is None:
+                _LOG.error("No UAVs were available to process lightning strike %s", lightning.id_no)
+            else:
+                _LOG.debug("Couldn't stay below max inspection time target")
+                best_uav = best_uav_above_target
+                assigned_locations = assigned_locations_above_target
+                start_from = None
+                if start_from_above_target is not None:
+                    start_from = start_from_above_target
+        if (
+            self.consider_max_inspection_time and self.reprocess_max
+        ):  # pylint: disable=too-many-nested-blocks, R1702
+            self.consider_max_inspection_time = False
+            if best_uav is not None:
+                _LOG.debug("Best UAV is: %s", best_uav.get_name())
+                if start_from is not None:
+                    if isinstance(start_from, str):
+                        best_uav.event_queue.clear()
+                    else:
+                        best_uav.event_queue.delete_after(start_from)
+                for location in assigned_locations:
+                    best_uav.add_location_to_queue(location, lightning.spawn_time)
+                max_inspection_time: float = 0
+                prior_to_strike: Optional[Node[Event]] = None
+                remaining_events: List[Location] = []
+                after_strike_events: List[Location] = []
+                strike_to_reprocess: Optional[Lightning] = None
+                for event, prev_event in best_uav.event_queue.iterate_backwards():
+                    if isinstance(event.position, Lightning):
+                        inspection_time = event.completion_time - event.position.spawn_time
+                        if inspection_time > max_inspection_time:
+                            max_inspection_time = inspection_time
+                            strike_to_reprocess = event.position
+                            prior_to_strike = prev_event
+                            after_strike_events = []
+                            after_strike_events = after_strike_events + remaining_events
+                    remaining_events.insert(0, event.position)
+                if self.max_inspection_time < max_inspection_time:
+                    self.max_inspection_time = max_inspection_time
+                    if prior_to_strike is not None:
+                        best_uav.event_queue.delete_after(prior_to_strike)
+                    else:
+                        best_uav.event_queue.clear()
+                    for location in after_strike_events:
+                        best_uav.add_location_to_queue(location, lightning.spawn_time)
+                    for event in best_uav.event_queue:
+                        if isinstance(event.position, Lightning):
+                            inspection_time = event.completion_time - event.position.spawn_time
+                            self.max_inspection_time = max(
+                                self.max_inspection_time, inspection_time
+                            )
+                    assert isinstance(strike_to_reprocess, Lightning)
+                    self.process_new_strike(strike_to_reprocess)
+
+        else:  # Don't reprocess anything!
+            self.consider_max_inspection_time = True
+            if best_uav is not None:
+                _LOG.debug("Best UAV is: %s", best_uav.get_name())
+                if start_from is not None:
+                    if isinstance(start_from, str):
+                        best_uav.event_queue.clear()
+                    else:
+                        best_uav.event_queue.delete_after(start_from)
+                for location in assigned_locations:
+                    best_uav.add_location_to_queue(location, lightning.spawn_time)
+                for event in best_uav.event_queue:
+                    if isinstance(event.position, Lightning):
+                        inspection_time = event.completion_time - event.position.spawn_time
+                        if inspection_time > self.max_inspection_time:
+                            self.max_inspection_time = inspection_time
         for uav in self.uavs:
             uav.go_to_base_when_necessary(self.uav_bases, lightning.spawn_time)
 
@@ -203,6 +267,20 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
     Coordinator will try to insert the new strike in between the uavs current tasks
     and minimise the new strikes inspection time.
     """
+
+    def __init__(  # pylint: disable=too-many-arguments
+        self,
+        water_bombers: List[WaterBomber],
+        water_bomber_bases: Dict[str, List[Base]],
+        water_tanks: List[WaterTank],
+        parameters: JSONParameters,
+        scenario_idx: int,
+    ):
+        """Initialize coordinator."""
+        super().__init__(water_bombers, water_bomber_bases, water_tanks, parameters, scenario_idx)
+        self.max_inspection_time: float = 0
+        self.consider_max_inspection_time: bool = True
+        self.reprocess_max = False
 
     def process_new_ignition(  # pylint: disable=too-many-branches, too-many-statements
         self, ignition: Lightning
@@ -435,30 +513,81 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                                     best_water_bomber = water_bomber
                                     assigned_locations = [base, water_tank, ignition]
                                     start_from = None
-        if best_water_bomber is not None:
-            _LOG.debug("Best water bomber is: %s", best_water_bomber.get_name())
-            if start_from is not None:
-                if isinstance(start_from, str):
-                    best_water_bomber.event_queue.clear()
-                else:
-                    best_water_bomber.event_queue.delete_after(start_from)
-            for location in assigned_locations:
-                best_water_bomber.add_location_to_queue(location, ignition.inspected_time)
-        elif best_water_bomber_above_target is not None:
-            _LOG.debug("Couldn't stay below max inspection time target")
-            _LOG.debug("Best water bomber is: %s", best_water_bomber_above_target.get_name())
-            if start_from_above_target is not None:
-                if isinstance(start_from_above_target, str):
-                    best_water_bomber_above_target.event_queue.clear()
-                else:
-                    best_water_bomber_above_target.event_queue.delete_after(start_from_above_target)
-            for location in assigned_locations_above_target:
-                best_water_bomber_above_target.add_location_to_queue(location, ignition.spawn_time)
-        else:
-            _LOG.error("No water bombers were available")
+        if best_water_bomber is None:
+            if best_water_bomber_above_target is None:
+                _LOG.error("No water bombers were available to suppress strike %s", ignition.id_no)
+            else:
+                _LOG.debug("Couldn't stay below max inspection time target")
+                best_water_bomber = best_water_bomber_above_target
+                assigned_locations = assigned_locations_above_target
+                start_from = None
+                if start_from_above_target is not None:
+                    start_from = start_from_above_target
+        if (
+            self.consider_max_inspection_time and self.reprocess_max
+        ):  # pylint: disable=too-many-nested-blocks
+            self.consider_max_inspection_time = False
+            if best_water_bomber is not None:
+                _LOG.debug("Best bomber is: %s", best_water_bomber.get_name())
+                if start_from is not None:
+                    if isinstance(start_from, str):
+                        best_water_bomber.event_queue.clear()
+                    else:
+                        best_water_bomber.event_queue.delete_after(start_from)
+                for location in assigned_locations:
+                    best_water_bomber.add_location_to_queue(location, ignition.spawn_time)
+                max_inspection_time: float = 0
+                prior_to_strike: Optional[Node[Event]] = None
+                remaining_events: List[Location] = []
+                after_strike_events: List[Location] = []
+                strike_to_reprocess: Optional[Lightning] = None
+                for event, prev_event in best_water_bomber.event_queue.iterate_backwards():
+                    if isinstance(event.position, Lightning):
+                        inspection_time = event.completion_time - event.position.spawn_time
+                        if inspection_time > max_inspection_time:
+                            max_inspection_time = inspection_time
+                            strike_to_reprocess = event.position
+                            prior_to_strike = prev_event
+                            after_strike_events = []
+                            after_strike_events = after_strike_events + remaining_events
+                    remaining_events.insert(0, event.position)
+                if self.max_inspection_time < max_inspection_time:
+                    self.max_inspection_time = max_inspection_time
+                    if prior_to_strike is not None:
+                        best_water_bomber.event_queue.delete_after(prior_to_strike)
+                    else:
+                        best_water_bomber.event_queue.clear()
+                    for location in after_strike_events:
+                        best_water_bomber.add_location_to_queue(location, ignition.spawn_time)
+                    for event in best_water_bomber.event_queue:
+                        if isinstance(event.position, Lightning):
+                            inspection_time = event.completion_time - event.position.spawn_time
+                            self.max_inspection_time = max(
+                                self.max_inspection_time, inspection_time
+                            )
+                    assert isinstance(strike_to_reprocess, Lightning)
+                    self.process_new_ignition(strike_to_reprocess)
+
+        else:  # Don't reprocess anything!
+            self.consider_max_inspection_time = True
+            if best_water_bomber is not None:
+                _LOG.debug("Best bomber is: %s", best_water_bomber.get_name())
+                if start_from is not None:
+                    if isinstance(start_from, str):
+                        best_water_bomber.event_queue.clear()
+                    else:
+                        best_water_bomber.event_queue.delete_after(start_from)
+                for location in assigned_locations:
+                    best_water_bomber.add_location_to_queue(location, ignition.spawn_time)
+                for event in best_water_bomber.event_queue:
+                    if isinstance(event.position, Lightning):
+                        inspection_time = event.completion_time - event.position.spawn_time
+                        if inspection_time > self.max_inspection_time:
+                            self.max_inspection_time = inspection_time
+
         for water_bomber in self.water_bombers:
             bases = self.water_bomber_bases_dict[water_bomber.type]
             water_bomber.go_to_base_when_necessary(bases, ignition.inspected_time)
 
     def process_new_strike(self, lightning: Lightning) -> None:
-        """Decide on uavs movement with new strike."""
+        """Decide on water bombers movement with new strike."""

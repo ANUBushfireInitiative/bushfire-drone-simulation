@@ -1,4 +1,8 @@
-"""Coordinator that prioritizes new strikes and only processes remaining strikes if necessary."""
+"""New Strikes First Coordinator.
+
+Prioritizes new strikes by reevlauating paths of all aircraft.
+Then processes remaining strikes if necessary due to diversion of aircraft.
+"""
 
 import logging
 from math import inf
@@ -7,8 +11,11 @@ from typing import Dict, List, Tuple, Union
 
 import numpy as np
 
-from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoordinator
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
+from bushfire_drone_simulation.coordinators.abstract_coordinator import (
+    UAVCoordinator,
+    WBCoordinator,
+)
 from bushfire_drone_simulation.fire_utils import Base, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.parameters import JSONParameters
@@ -301,4 +308,4 @@ class NewStrikesFirstWBCoordinator(WBCoordinator):
         return ret_name
 
     def process_new_strike(self, lightning: Lightning) -> None:
-        """Decide on uavs movement with new strike."""
+        """Decide on water bombers movement with new strike."""

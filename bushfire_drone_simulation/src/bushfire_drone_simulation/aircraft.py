@@ -591,9 +591,9 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         departure_time: float,
         percentage: float = 0.3,
     ) -> None:
-        """Aircraft will return to base.
+        """Aircraft will return to the nearest base when necessary.
 
-        when it takes more than percentage of its fuel tank to return to the nearest base
+        Necessary is defined to be when it takes more than percentage of its fuel tank to return.
 
         Args:
             bases (List[Base]): list of avaliable bases

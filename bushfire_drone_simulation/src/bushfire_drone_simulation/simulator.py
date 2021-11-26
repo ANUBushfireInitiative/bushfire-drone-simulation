@@ -4,7 +4,7 @@ from math import inf
 from queue import PriorityQueue, Queue
 from typing import Dict, List, Optional, Tuple, Union
 
-from bushfire_drone_simulation.abstract_coordinator import (
+from bushfire_drone_simulation.coordinators.abstract_coordinator import (
     UAVCoordinator,
     UnassignedCoordinator,
     WBCoordinator,

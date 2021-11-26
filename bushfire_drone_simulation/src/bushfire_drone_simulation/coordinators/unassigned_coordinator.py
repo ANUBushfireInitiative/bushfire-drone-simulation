@@ -6,7 +6,10 @@ from typing import List, Optional
 import matplotlib.pyplot as plt
 import numpy as np
 
-from bushfire_drone_simulation.abstract_coordinator import UnassignedCoordinator, average_location
+from bushfire_drone_simulation.coordinators.abstract_coordinator import (
+    UnassignedCoordinator,
+    average_location,
+)
 from bushfire_drone_simulation.fire_utils import Location
 
 
@@ -90,7 +93,7 @@ class SimpleUnassignedCoordinator(UnassignedCoordinator):
                                 -self.boundary_const * min_dist ** self.boundary_pwr,
                             )
                         )
-                    if contributing_locs != []:
+                    if contributing_locs:
                         uav_target_loc = average_location(contributing_locs)
                         actual_loc = uav_target_loc
                         percentage = self.dt / (uav.distance(uav_target_loc) / uav.flight_speed)

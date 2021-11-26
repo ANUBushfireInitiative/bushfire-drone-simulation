@@ -188,13 +188,13 @@ class WBCoordinator:
         self.precomputed = precomputed
 
     def new_strike(self, lightning: Lightning) -> None:
-        """Decide on uavs movement with new strike."""
+        """Decide on water bombers movement with new strike."""
         self.uninspected_strikes.add(lightning)
         self.process_new_strike(lightning)
 
     @abstractmethod
     def process_new_strike(self, lightning: Lightning) -> None:
-        """Decide on uavs movement with new strike."""
+        """Decide on water bombers movement with new strike."""
         # Water bombers already updated to time of strike by simulator
 
     def new_ignition(self, ignition: Lightning) -> None:
@@ -207,7 +207,7 @@ class WBCoordinator:
     @abstractmethod
     def process_new_ignition(self, ignition: Lightning) -> None:
         """Decide on water bombers movement with new ignition."""
-        # water bombers already updated to time of strike by simulator
+        # Water bombers already updated to time of strike by simulator
 
     def lightning_strike_suppressed(self, lightning_strikes: List[Tuple[Lightning, str]]) -> None:
         """Lightning has been suppressed."""

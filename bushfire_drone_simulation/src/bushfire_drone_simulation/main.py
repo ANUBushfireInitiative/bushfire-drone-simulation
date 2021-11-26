@@ -9,32 +9,37 @@ from typing import Dict, List, Optional, Type, Union
 import typer
 from tqdm import tqdm
 
-from bushfire_drone_simulation.abstract_coordinator import (
+from bushfire_drone_simulation.coordinators.abstract_coordinator import (
     UAVCoordinator,
     UnassignedCoordinator,
     WBCoordinator,
 )
-from bushfire_drone_simulation.gui.gui import start_gui, start_gui_from_file
-from bushfire_drone_simulation.insertion_coordinator import (
+from bushfire_drone_simulation.coordinators.insertion_coordinator import (
     InsertionUAVCoordinator,
     InsertionWBCoordinator,
 )
-from bushfire_drone_simulation.matlab_coordinator import MatlabUAVCoordinator, MatlabWBCoordinator
-from bushfire_drone_simulation.minimise_mean_time_coordinator import (
+from bushfire_drone_simulation.coordinators.matlab_coordinator import (
+    MatlabUAVCoordinator,
+    MatlabWBCoordinator,
+)
+from bushfire_drone_simulation.coordinators.minimise_mean_time_coordinator import (
     MinimiseMeanTimeUAVCoordinator,
     MinimiseMeanTimeWBCoordinator,
 )
-from bushfire_drone_simulation.new_strikes_first_coordinator import (
+from bushfire_drone_simulation.coordinators.new_strikes_first_coordinator import (
     NewStrikesFirstUAVCoordinator,
     NewStrikesFirstWBCoordinator,
 )
-from bushfire_drone_simulation.parameters import JSONParameters
-from bushfire_drone_simulation.reprocess_max_time_coordinator import (
+from bushfire_drone_simulation.coordinators.reprocess_max_time_coordinator import (
     ReprocessMaxTimeUAVCoordinator,
     ReprocessMaxTimeWBCoordinator,
 )
+from bushfire_drone_simulation.coordinators.unassigned_coordinator import (
+    SimpleUnassignedCoordinator,
+)
+from bushfire_drone_simulation.gui.gui import start_gui, start_gui_from_file
+from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.simulator import Simulator
-from bushfire_drone_simulation.unassigned_coordinator import SimpleUnassignedCoordinator
 
 _LOG = logging.getLogger(__name__)
 app = typer.Typer()

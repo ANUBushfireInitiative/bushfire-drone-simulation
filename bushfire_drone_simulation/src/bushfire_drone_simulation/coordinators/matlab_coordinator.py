@@ -1,4 +1,8 @@
-"""Simple coordinator."""
+"""Simple coordinator.
+
+Assigns the best UAV and best water bomber to the most recent strike.
+Never reevaluates routes for aircraft.
+"""
 
 import logging
 from math import inf
@@ -6,8 +10,11 @@ from typing import List, Union
 
 import numpy as np
 
-from bushfire_drone_simulation.abstract_coordinator import UAVCoordinator, WBCoordinator
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
+from bushfire_drone_simulation.coordinators.abstract_coordinator import (
+    UAVCoordinator,
+    WBCoordinator,
+)
 from bushfire_drone_simulation.fire_utils import Location
 from bushfire_drone_simulation.lightning import Lightning
 
@@ -163,4 +170,4 @@ class MatlabWBCoordinator(WBCoordinator):
             water_bomber.go_to_base_when_necessary(bases, ignition.inspected_time)
 
     def process_new_strike(self, lightning: Lightning) -> None:
-        """Decide on uavs movement with new strike."""
+        """Decide on water bombers movement with new strike."""
