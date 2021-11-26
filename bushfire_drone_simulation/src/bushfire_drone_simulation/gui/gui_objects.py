@@ -17,10 +17,10 @@ class GUIObject:
 
     def __init__(self) -> None:
         """__init__."""
-        self.to_coordinates: Callable[[Location], Tuple[int, int]] = lambda l: (0, 0)
+        self.to_coordinates: Callable[[Location], Tuple[float, float]] = lambda _: (0, 0)
         self.canvas_object: int = -1
         self.cur_shown = True
-        self.tags = ["all"]
+        self.tags: Tuple[str, ...] = ("all",)
 
     @abstractmethod
     def place_on_canvas(
@@ -69,8 +69,8 @@ class GUIPoint(GUIObject):
         self.location = location
         self.radius = radius
         self.colour = colour
-        self.x, self.y = 0, 0
-        self.tags.append("point")
+        self.x, self.y = 0.0, 0.0
+        self.tags += ("point",)
 
     def place_on_canvas(
         self, canvas: Canvas, to_coordinates: Callable[[Location], Tuple[int, int]]
@@ -131,7 +131,7 @@ class GUILine(GUIObject):
         self.event2 = event2
         self.width = width
         self.colour = colour
-        self.tags.append("line")
+        self.tags += ("line",)
         self.cur_loc_1: Location = event1
         self.cur_loc_2: Location = event2
 
@@ -211,8 +211,8 @@ class GUILightning(GUIPoint):
         self.spawn_time = spawn_time
         self.inspection_time = inspection_time
         self.suppressed_time = suppressed_time
-        self.tags.append("lightning")
-        self.tags.append(f"lightning {self.idx}")
+        self.tags += ("lightning",)
+        self.tags += (f"lightning {self.idx}",)
 
     def place_on_canvas(
         self, canvas: Canvas, to_coordinates: Callable[[Location], Tuple[int, int]]
