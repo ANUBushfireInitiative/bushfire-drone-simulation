@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.abspath(".."))
 
 project = "ANU Bushfire Initiative Drone Simulation"
 # pylint: disable=redefined-builtin
-copyright = "2020, Ryan Stocks and Elise Palethorpe, Australian National University"
+copyright = "2020-2022, Ryan Stocks and Elise Palethorpe, Australian National University"
 author = "Ryan Stocks and Elise Palethorpe, Australian National University"
 
 # The full version, including alpha/beta/rc tags

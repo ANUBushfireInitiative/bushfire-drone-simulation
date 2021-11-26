@@ -523,6 +523,6 @@ additional column:
 * **Water capacity** (L): the water on board of the aircraft upon departure
 
 GUI
-===
+---
 
 The bushfire drone simulation also comes with a graphical user interface for viewing the simulation overlayed on a map (thanks to `OpenStreetMap <https://www.openstreetmap.org/>`_). There are two ways to run the GUI. Firstly, you can run the simulation from scratch and then view the results in the GUI using the command ``bushfire_drone_simulation gui`` with the same input format as the ``run-simulation`` command described above. In addition, you can open the GUI for a previously run simulation by navigating to the output folder of that simulation and running the command ``bushfire_drone_simulation gui-from-output SCENARIO_NAME`` replacing ``SCENARIO_NAME`` with the name of the scenario you wish to view (or ``""`` if only a single scenario was run). This output must be in the same format as the output from the simulation for the GUI to be able to read it.

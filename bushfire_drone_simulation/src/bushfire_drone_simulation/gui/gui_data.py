@@ -54,7 +54,7 @@ class GUIData:
 
     @property
     def dict(self) -> Dict[str, Sequence[GUIObject]]:
-        """Dictionary of contained GUIObjects by type.
+        """Get dictionary of contained GUIObjects by type.
 
         Returns:
             Dict[str, Sequence[GUIObject]]:
@@ -72,6 +72,7 @@ class GUIData:
         }
 
     def __getitem__(self, key: str) -> Sequence[GUIObject]:
+        """Get object lists by name."""
         if key not in self.dict:
             raise KeyError(f"Key {key} is not in GUI data")
         return self.dict[key]
