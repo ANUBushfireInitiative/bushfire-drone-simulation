@@ -60,14 +60,6 @@ repos:
         language: python
         types:
           - python
-    -   id: pytest
-        name: pytest
-        entry: pytest -v
-        language: system
-        pass_filenames: false
-        always_run: true
-        types: [python]
-        stages: [push]
     -   id: sphinx-doctest
         name: sphinx doctest
         entry: python -m sphinx.cmd.build

@@ -1,0 +1,27 @@
+# This workflow will install the program and run the pre-commit linting/testing with python 3.8
+
+name: Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  pre-commit:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        source tools/install-dev-env
+    - name: Run test
+      run: |
+          pytest
