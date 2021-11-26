@@ -106,6 +106,14 @@ Congratulations! The ANU Bushfire Initiative's Drone Simulation is now
 You can also now start a documentation server by following the
 documentation instructions below.
 
+Future Updates
+~~~~~~~~~~~~~~
+
+To update to the latest copy of the bushfire_drone_simulation, please run ``git pull`` in the terminal from anywhere within the root directory of the program.
+Then run ``.\tools\windows-install.ps1`` from  the root directory of the program.
+Note that this is only necessary if updates have been made to the repository since cloning, however it is good practise to run ``git pull`` and then ``.\tools\windows-install.ps1`` at the begining of each session.
+
+
 Unix installation instructions (Including WSL)
 ----------------------------------------------
 
@@ -171,6 +179,13 @@ Congratulations! The ANU Bushfire Initiative's Drone Simulation is now
 .. code:: bash
 
     bushfire_drone_simulation --help
+
+Future Updates
+~~~~~~~~~~~~~~
+
+To update to the latest copy of the bushfire_drone_simulation, please run ``git pull`` in the terminal from anywhere within the root directory of the program.
+Then run ``source tools/install-dev-env`` from  the root directory of the program.
+Note that this is only necessary if updates have been made to the repository since cloning, however it is good practise to run ``git pull`` and then ``source tools/install-dev-env`` at the begining of each session.
 
 Documentation
 -------------
