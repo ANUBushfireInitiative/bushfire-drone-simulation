@@ -1,5 +1,6 @@
 """GUI Module for bushfire drone simulation."""
 
+import os
 import tkinter as tk
 import tkinter.filedialog
 from pathlib import Path
@@ -10,11 +11,12 @@ from typing import Dict, Optional
 from PIL import ImageTk
 
 from bushfire_drone_simulation.gui.gui_data import GUIData
-from bushfire_drone_simulation.gui.map_image import MapImage
-from bushfire_drone_simulation.simulator import Simulator
+from bushfire_drone_simulation.gui.map_image import MapImage, cache_folder
+from bushfire_drone_simulation.parameters import JSONParameters
+from bushfire_drone_simulation.simulator import Simulator, run_simulations
 
-WIDTH = 1000
-HEIGHT = 400
+WIDTH = 600
+HEIGHT = 40
 ZOOM = 7
 LATITUDE = -36.25
 LONGITUDE = 147.9
@@ -23,9 +25,33 @@ LONGITUDE = 147.9
 class GUI:
     """GUI class for bushfire drone simulation."""
 
+    def clear_cache(self) -> None:
+        """Remove all cached map tiles."""
+        popup_height = 100
+        popup_width = 250
+        popup = tk.Toplevel()
+        popup.grab_set()  # type: ignore
+        popup_x = self.window.winfo_x() + (self.window.winfo_width() - popup_width) // 2
+        popup_y = self.window.winfo_y() + (self.window.winfo_height() - popup_height) // 2
+        popup.geometry(f"{popup_width}x{popup_height}+{popup_x}+{popup_y}")
+        tk.Label(popup, text="Deleting cached tiles").pack()
+        progress_var = tk.DoubleVar()
+        ttk.Progressbar(
+            popup, variable=progress_var, maximum=len(list(cache_folder.glob("*"))), length=200
+        ).pack()
+        for img in cache_folder.glob("*"):
+            popup.update()
+            os.remove(img)
+            progress_var.set(progress_var.get() + 1)
+        popup.grab_release()  # type: ignore
+        popup.destroy()
+
     def open_file(self) -> None:
         """Create open file dialog."""
-        dlg = tkinter.filedialog.Open(filetypes=[("CSV Files", "*.csv"), ("All files", "*")])
+        dlg = tkinter.filedialog.Open(
+            filetypes=[("CSV Files", "*.csv"), ("All files", "*")],
+            title="Please select a file from the output you wish to view",
+        )
         filename = Path(dlg.show())
         try:
             temp_gui_data = GUIData.from_output(filename.parent, filename.name.split("_")[0])
@@ -34,6 +60,8 @@ class GUI:
             self.initialise_display()
         except FileNotFoundError:
             print(f"File not found {filename}")
+        except TypeError:
+            print(f"Type error (not a file): {filename}")
 
     def save_file(self) -> None:
         """Create save file dialog."""
@@ -43,7 +71,35 @@ class GUI:
 
     def new_simulation(self) -> None:
         """Create new simulation dialog."""
-        self.gui_data = GUIData([], [], [], [], [], [], [])
+        dlg = tkinter.filedialog.Open(
+            filetypes=[("CSV Files", "*.csv"), ("All files", "*")],
+            title=(
+                "Please select the parameter json file (parameters.json) you wish to use for"
+                "the simulation"
+            ),
+        )
+        filename = Path(dlg.show())
+        popup_height = 100
+        popup_width = 250
+        popup = tk.Toplevel()
+        popup.grab_set()  # type: ignore
+        popup_x = self.window.winfo_x() + (self.window.winfo_width() - popup_width) // 2
+        popup_y = self.window.winfo_y() + (self.window.winfo_height() - popup_height) // 2
+        popup.geometry(f"{popup_width}x{popup_height}+{popup_x}+{popup_y}")
+        params = JSONParameters(
+            filename,
+            confirmation=lambda m: tkinter.messagebox.askyesno(  # type: ignore
+                f"Confirmation {m}",
+            ),
+        )
+        simulators = run_simulations(params)
+        temp_gui_data = GUIData.from_simulator(simulators[0])
+        temp_gui_data = GUIData.from_output(filename.parent, "1")
+        self.canvas.delete("object")
+        self.gui_data = temp_gui_data
+        self.initialise_display()
+        popup.grab_release()  # type: ignore
+        popup.destroy()
 
     def __init__(self, gui_data: GUIData) -> None:
         """Run GUI from simulator."""
@@ -52,7 +108,7 @@ class GUI:
 
         self.window = tk.Tk()
         self.window.title("ANU Bushfire Initiative Drone Simulation")
-        self.canvas: Canvas = tk.Canvas(self.window, width=self.width, height=self.height)
+        self.canvas: Canvas = tk.Canvas(self.window)
         self.canvas.pack(fill=BOTH, expand=True)
 
         self.canvas.bind("<B1-Motion>", self.drag)
@@ -69,6 +125,9 @@ class GUI:
         menubar.add_cascade(label="File", menu=filemenu)
         self.viewmenu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="View", menu=self.viewmenu)
+        toolsmenu = Menu(menubar, tearoff=0)
+        toolsmenu.add_command(label="Clear Cache", command=self.clear_cache)
+        menubar.add_cascade(label="Tools", menu=toolsmenu)
         self.window.config(menu=menubar)
 
         self.label = tk.Label(self.canvas)
@@ -244,9 +303,7 @@ class GUI:
         # stats = pstats.Stats(profiler).sort_stats('cumtime')
         # stats.print_stats()
 
-    def resize(  # pylint: disable=unused-argument
-        self, event: Event  # type: ignore
-    ) -> None:
+    def resize(self, _: Event) -> None:  # type: ignore
         """Resize canvas."""
         if (
             int(self.canvas.winfo_height() != self.height)
@@ -257,22 +314,14 @@ class GUI:
             self.window.after(1, self.reload)
             self.map_image.set_size(self.width, self.height)
 
-    def start_slider_update(self, time: str) -> None:  # pylint: disable = unused-argument
-        """Update times given slider update.
-
-        Args:
-            time (str): time
-        """
+    def start_slider_update(self, _: str) -> None:
+        """Update times given slider update."""
         if self.start_time.get() > self.end_time.get():
             self.end_time.set(self.start_time.get())
         self.update_objects()
 
-    def end_slider_update(self, time: str) -> None:  # pylint: disable = unused-argument
-        """Update times given slider update.
-
-        Args:
-            time (str): time
-        """
+    def end_slider_update(self, _: str) -> None:
+        """Update times given slider update."""
         if self.start_time.get() > self.end_time.get():
             self.start_time.set(self.end_time.get())
         self.update_objects()

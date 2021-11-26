@@ -10,7 +10,7 @@ import sys
 from functools import reduce
 from math import isinf
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -55,10 +55,25 @@ def _set_in_dict(
     _get_from_dict(data_dict, key_list[:-1])[key_list[-1]] = value  # type: ignore
 
 
+def commandline_confirm(message: str) -> bool:
+    """Confirm message using command line.
+
+    Args:
+        message (str): message
+
+    Returns:
+        bool: User response
+    """
+    cont = input(f"{message}\nEnter 'Y' if yes and 'N' if no \n")
+    return cont.lower().strip() == "y"
+
+
 class JSONParameters:
     """Class for reading parameters from a csv file."""
 
-    def __init__(self, parameters_file: Path):
+    def __init__(
+        self, parameters_file: Path, confirmation: Callable[[str], bool] = commandline_confirm
+    ):
         """Read collection of variables stored in filename.
 
         Args:
@@ -110,11 +125,10 @@ class JSONParameters:
         # All scenarios output to same folder
         if self.output_folder.exists():
             if any(self.output_folder.iterdir()):
-                cont = input(
+                if not confirmation(
                     "Output folder already exists and is not empty, "
-                    + "do you want to overwrite its contents? \nEnter 'Y' if yes and 'N' if no \n"
-                )
-                if cont.lower() != "y":
+                    + "do you want to overwrite its contents?\n"
+                ):
                     _LOG.info("Aborting")
                     sys.exit()
             shutil.rmtree(self.output_folder)

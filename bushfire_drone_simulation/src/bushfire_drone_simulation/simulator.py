@@ -1,17 +1,59 @@
 """Simulation of bushfire drone simulation."""
 
+import csv
 from math import inf
 from queue import PriorityQueue, Queue
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Type, Union
+
+from tqdm import tqdm
 
 from bushfire_drone_simulation.coordinators.abstract_coordinator import (
     UAVCoordinator,
     UnassignedCoordinator,
     WBCoordinator,
 )
+from bushfire_drone_simulation.coordinators.insertion_coordinator import (
+    InsertionUAVCoordinator,
+    InsertionWBCoordinator,
+)
+from bushfire_drone_simulation.coordinators.matlab_coordinator import (
+    MatlabUAVCoordinator,
+    MatlabWBCoordinator,
+)
+from bushfire_drone_simulation.coordinators.minimise_mean_time_coordinator import (
+    MinimiseMeanTimeUAVCoordinator,
+    MinimiseMeanTimeWBCoordinator,
+)
+from bushfire_drone_simulation.coordinators.new_strikes_first_coordinator import (
+    NewStrikesFirstUAVCoordinator,
+    NewStrikesFirstWBCoordinator,
+)
+from bushfire_drone_simulation.coordinators.reprocess_max_time_coordinator import (
+    ReprocessMaxTimeUAVCoordinator,
+    ReprocessMaxTimeWBCoordinator,
+)
+from bushfire_drone_simulation.coordinators.unassigned_coordinator import (
+    SimpleUnassignedCoordinator,
+)
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.precomupted import PreComputedDistances
+
+UAV_COORDINATORS: Dict[str, Union[Type[UAVCoordinator]]] = {
+    "MatlabUAVCoordinator": MatlabUAVCoordinator,
+    "NewStrikesFirstUAVCoordinator": NewStrikesFirstUAVCoordinator,
+    "InsertionUAVCoordinator": InsertionUAVCoordinator,
+    "MinimiseMeanTimeUAVCoordinator": MinimiseMeanTimeUAVCoordinator,
+    "ReprocessMaxTimeUAVCoordinator": ReprocessMaxTimeUAVCoordinator,
+}
+
+WB_COORDINATORS: Dict[str, Union[Type[WBCoordinator]]] = {
+    "MatlabWBCoordinator": MatlabWBCoordinator,
+    "NewStrikesFirstWBCoordinator": NewStrikesFirstWBCoordinator,
+    "InsertionWBCoordinator": InsertionWBCoordinator,
+    "MinimiseMeanTimeWBCoordinator": MinimiseMeanTimeWBCoordinator,
+    "ReprocessMaxTimeWBCoordinator": ReprocessMaxTimeWBCoordinator,
+}
 
 
 class Simulator:
@@ -147,3 +189,75 @@ class Simulator:
             self.water_tanks,
             prefix,
         )
+
+
+def run_simulations(params: JSONParameters) -> List[Simulator]:
+    """Run bushfire drone simulation."""
+    to_return = []
+    for scenario_idx in tqdm(range(0, len(params.scenarios)), unit="scenario"):
+        simulator = Simulator(params, scenario_idx)
+        uav_coordinator = UAV_COORDINATORS[params.get_attribute("uav_coordinator", scenario_idx)](
+            simulator.uavs, simulator.uav_bases, params, scenario_idx
+        )
+        wb_coordinator = WB_COORDINATORS[params.get_attribute("wb_coordinator", scenario_idx)](
+            simulator.water_bombers,
+            simulator.water_bomber_bases_dict,
+            simulator.water_tanks,
+            params,
+            scenario_idx,
+        )
+        unassigned_coordinator: Optional[UnassignedCoordinator] = None
+        if "unassigned_drones" in params.parameters:
+            attributes, targets, polygon, folder = params.process_unassigned_drones(scenario_idx)
+            unassigned_coordinator = SimpleUnassignedCoordinator(
+                simulator.uavs, simulator.uav_bases, targets, folder, polygon, attributes
+            )
+        simulator.run_simulation(uav_coordinator, wb_coordinator, unassigned_coordinator)
+
+        simulator.output_results(params, scenario_idx)
+        to_return.append(simulator)
+    write_to_summary_file(to_return, params)
+    return to_return
+
+
+def write_to_summary_file(simulations: List[Simulator], params: JSONParameters) -> None:
+    """Write summary results from each simulation to summary file."""
+    with open(
+        params.output_folder / ("summary_file.csv"),
+        "w",
+        newline="",
+        encoding="utf8",
+    ) as outputfile:
+        filewriter = csv.writer(outputfile)
+        filewriter.writerow(
+            [
+                "Scenario Name",
+                "",
+                "Mean time (hr)",
+                "Max time (hr)",
+                "99th percentile (hr)",
+                "90th percentile (hr)",
+                "50th percentile (hr)",
+            ]
+        )
+        for scenario_idx, simulator in enumerate(simulations):
+            name: str
+            if "scenario_name" in params.scenarios[scenario_idx]:
+                name = str(params.get_attribute("scenario_name", scenario_idx))
+            else:
+                name = str(scenario_idx)
+            if "uavs" in simulator.summary_results:
+                inspection_results: List[Union[str, float]] = simulator.summary_results["uavs"]
+                inspection_results.insert(0, "Inspections")
+                inspection_results.insert(0, name)
+                filewriter.writerow(inspection_results)
+            else:
+                filewriter.writerow(["", "Inspections", "No strikes were inspected"])
+            if "wbs" in simulator.summary_results:
+                suppression_results: List[Union[str, float]] = simulator.summary_results["wbs"]
+                suppression_results.insert(0, "Suppressions")
+                suppression_results.insert(0, "")
+                filewriter.writerow(suppression_results)
+            else:
+                filewriter.writerow(["", "Suppressions", "No strikes were suppressed"])
+            filewriter.writerow([])
