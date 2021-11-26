@@ -50,7 +50,7 @@ repos:
     rev: v0.800
     hooks:
     -   id: mypy
-        args: [--strict, --config-file, .mypy.ini, --allow-untyped-decorators, --follow-imports=normal]
+        args: [--strict, --config-file, .mypy.ini, --follow-imports=normal]
         additional_dependencies: [typer, numpy, pandas, pytest, tk]
 -   repo: local
     hooks:

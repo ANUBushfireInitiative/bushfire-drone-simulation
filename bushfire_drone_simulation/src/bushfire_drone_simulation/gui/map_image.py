@@ -63,7 +63,7 @@ def downloader(tiles: Any, num_workers: int) -> Any:
     return caching_downloader(get_from_cache, put_in_cache, fetch_tiles, tiles, num_workers)
 
 
-def render_map(geotiler_map: geotiler.Map) -> Image:
+def render_map(geotiler_map: geotiler.Map) -> Image:  # type: ignore[no-any-unimported]
     """Render a geotiler map as an image.
 
     Args:
@@ -123,7 +123,7 @@ class MapImage:
         self.display_image = PIL.Image.new("RGB", (width, height))
         self._fetch_and_update()
 
-    def get_image(self) -> Image:
+    def get_image(self) -> Image:  # type: ignore[no-any-unimported]
         """Return map image to be displayed."""
         return self.display_image
 

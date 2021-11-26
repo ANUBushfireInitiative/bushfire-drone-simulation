@@ -25,9 +25,9 @@ class CSVFile:
             filename (str): path to csv file from current working directory
         """
         self.filename = filename
-        self.csv_dataframe: pd.DataFrame = pd.DataFrame(pd.read_csv(filename))
+        self.csv_dataframe: pd.DataFrame = pd.DataFrame(pd.read_csv(filename))  # type: ignore
 
-    def get_column(self, column: Union[str, int]) -> pd.Series:
+    def get_column(self, column: Union[str, int]) -> pd.Series:  # type: ignore[no-any-unimported]
         """get_column.
 
         Args:
@@ -64,7 +64,7 @@ class CSVFile:
         """__len__."""
         return len(self.csv_dataframe.axes[0])
 
-    def __getitem__(self, i: Union[str, int]) -> pd.Series:
+    def __getitem__(self, i: Union[str, int]) -> pd.Series:  # type: ignore[no-any-unimported]
         """__getitem__.
 
         Args:
