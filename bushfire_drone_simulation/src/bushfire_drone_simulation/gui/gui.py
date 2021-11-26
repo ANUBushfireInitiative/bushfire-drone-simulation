@@ -29,7 +29,7 @@ class GUI:
         filename = Path(dlg.show())
         try:
             temp_gui_data = GUIData.from_output(filename.parent, filename.name.split("_")[0])
-            self.canvas.delete("object")  # type: ignore
+            self.canvas.delete("object")
             self.gui_data = temp_gui_data
             self.initialise_display()
         except FileNotFoundError:
@@ -61,14 +61,14 @@ class GUI:
 
         menubar = Menu(self.window)
         filemenu: Menu = Menu(menubar, tearoff=0)
-        filemenu.add_command(label="New Simulation", command=self.new_simulation)  # type: ignore
-        filemenu.add_command(label="Open", command=self.open_file)  # type: ignore
-        filemenu.add_command(label="Save", command=self.save_file)  # type: ignore
-        filemenu.add_separator()  # type: ignore
-        filemenu.add_command(label="Exit", command=self.window.quit)  # type: ignore
-        menubar.add_cascade(label="File", menu=filemenu)  # type: ignore
+        filemenu.add_command(label="New Simulation", command=self.new_simulation)
+        filemenu.add_command(label="Open", command=self.open_file)
+        filemenu.add_command(label="Save", command=self.save_file)
+        filemenu.add_separator()
+        filemenu.add_command(label="Exit", command=self.window.quit)
+        menubar.add_cascade(label="File", menu=filemenu)
         self.viewmenu = Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="View", menu=self.viewmenu)  # type: ignore
+        menubar.add_cascade(label="View", menu=self.viewmenu)
         self.window.config(menu=menubar)
 
         self.label = tk.Label(self.canvas)
@@ -149,7 +149,7 @@ class GUI:
         for object_type in self.gui_data.dict.keys():
             toggle = tk.BooleanVar()
             toggle.set(True)
-            self.viewmenu.add_checkbutton(  # type: ignore
+            self.viewmenu.add_checkbutton(
                 label=name_map[object_type],
                 onvalue=1,
                 offvalue=0,
@@ -233,9 +233,7 @@ class GUI:
         # profiler.enable()
         self.image = self.map_image.get_image()
         self.tk_image = ImageTk.PhotoImage(self.image)
-        map_object = self.canvas.create_image(
-            self.width / 2, self.height / 2, image=self.tk_image
-        )  # type:ignore
+        map_object = self.canvas.create_image(self.width / 2, self.height / 2, image=self.tk_image)
 
         self.zoom_in_button.place(x=self.width - 50, y=self.height - 80)
         self.zoom_out_button.place(x=self.width - 50, y=self.height - 50)

@@ -24,14 +24,14 @@ class GUIObject:
 
     @abstractmethod
     def place_on_canvas(
-        self, canvas: Canvas, to_coordinates: Callable[[Location], Tuple[int, int]]
+        self, canvas: Canvas, to_coordinates: Callable[[Location], Tuple[float, float]]
     ) -> None:
         """Place object on canvas."""
         assert self.canvas_object == -1
 
     def remove_from_canvas(self, canvas: Canvas) -> None:
         """Place object on canvas."""
-        canvas.delete(self.canvas_object)  # type: ignore
+        canvas.delete(self.canvas_object)
         self.canvas_object = -1
 
     def hide(self, canvas: Canvas) -> None:
@@ -67,8 +67,8 @@ class GUIPoint(GUIObject):
         Args:
             location (Location): location of point (Global coordinates)
             canvas (Canvas): canvas on which point belongs
-            to_coordinates (Callable[[float, float], Tuple[int, int]]): Function converting location
-                to coordinates on the canvas.
+            to_coordinates (Callable[[float, float], Tuple[float, float]]): Function converting
+                location to coordinates on the canvas.
             radius (int): radius of point
         """
         super().__init__()
@@ -79,7 +79,7 @@ class GUIPoint(GUIObject):
         self.tags += ("point",)
 
     def place_on_canvas(
-        self, canvas: Canvas, to_coordinates: Callable[[Location], Tuple[int, int]]
+        self, canvas: Canvas, to_coordinates: Callable[[Location], Tuple[float, float]]
     ) -> None:
         """Place point on canvas.
 
@@ -90,7 +90,7 @@ class GUIPoint(GUIObject):
         super().place_on_canvas(canvas, to_coordinates)
         self.to_coordinates = to_coordinates
         self.x, self.y = to_coordinates(self.location)
-        self.canvas_object = canvas.create_oval(  # type: ignore
+        self.canvas_object = canvas.create_oval(
             self.x - self.radius,
             self.y - self.radius,
             self.x + self.radius,
@@ -130,8 +130,8 @@ class GUILine(GUIObject):
             p_1 (Location): Global coordinates of start of line.
             p_2 (Location): Global coordinates of end of line.
             canvas (Canvas): canvas on which line belongs
-            to_coordinates (Callable[[float, float], Tuple[int, int]]): Function converting global
-                coordinates to pixel coordinates.
+            to_coordinates (Callable[[float, float], Tuple[float, float]]): Function converting
+                global coordinates to pixel coordinates.
         """
         super().__init__()
         self.event1 = event1
@@ -143,21 +143,21 @@ class GUILine(GUIObject):
         self.cur_loc_2: Location = event2
 
     def place_on_canvas(
-        self, canvas: Canvas, to_coordinates: Callable[[Location], Tuple[int, int]]
+        self, canvas: Canvas, to_coordinates: Callable[[Location], Tuple[float, float]]
     ) -> None:
         """Place line on canvas.
 
         Args:
             canvas (Canvas): canvas
-            to_coordinates (Callable[[float, float], Tuple[int,int]]): to_coordinates
+            to_coordinates (Callable[[float, float], Tuple[float,float]]): to_coordinates
         """
         super().place_on_canvas(canvas, to_coordinates)
         self.to_coordinates = to_coordinates
         c_1 = self.to_coordinates(self.cur_loc_1)
         c_2 = self.to_coordinates(self.cur_loc_2)
         self.canvas_object = canvas.create_line(
-            c_1, c_2, fill=self.colour, width=self.width, tags=self.tags
-        )  # type: ignore
+            *c_1, *c_2, fill=self.colour, width=self.width, tags=self.tags
+        )
 
     def update(self, canvas: Canvas) -> None:
         """Update position of line."""
@@ -223,13 +223,13 @@ class GUILightning(GUIPoint):
         self.tags += (f"lightning {self.idx}",)
 
     def place_on_canvas(
-        self, canvas: Canvas, to_coordinates: Callable[[Location], Tuple[int, int]]
+        self, canvas: Canvas, to_coordinates: Callable[[Location], Tuple[float, float]]
     ) -> None:
         """place_on_canvas.
 
         Args:
             canvas (Canvas): canvas
-            to_coordinates (Callable[[Location], Tuple[int, int]]): to_coordinates
+            to_coordinates (Callable[[Location], Tuple[float, float]]): to_coordinates
         """
         super().place_on_canvas(canvas, to_coordinates)
         canvas.tag_bind(f"lightning {self.idx}", "<Button-1>", self.clicked_lightning)
@@ -321,13 +321,13 @@ class GUIAircraft(GUIObject):
         super().__init__()
 
     def place_on_canvas(
-        self, canvas: Canvas, to_coordinates: Callable[[Location], Tuple[int, int]]
+        self, canvas: Canvas, to_coordinates: Callable[[Location], Tuple[float, float]]
     ) -> None:
         """Place aircraft on canvas.
 
         Args:
             canvas (Canvas): canvas
-            to_coordinates (Callable[[Location], Tuple[int, int]]): to_coordinates
+            to_coordinates (Callable[[Location], Tuple[float, float]]): to_coordinates
         """
         super().place_on_canvas(canvas, to_coordinates)
         self.aircraft_point.place_on_canvas(canvas, to_coordinates)

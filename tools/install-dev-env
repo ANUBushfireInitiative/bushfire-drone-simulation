@@ -6,6 +6,7 @@ python -m pip install --upgrade pip setuptools wheel
 # Install pre-commit
 python -m pip install pre-commit
 pre-commit install --install-hooks
+pre-commit autoupdate
 
 # Install pylint
 python -m pip install pylint
