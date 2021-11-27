@@ -50,7 +50,12 @@ class GUIData:
         if len(water_bombers) + len(uavs) == 0:
             self.max_time = 0.0
         else:
-            self.max_time = max(event.time for a in water_bombers + uavs for event in a.events)
+            self.max_time = max(
+                event.time
+                for a in water_bombers + uavs
+                for event in a.events
+                if event.status != Status.WAITING_AT_BASE
+            )
 
     @property
     def dict(self) -> Dict[str, Sequence[GUIObject]]:

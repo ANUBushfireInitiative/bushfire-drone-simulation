@@ -102,10 +102,10 @@ class GUI:
         self.image = None
         self.tk_image = None
 
-        self.restart()
         self.checkbox_dict = self.create_viewmenu()
         if parameters_filename is not None:
             self.open_file(parameters_filename)
+        self.restart()
         self.window.mainloop()
 
     def clear_cache(self) -> None:
@@ -150,7 +150,7 @@ class GUI:
             scenario (int): Index of scenario
         """
         assert self.params is not None
-        folder = self.params.gui_filename.parent / self.params.get_attribute(
+        folder = self.params.filepath.parent / self.params.get_attribute(
             "output_folder_name", scenario
         )
         try:

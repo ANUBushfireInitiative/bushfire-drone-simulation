@@ -37,7 +37,7 @@ def gui(
 
 @app.command()
 def gui_from_file(
-    path: Path = typer.Option("", help="Path to gui json."),
+    path: Path = typer.Argument(..., help="Path to gui json."),
 ) -> None:
     """Start a GUI version of the drone simulation."""
     start_gui_from_file(path)
