@@ -3,6 +3,7 @@
 import os
 import tkinter as tk
 import tkinter.filedialog
+from functools import partial
 from pathlib import Path
 from tkinter import Canvas, DoubleVar, Event, Menu, Scale, ttk
 from tkinter.constants import BOTH, HORIZONTAL, X
@@ -42,21 +43,21 @@ class GUI:
         self.window.bind("<Button-1>", self.click)
         self.window.bind("<Configure>", self.resize)
 
-        menu_bar = Menu(self.window)
-        file_menu: Menu = Menu(menu_bar, tearoff=0)
+        self.menu_bar = Menu(self.window)
+        file_menu: Menu = Menu(self.menu_bar, tearoff=0)
         file_menu.add_command(label="New Simulation", command=self.new_simulation)
         file_menu.add_command(label="Open", command=self.open_file_dialog)
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.window.quit)
-        menu_bar.add_cascade(label="File", menu=file_menu)
-        self.view_menu = Menu(menu_bar, tearoff=0)
-        menu_bar.add_cascade(label="View", menu=self.view_menu)
-        self.scenario_menu = Menu(menu_bar, tearoff=0)
-        menu_bar.add_cascade(label="Scenario", menu=self.scenario_menu)
-        tools_menu = Menu(menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="File", menu=file_menu)
+        self.view_menu = Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="View", menu=self.view_menu)
+        self.scenario_menu = Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="Scenario", menu=self.scenario_menu)
+        tools_menu = Menu(self.menu_bar, tearoff=0)
         tools_menu.add_command(label="Clear Cache", command=self.clear_cache)
-        menu_bar.add_cascade(label="Tools", menu=tools_menu)
-        self.window.config(menu=menu_bar)
+        self.menu_bar.add_cascade(label="Tools", menu=tools_menu)
+        self.window.config(menu=self.menu_bar)
 
         self.label = tk.Label(self.canvas)
         self.zoom = ZOOM
@@ -140,11 +141,22 @@ class GUI:
     def open_file(self, parameters_file: Path) -> None:
         """Open parameters file."""
         self.params = JSONParameters(parameters_file)
-        folder = parameters_file.parent / self.params.get_attribute("output_folder_name", 0)
+        self.set_scenario(0)
+
+    def set_scenario(self, scenario: int) -> None:
+        """Swap GUI to another scenario.
+
+        Args:
+            scenario (int): Index of scenario
+        """
+        assert self.params is not None
+        folder = self.params.gui_filename.parent / self.params.get_attribute(
+            "output_folder_name", scenario
+        )
         try:
             temp_gui_data = GUIData.from_output(
                 folder,
-                self.params.scenarios[0]["scenario_name"],
+                self.params.scenarios[scenario]["scenario_name"],
             )
             self.destroy_display()
             self.gui_data = temp_gui_data
@@ -192,6 +204,7 @@ class GUI:
         """Destroy display by removing objects and scenarios."""
         self.content = False
         self.canvas.delete("object")
+        self.scenario_menu.delete(0, 100)
 
     def initialise_display(self) -> None:
         """Initialize display by adding objects and updating scale."""
@@ -201,6 +214,13 @@ class GUI:
         self.content = True
         self.end_scale["to"] = int(self.gui_data.max_time / 3600 + 1.0)
         self.start_scale["to"] = int(self.gui_data.max_time / 3600 + 1.0)
+        if self.params is not None:
+            for i, scenario in enumerate(self.params.scenarios):
+                name = scenario["scenario_name"]
+                self.scenario_menu.add_command(
+                    label=name,
+                    command=partial(self.set_scenario, i),
+                )
         self.update_objects()
 
     def create_viewmenu(
