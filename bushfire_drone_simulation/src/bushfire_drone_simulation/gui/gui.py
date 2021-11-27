@@ -13,7 +13,7 @@ from PIL import ImageTk
 from bushfire_drone_simulation.gui.gui_data import GUIData
 from bushfire_drone_simulation.gui.map_image import MapImage, cache_folder
 from bushfire_drone_simulation.parameters import JSONParameters
-from bushfire_drone_simulation.simulator import Simulator, run_simulations
+from bushfire_drone_simulation.simulator import run_simulations
 
 WIDTH = 600
 HEIGHT = 40
@@ -25,86 +25,13 @@ LONGITUDE = 147.9
 class GUI:
     """GUI class for bushfire drone simulation."""
 
-    def clear_cache(self) -> None:
-        """Remove all cached map tiles."""
-        popup_height = 100
-        popup_width = 250
-        popup = tk.Toplevel()
-        popup.grab_set()  # type: ignore
-        popup_x = self.window.winfo_x() + (self.window.winfo_width() - popup_width) // 2
-        popup_y = self.window.winfo_y() + (self.window.winfo_height() - popup_height) // 2
-        popup.geometry(f"{popup_width}x{popup_height}+{popup_x}+{popup_y}")
-        tk.Label(popup, text="Deleting cached tiles").pack()
-        progress_var = tk.DoubleVar()
-        ttk.Progressbar(
-            popup, variable=progress_var, maximum=len(list(cache_folder.glob("*"))), length=200
-        ).pack()
-        for img in cache_folder.glob("*"):
-            popup.update()
-            os.remove(img)
-            progress_var.set(progress_var.get() + 1)
-        popup.grab_release()  # type: ignore
-        popup.destroy()
-
-    def open_file(self) -> None:
-        """Create open file dialog."""
-        dlg = tkinter.filedialog.Open(
-            filetypes=[("CSV Files", "*.csv"), ("All files", "*")],
-            title="Please select a file from the output you wish to view",
-        )
-        filename = Path(dlg.show())
-        try:
-            temp_gui_data = GUIData.from_output(filename.parent, filename.name.split("_")[0])
-            self.canvas.delete("object")
-            self.gui_data = temp_gui_data
-            self.initialise_display()
-        except FileNotFoundError:
-            print(f"File not found {filename}")
-        except TypeError:
-            print(f"Type error (not a file): {filename}")
-
-    def save_file(self) -> None:
-        """Create save file dialog."""
-        dlg = tkinter.filedialog.Directory()
-        folder = Path(dlg.show())
-        self.gui_data.save_to(Path(folder))
-
-    def new_simulation(self) -> None:
-        """Create new simulation dialog."""
-        dlg = tkinter.filedialog.Open(
-            filetypes=[("CSV Files", "*.csv"), ("All files", "*")],
-            title=(
-                "Please select the parameter json file (parameters.json) you wish to use for"
-                "the simulation"
-            ),
-        )
-        filename = Path(dlg.show())
-        popup_height = 100
-        popup_width = 250
-        popup = tk.Toplevel()
-        popup.grab_set()  # type: ignore
-        popup_x = self.window.winfo_x() + (self.window.winfo_width() - popup_width) // 2
-        popup_y = self.window.winfo_y() + (self.window.winfo_height() - popup_height) // 2
-        popup.geometry(f"{popup_width}x{popup_height}+{popup_x}+{popup_y}")
-        params = JSONParameters(
-            filename,
-            confirmation=lambda m: tkinter.messagebox.askyesno(  # type: ignore
-                f"Confirmation {m}",
-            ),
-        )
-        simulators = run_simulations(params)
-        temp_gui_data = GUIData.from_simulator(simulators[0])
-        temp_gui_data = GUIData.from_output(filename.parent, "1")
-        self.canvas.delete("object")
-        self.gui_data = temp_gui_data
-        self.initialise_display()
-        popup.grab_release()  # type: ignore
-        popup.destroy()
-
-    def __init__(self, gui_data: GUIData) -> None:
-        """Run GUI from simulator."""
-        self.gui_data = gui_data
+    # def __init__(self, gui_data: GUIData) -> None:
+    def __init__(self, parameters_filename: Optional[Path]) -> None:
+        """Run GUI."""
+        self.content = False
         self.width, self.height = WIDTH, HEIGHT
+        self.params: Optional[JSONParameters] = None
+        self.gui_data = GUIData([], [], [], [], [], [], [])
 
         self.window = tk.Tk()
         self.window.title("ANU Bushfire Initiative Drone Simulation")
@@ -115,20 +42,21 @@ class GUI:
         self.window.bind("<Button-1>", self.click)
         self.window.bind("<Configure>", self.resize)
 
-        menubar = Menu(self.window)
-        filemenu: Menu = Menu(menubar, tearoff=0)
-        filemenu.add_command(label="New Simulation", command=self.new_simulation)
-        filemenu.add_command(label="Open", command=self.open_file)
-        filemenu.add_command(label="Save", command=self.save_file)
-        filemenu.add_separator()
-        filemenu.add_command(label="Exit", command=self.window.quit)
-        menubar.add_cascade(label="File", menu=filemenu)
-        self.viewmenu = Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="View", menu=self.viewmenu)
-        toolsmenu = Menu(menubar, tearoff=0)
-        toolsmenu.add_command(label="Clear Cache", command=self.clear_cache)
-        menubar.add_cascade(label="Tools", menu=toolsmenu)
-        self.window.config(menu=menubar)
+        menu_bar = Menu(self.window)
+        file_menu: Menu = Menu(menu_bar, tearoff=0)
+        file_menu.add_command(label="New Simulation", command=self.new_simulation)
+        file_menu.add_command(label="Open", command=self.open_file_dialog)
+        file_menu.add_separator()
+        file_menu.add_command(label="Exit", command=self.window.quit)
+        menu_bar.add_cascade(label="File", menu=file_menu)
+        self.view_menu = Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label="View", menu=self.view_menu)
+        self.scenario_menu = Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label="Scenario", menu=self.scenario_menu)
+        tools_menu = Menu(menu_bar, tearoff=0)
+        tools_menu.add_command(label="Clear Cache", command=self.clear_cache)
+        menu_bar.add_cascade(label="Tools", menu=tools_menu)
+        self.window.config(menu=menu_bar)
 
         self.label = tk.Label(self.canvas)
         self.zoom = ZOOM
@@ -175,15 +103,102 @@ class GUI:
 
         self.restart()
         self.checkbox_dict = self.create_viewmenu()
-        self.initialise_display()
-        self.update_objects()
+        if parameters_filename is not None:
+            self.open_file(parameters_filename)
         self.window.mainloop()
+
+    def clear_cache(self) -> None:
+        """Remove all cached map tiles."""
+        popup_height = 100
+        popup_width = 250
+        popup = tk.Toplevel()
+        popup.grab_set()  # type: ignore
+        popup_x = self.window.winfo_x() + (self.window.winfo_width() - popup_width) // 2
+        popup_y = self.window.winfo_y() + (self.window.winfo_height() - popup_height) // 2
+        popup.geometry(f"{popup_width}x{popup_height}+{popup_x}+{popup_y}")
+        tk.Label(popup, text="Deleting cached tiles").pack()
+        progress_var = tk.DoubleVar()
+        ttk.Progressbar(
+            popup, variable=progress_var, maximum=len(list(cache_folder.glob("*"))), length=200
+        ).pack()
+        for img in cache_folder.glob("*"):
+            popup.update()
+            os.remove(img)
+            progress_var.set(progress_var.get() + 1)
+        popup.grab_release()  # type: ignore
+        popup.destroy()
+
+    def open_file_dialog(self) -> None:
+        """Create open file dialog."""
+        dlg = tkinter.filedialog.Open(
+            filetypes=[("GUI JSON Files", "*gui.json"), ("All files", "*")],
+            title="Please select the parameters json file to open",
+        )
+        filename = Path(dlg.show())
+        self.open_file(filename)
+
+    def open_file(self, parameters_file: Path) -> None:
+        """Open parameters file."""
+        self.params = JSONParameters(parameters_file)
+        folder = parameters_file.parent / self.params.get_attribute("output_folder_name", 0)
+        try:
+            temp_gui_data = GUIData.from_output(
+                folder,
+                self.params.scenarios[0]["scenario_name"],
+            )
+            self.destroy_display()
+            self.gui_data = temp_gui_data
+            self.initialise_display()
+        except FileNotFoundError:
+            print(f"File not found {folder}")
+        except TypeError:
+            print(f"Type error (not a file): {folder}")
+
+    def new_simulation(self) -> None:
+        """Create new simulation dialog."""
+        dlg = tkinter.filedialog.Open(
+            filetypes=[("JSON Files", "*.json"), ("All files", "*")],
+            title=(
+                "Please select the parameter json file (parameters.json) you wish to use for"
+                "the simulation"
+            ),
+        )
+        filename = Path(dlg.show())
+        # popup_height = 100
+        # popup_width = 250
+        # popup = tk.Toplevel()
+        # popup.grab_set()  # type: ignore
+        # popup_x = self.window.winfo_x() + (self.window.winfo_width() - popup_width) // 2
+        # popup_y = self.window.winfo_y() + (self.window.winfo_height() - popup_height) // 2
+        # popup.geometry(f"{popup_width}x{popup_height}+{popup_x}+{popup_y}")
+        params = JSONParameters(filename)
+        params.create_output_folder(
+            confirmation=lambda m: tkinter.messagebox.askyesno(  # type: ignore
+                "Confirmation",
+                m,
+            ),
+        )
+        run_simulations(params)
+        self.open_file(params.gui_filename)
+        # temp_gui_data = GUIData.from_simulator(simulators[0])
+        # temp_gui_data = GUIData.from_output(filename.parent, "1")
+        # self.canvas.delete("object")
+        # self.gui_data = temp_gui_data
+        # self.initialise_display()
+        # popup.grab_release()  # type: ignore
+        # popup.destroy()
+
+    def destroy_display(self) -> None:
+        """Destroy display by removing objects and scenarios."""
+        self.content = False
+        self.canvas.delete("object")
 
     def initialise_display(self) -> None:
         """Initialize display by adding objects and updating scale."""
-        for name in self.gui_data.dict.keys():
-            for obj in self.gui_data[name]:
+        for _, objs in self.gui_data.dict.items():
+            for obj in objs:
                 obj.place_on_canvas(self.canvas, self.map_image.get_coordinates)
+        self.content = True
         self.end_scale["to"] = int(self.gui_data.max_time / 3600 + 1.0)
         self.start_scale["to"] = int(self.gui_data.max_time / 3600 + 1.0)
         self.update_objects()
@@ -205,10 +220,10 @@ class GUI:
             "water_bombers": "Show Water Bombers",
         }
 
-        for object_type in self.gui_data.dict.keys():
+        for object_type in self.gui_data.dict:
             toggle = tk.BooleanVar()
             toggle.set(True)
-            self.viewmenu.add_checkbutton(
+            self.view_menu.add_checkbutton(
                 label=name_map[object_type],
                 onvalue=1,
                 offvalue=0,
@@ -220,18 +235,19 @@ class GUI:
 
     def update_objects(self) -> None:
         """Update whether a set of points is displayed on the canvas."""
-        for name, toggle in self.checkbox_dict.items():
-            if not toggle.get():
-                for obj in self.gui_data[name]:
-                    obj.hide(self.canvas)
-            else:
-                for obj in self.gui_data[name]:
-                    obj.show_given_time(
-                        self.canvas,
-                        self.start_time.get() * 60 * 60,
-                        self.end_time.get() * 60 * 60,
-                    )
-                    obj.update(self.canvas)
+        if self.content:
+            for name, toggle in self.checkbox_dict.items():
+                if not toggle.get():
+                    for obj in self.gui_data[name]:
+                        obj.hide(self.canvas)
+                else:
+                    for obj in self.gui_data[name]:
+                        obj.show_given_time(
+                            self.canvas,
+                            self.start_time.get() * 60 * 60,
+                            self.end_time.get() * 60 * 60,
+                        )
+                        obj.update(self.canvas)
 
     def add_zoom_button(self, text: str, change: int) -> ttk.Button:
         """Add zoom button.
@@ -327,14 +343,6 @@ class GUI:
         self.update_objects()
 
 
-def start_gui(simulation: Optional[Simulator] = None) -> None:
-    """Start GUI of simulation."""
-    if simulation is None:
-        GUI(GUIData([], [], [], [], [], [], []))
-    else:
-        GUI(GUIData.from_simulator(simulation))
-
-
-def start_gui_from_file(path: Path, scenario_name: str) -> None:
+def start_gui_from_file(path: Optional[Path]) -> None:
     """Start GUI of simulation output."""
-    GUI(GUIData.from_output(path, scenario_name))
+    GUI(path)

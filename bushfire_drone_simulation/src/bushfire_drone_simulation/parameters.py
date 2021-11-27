@@ -71,9 +71,7 @@ def commandline_confirm(message: str) -> bool:
 class JSONParameters:
     """Class for reading parameters from a csv file."""
 
-    def __init__(
-        self, parameters_file: Path, confirmation: Callable[[str], bool] = commandline_confirm
-    ):
+    def __init__(self, parameters_file: Path):
         """Read collection of variables stored in filename.
 
         Args:
@@ -119,10 +117,16 @@ class JSONParameters:
 
         if len(self.scenarios) == 0:
             self.scenarios = [self.parameters]
+        self.output_folder: Path = self.folder / self.scenarios[0]["output_folder_name"]
 
-        self.output_folder = self.folder / self.scenarios[0]["output_folder_name"]
+    def create_output_folder(
+        self, confirmation: Callable[[str], bool] = commandline_confirm
+    ) -> None:
+        """Create output folder specified in parameters (and clear if non-empty).
 
-        # All scenarios output to same folder
+        Args:
+            confirmation (Callable[[str], bool]): confirmation method
+        """
         if self.output_folder.exists():
             if any(self.output_folder.iterdir()):
                 if not confirmation(
@@ -341,6 +345,16 @@ class JSONParameters:
                 f"and run the simulation again"
             )
         return self.scenarios[scenario_idx][attribute]
+
+    def get_raw_attribute(self, attribute: str) -> Any:
+        """Return attribute of JSON file."""
+        if attribute not in self.parameters:
+            raise Exception(
+                f"Error: Parameter '{attribute}' is missing in '{self.filepath}'.\n"
+                f"Please add '{attribute}' to '{self.filepath}' "
+                f"and run the simulation again"
+            )
+        return self.parameters[attribute]
 
     def get_relative_filepath(self, key: str, scenario_idx: int) -> Path:
         """Return relative file path to given key."""
@@ -620,34 +634,40 @@ class JSONParameters:
                     ]
                 )
 
+    @property
+    def gui_filename(self) -> Path:
+        """Filename for gui parameters."""
+        return self.output_folder / "gui.json"
+
     def write_to_input_parameters_folder(self, scenario_idx: int) -> None:
         """Copy input parameters to input parameters folder to be output."""
-        input_folder = os.path.join(self.output_folder, "simulation_input")
-        if not os.path.exists(input_folder):
-            os.mkdir(input_folder)
+        input_folder = self.output_folder / "simulation_input"
+        if not input_folder.exists():
+            input_folder.mkdir()
+        gui_params = copy.deepcopy(self.parameters)
+        gui_params["output_folder_name"] = "."
 
-        shutil.copy2(self.filepath, str(input_folder))
+        shutil.copy2(self.filepath, input_folder)
         shutil.copy2(
-            str(self.get_relative_filepath("water_bomber_bases_filename", scenario_idx)),
-            str(input_folder),
+            self.get_relative_filepath("water_bomber_bases_filename", scenario_idx),
+            input_folder,
         )
-        shutil.copy2(
-            str(self.get_relative_filepath("uav_bases_filename", scenario_idx)), str(input_folder)
-        )
-        shutil.copy2(
-            str(self.get_relative_filepath("water_tanks_filename", scenario_idx)), str(input_folder)
-        )
-        shutil.copy2(
-            str(self.get_relative_filepath("lightning_filename", scenario_idx)), str(input_folder)
-        )
+        shutil.copy2(self.get_relative_filepath("uav_bases_filename", scenario_idx), input_folder)
+        shutil.copy2(self.get_relative_filepath("water_tanks_filename", scenario_idx), input_folder)
+        shutil.copy2(self.get_relative_filepath("lightning_filename", scenario_idx), input_folder)
         if "scenario_parameters_filename" in self.parameters:
             shutil.copy2(
                 str(self.get_relative_filepath("scenario_parameters_filename", scenario_idx)),
                 str(input_folder),
             )
+            gui_params["scenario_parameters_filename"] = (
+                input_folder.name
+                + "/"
+                + Path(self.get_raw_attribute("scenario_parameters_filename")).name
+            )
         shutil.copy2(
-            str(os.path.join(self.folder, self.scenarios[scenario_idx]["uavs"]["spawn_loc_file"])),
-            str(input_folder),
+            os.path.join(self.folder, self.scenarios[scenario_idx]["uavs"]["spawn_loc_file"]),
+            input_folder,
         )
         for water_bomber_type in self.get_attribute("water_bombers", scenario_idx):
             shutil.copy2(
@@ -684,3 +704,5 @@ class JSONParameters:
                 ),
                 str(input_folder),
             )
+        with open(self.gui_filename, "w", encoding="utf8") as gui_file:
+            json.dump(gui_params, gui_file)
