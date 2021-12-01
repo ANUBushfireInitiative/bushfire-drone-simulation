@@ -9,6 +9,15 @@ from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Duration
 _LOG = logging.getLogger(__name__)
 
 
+class Coordinate:
+    """Coordinate."""
+
+    def __init__(self, x: int, y: int):
+        """Initialise coordinate."""
+        self.x = x
+        self.y = y
+
+
 class Location:
     """Location class storing postion in worldwide latitude and longitude coordinates."""
 

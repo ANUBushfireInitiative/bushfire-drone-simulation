@@ -1,79 +1,16 @@
 """Class for downloading and rendering a OSM map image."""
 
-import os
-from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Tuple
 
-import geotiler
 import PIL.Image
-from geotiler.cache import caching_downloader
-from geotiler.tile.io import fetch_tiles
 from PIL.Image import Image
 
 from bushfire_drone_simulation.fire_utils import Location
-
-cache_folder = Path(os.path.dirname(os.path.realpath(__file__))) / "map_tile_cache"
-cache_folder.mkdir(parents=True, exist_ok=True)
-
-session_cache: Dict[str, bytes] = {}
-
-
-def get_from_cache(url: str) -> Optional[bytes]:
-    """Get image from cache.
-
-    Returns None if image is not in the cache.
-
-    Args:
-        url (str): Image URL
-    """
-    url = url[9:].replace("/", "")
-    if url in session_cache:
-        return session_cache[url]
-    if (cache_folder / url).is_file():
-        with open(cache_folder / url, "rb") as image_file:
-            image = image_file.read()
-        session_cache[url] = image
-        return image
-    return None
-
-
-def put_in_cache(url: str, image: bytes) -> None:
-    """Put image in cache.
-
-    Args:
-        url (str): Image URL
-        image (PIL.Image): Image
-    """
-    if image is not None:
-        url = url[9:].replace("/", "")
-        if url not in session_cache:
-            session_cache[url] = image
-        if not (cache_folder / url).is_file():
-            with open(cache_folder / url, "wb") as image_file:
-                image_file.write(image)
-
-
-def downloader(tiles: Any, num_workers: int) -> Any:
-    """Tile downloader.
-
-    Args:
-        tiles: Tiles to download
-        num_workers (int): num_workers
-    """
-    return caching_downloader(get_from_cache, put_in_cache, fetch_tiles, tiles, num_workers)
-
-
-def render_map(geotiler_map: geotiler.Map) -> Image:  # type: ignore[no-any-unimported]
-    """Render a geotiler map as an image.
-
-    Args:
-        geotiler_map:
-    """
-    return geotiler.render_map(geotiler_map, downloader=downloader)
+from bushfire_drone_simulation.gui.map_downloader import MapDownloader
 
 
 class MapImage:
-    """Class for downloading and rendering a OSM map image."""
+    """Class for rendering subset of a downloaded map image."""
 
     def __init__(self, dimensions: Tuple[int, int], latitude: float, longitude: float, zoom: int):
         """__init__.
@@ -90,8 +27,7 @@ class MapImage:
         self.height = height
         self.width = width
 
-        self.display_lat = latitude
-        self.display_lon = longitude
+        self.display_loc = Location(latitude, longitude)
         self.lat = latitude
         self.lon = longitude
         self.reload_required = True
@@ -100,11 +36,7 @@ class MapImage:
 
         self.display_image = PIL.Image.new("RGB", (width, height))
         self.big_image = PIL.Image.new("RGB", (0, 0))
-        self.geotiler_map = geotiler.Map(
-            center=(self.display_lon, self.display_lat),
-            zoom=self.zoom,
-            size=(0, 0),
-        )
+        self.map_downloader = MapDownloader()
 
         self.left = 0
         self.top = 0
@@ -134,17 +66,18 @@ class MapImage:
 
     def _fetch_image(self) -> None:
         """_fetch_image."""
-        self.geotiler_map = geotiler.Map(
-            center=(self.display_lon, self.display_lat),
-            zoom=self.zoom,
-            size=(self.width * 2, self.height * 2),
+        self.big_image = self.map_downloader.download_map(
+            self.zoom,
+            self.display_loc,
+            self.width + 250,
+            self.height + 250,
         )
-        self.lat = self.display_lat
-        self.lon = self.display_lon
+        self.lat = self.display_loc.lat
+        self.lon = self.display_loc.lon
         self.reload_required = False
-        self.big_image = render_map(self.geotiler_map)
-        self.left = int((self.big_image.width - self.width) / 2)
-        self.top = int((self.big_image.height - self.height) / 2)
+        middle = self.map_downloader.get_pixel_from_location(self.display_loc)
+        self.left = middle.x - int(self.width / 2)
+        self.top = middle.y - int(self.height / 2)
 
     def get_coordinates(self, location: Location) -> Tuple[int, int]:
         """Get pixel coordinates on the map image from a latitude and longitude.
@@ -156,8 +89,8 @@ class MapImage:
         Returns:
             Tuple[int, int]: Pixel coordinates
         """
-        big_x, big_y = self.geotiler_map.rev_geocode((location.lon, location.lat))
-        return big_x - self.left, big_y - self.top
+        big_coord = self.map_downloader.get_pixel_from_location(location)
+        return big_coord.x - self.left, big_coord.y - self.top
 
     def _update_image(self) -> None:
         """_update_image."""
@@ -172,13 +105,13 @@ class MapImage:
         """
         self.top = self._constrain(self.top, dy, self.big_image.height - self.height)
         self.left = self._constrain(self.left, dx, self.big_image.width - self.width)
-        extent = self.geotiler_map.extent
-        self.display_lat = (self.top + int(self.height / 2)) * (extent[1] - extent[3]) / (
-            self.big_image.height
-        ) + extent[3]
-        self.display_lon = (self.left + int(self.width / 2)) * (extent[2] - extent[0]) / (
-            self.big_image.width
-        ) + extent[0]
+        extent = self.map_downloader.get_extent()
+        self.display_loc.lat = (self.top + int(self.height / 2)) * (
+            extent[1].lat - extent[0].lat
+        ) / (self.big_image.height) + extent[0].lat
+        self.display_loc.lon = (self.left + int(self.width / 2)) * (
+            extent[1].lon - extent[0].lon
+        ) / (self.big_image.width) + extent[0].lon
         if self.reload_required:
             self._fetch_and_update()
         else:

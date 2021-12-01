@@ -12,7 +12,8 @@ from typing import Dict, Optional
 from PIL import ImageTk
 
 from bushfire_drone_simulation.gui.gui_data import GUIData
-from bushfire_drone_simulation.gui.map_image import MapImage, cache_folder
+from bushfire_drone_simulation.gui.map_downloader import cache_folder
+from bushfire_drone_simulation.gui.map_image import MapImage
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.simulator import run_simulations
 
