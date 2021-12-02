@@ -12,7 +12,7 @@ from tkinter.constants import BOTH, DISABLED, HORIZONTAL, INSERT, X
 from typing import Dict, Optional
 
 from PIL import Image as img
-from PIL import ImageTk
+from PIL import ImageDraw, ImageFont, ImageTk
 
 from bushfire_drone_simulation.gui.gui_data import GUIData
 from bushfire_drone_simulation.gui.map_downloader import cache_folder
@@ -119,7 +119,7 @@ class GUI:
         if parameters_filename is not None:
             self.open_file(parameters_filename)
         self.restart()
-        self.canvas.update()
+        self.screenshot().save("tmp.png")
         self.window.mainloop()
 
     def _create_menu(self) -> None:
@@ -149,6 +149,7 @@ class GUI:
         Returns:
             None:
         """
+        self.canvas.update()
         postscript: str = self.canvas.postscript(  # type: ignore
             colormode="color",
             width=self.width,
@@ -156,7 +157,18 @@ class GUI:
             pagewidth=self.width * 10,
             pageheight=self.height * 10,
         )
-        return img.open(BytesIO(postscript.encode("utf-8"))).resize((self.width, self.height))
+        image = img.open(BytesIO(postscript.encode("utf-8"))).resize((self.width, self.height))
+        draw = ImageDraw.Draw(image)
+        tuffy_font = ImageFont.truetype(
+            str(Path(__file__).parent.parent / "fonts" / "Tuffy.ttf"), size=8
+        )
+        draw.text(
+            (self.width - 220, self.height - 10),
+            "Maps © www.thunderforest.com, Data © www.osm.org/copyright",
+            (0, 0, 0),
+            font=tuffy_font,
+        )
+        return image
 
     def clear_cache(self) -> None:
         """Remove all cached map tiles."""
