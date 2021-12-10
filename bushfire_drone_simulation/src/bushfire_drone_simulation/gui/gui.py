@@ -3,17 +3,21 @@
 import os
 import tkinter as tk
 import tkinter.filedialog
+import webbrowser
 from functools import partial
+from io import BytesIO
 from pathlib import Path
-from tkinter import Canvas, DoubleVar, Event, Menu, Scale, ttk
-from tkinter.constants import BOTH, HORIZONTAL, X
+from tkinter import Canvas, DoubleVar, Event, Frame, Menu, Scale, Text, ttk
+from tkinter.constants import BOTH, DISABLED, HORIZONTAL, INSERT, X
 from typing import Dict, Optional
 
-from PIL import ImageTk
+from PIL import Image as img
+from PIL import ImageDraw, ImageFont, ImageTk
 
 from bushfire_drone_simulation.gui.gui_data import GUIData
 from bushfire_drone_simulation.gui.map_downloader import cache_folder
 from bushfire_drone_simulation.gui.map_image import MapImage
+from bushfire_drone_simulation.gui.tk_hyperlink_manager import HyperlinkManager
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.simulator import run_simulations
 
@@ -44,21 +48,7 @@ class GUI:
         self.window.bind("<Button-1>", self.click)
         self.window.bind("<Configure>", self.resize)
 
-        self.menu_bar = Menu(self.window)
-        file_menu: Menu = Menu(self.menu_bar, tearoff=0)
-        file_menu.add_command(label="New Simulation", command=self.new_simulation)
-        file_menu.add_command(label="Open", command=self.open_file_dialog)
-        file_menu.add_separator()
-        file_menu.add_command(label="Exit", command=self.window.quit)
-        self.menu_bar.add_cascade(label="File", menu=file_menu)
-        self.view_menu = Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label="View", menu=self.view_menu)
-        self.scenario_menu = Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label="Scenario", menu=self.scenario_menu)
-        tools_menu = Menu(self.menu_bar, tearoff=0)
-        tools_menu.add_command(label="Clear Cache", command=self.clear_cache)
-        self.menu_bar.add_cascade(label="Tools", menu=tools_menu)
-        self.window.config(menu=self.menu_bar)
+        self._create_menu()
 
         self.label = tk.Label(self.canvas)
         self.zoom = ZOOM
@@ -103,11 +93,82 @@ class GUI:
         self.image = None
         self.tk_image = None
 
+        self.copyright_frame = Frame(width=400, height=20)
+        self.copyright_text = Text(
+            self.copyright_frame, height=1, font=("Helvetica", 8), bg=self.window.cget("bg")
+        )
+        self.copyright_text.tag_configure("right", justify="right")
+        hyperlink = HyperlinkManager(self.copyright_text)
+        self.copyright_text.insert(INSERT, "Maps © ")
+        self.copyright_text.insert(
+            INSERT,
+            "Thunderforest",
+            hyperlink.add(partial(webbrowser.open, "http://www.thunderforest.com")),
+        )
+        self.copyright_text.insert(INSERT, ", Map data © ")
+        self.copyright_text.insert(
+            INSERT,
+            "OpenStreetMap contributors",
+            hyperlink.add(partial(webbrowser.open, "http://www.openstreetmap.org/copyright")),
+        )
+        self.copyright_text.tag_add("right", "1.0", "end")
+        self.copyright_text.config(state=DISABLED, highlightthickness=0, borderwidth=0)
+        self.copyright_text.place(x=0, y=0, width=395)
+
         self.checkbox_dict = self.create_viewmenu()
         if parameters_filename is not None:
             self.open_file(parameters_filename)
         self.restart()
+        self.screenshot().save("tmp.png")
         self.window.mainloop()
+
+    def _create_menu(self) -> None:
+        """Create gui menu bar."""
+        self.menu_bar = Menu(self.window)
+        file_menu: Menu = Menu(self.menu_bar, tearoff=0)
+        file_menu.add_command(label="New Simulation", command=self.new_simulation)
+        file_menu.add_command(label="Open", command=self.open_file_dialog)
+        file_menu.add_separator()
+        file_menu.add_command(label="Exit", command=self.window.quit)
+        self.menu_bar.add_cascade(label="File", menu=file_menu)
+        self.view_menu = Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="View", menu=self.view_menu)
+        self.scenario_menu = Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="Scenario", menu=self.scenario_menu)
+        tools_menu = Menu(self.menu_bar, tearoff=0)
+        tools_menu.add_command(label="Clear Cache", command=self.clear_cache)
+        self.menu_bar.add_cascade(label="Tools", menu=tools_menu)
+        self.window.config(menu=self.menu_bar)
+
+    def screenshot(self) -> img.Image:  # type: ignore
+        """Take a screenshot of the canvas and return as image.
+
+        Args:
+            filename (Path): filename
+
+        Returns:
+            None:
+        """
+        self.canvas.update()
+        postscript: str = self.canvas.postscript(  # type: ignore
+            colormode="color",
+            width=self.width,
+            height=self.height,
+            pagewidth=self.width * 10,
+            pageheight=self.height * 10,
+        )
+        image = img.open(BytesIO(postscript.encode("utf-8"))).resize((self.width, self.height))
+        draw = ImageDraw.Draw(image)
+        tuffy_font = ImageFont.truetype(
+            str(Path(__file__).parent.parent / "fonts" / "Tuffy.ttf"), size=8
+        )
+        draw.text(
+            (self.width - 220, self.height - 10),
+            "Maps © www.thunderforest.com, Data © www.osm.org/copyright",
+            (0, 0, 0),
+            font=tuffy_font,
+        )
+        return image
 
     def clear_cache(self) -> None:
         """Remove all cached map tiles."""
@@ -123,9 +184,9 @@ class GUI:
         ttk.Progressbar(
             popup, variable=progress_var, maximum=len(list(cache_folder.glob("*"))), length=200
         ).pack()
-        for img in cache_folder.glob("*"):
+        for cache_img in cache_folder.glob("*"):
             popup.update()
-            os.remove(img)
+            os.remove(cache_img)
             progress_var.set(progress_var.get() + 1)
         popup.grab_release()  # type: ignore
         popup.destroy()
@@ -333,6 +394,7 @@ class GUI:
 
         self.zoom_in_button.place(x=self.width - 50, y=self.height - 80)
         self.zoom_out_button.place(x=self.width - 50, y=self.height - 50)
+        self.copyright_frame.place(x=self.width - 400, y=self.height)
 
         self.canvas.lower(map_object)
         self.update_objects()
