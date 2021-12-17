@@ -1,6 +1,7 @@
 """GUI Module for bushfire drone simulation."""
 
 import os
+import sys
 import tkinter as tk
 import tkinter.filedialog
 import webbrowser
@@ -154,19 +155,27 @@ class GUI:
             colormode="color",
             width=self.width,
             height=self.height,
-            pagewidth=self.width * 10,
-            pageheight=self.height * 10,
+            pagewidth=self.width * 2,
+            pageheight=self.height * 2,
         )
-        image = img.open(BytesIO(postscript.encode("utf-8"))).resize((self.width, self.height))
+        try:
+            image = img.open(BytesIO(postscript.encode("utf-8"))).resize((self.width, self.height))
+        except FileNotFoundError:
+            print(
+                "Error creating screenshot. This may be because you do not have ghostscript "
+                "installed. If you do not, please install it."
+            )
+            sys.exit()
         draw = ImageDraw.Draw(image)
-        tuffy_font = ImageFont.truetype(
-            str(Path(__file__).parent.parent / "fonts" / "Tuffy.ttf"), size=8
+        font = ImageFont.truetype(
+            str(Path(__file__).parent.parent / "fonts" / "OpenSans-Regular.ttf"),
+            size=10,
         )
         draw.text(
-            (self.width - 220, self.height - 10),
+            (self.width - 310, self.height - 12),
             "Maps © www.thunderforest.com, Data © www.osm.org/copyright",
             (0, 0, 0),
-            font=tuffy_font,
+            font=font,
         )
         return image
 
@@ -175,7 +184,7 @@ class GUI:
         popup_height = 100
         popup_width = 250
         popup = tk.Toplevel()
-        popup.grab_set()  # type: ignore
+        popup.grab_set()
         popup_x = self.window.winfo_x() + (self.window.winfo_width() - popup_width) // 2
         popup_y = self.window.winfo_y() + (self.window.winfo_height() - popup_height) // 2
         popup.geometry(f"{popup_width}x{popup_height}+{popup_x}+{popup_y}")
