@@ -9,7 +9,7 @@ from functools import partial
 from io import BytesIO
 from pathlib import Path
 from tkinter import Canvas, DoubleVar, Event, Frame, Menu, Scale, Text, ttk
-from tkinter.constants import DISABLED, HORIZONTAL, INSERT, X
+from tkinter.constants import BOTH, DISABLED, HORIZONTAL, INSERT, X
 from typing import Dict, Optional
 
 from PIL import Image as img
@@ -33,7 +33,6 @@ LONGITUDE = 147.9
 class GUI:
     """GUI class for bushfire drone simulation."""
 
-    # def __init__(self, gui_data: GUIData) -> None:
     def __init__(self, parameters_filename: Optional[Path]) -> None:
         """Run GUI."""
         self.content = False
@@ -46,7 +45,7 @@ class GUI:
         self.canvas: Canvas = tk.Canvas(
             self.window, width=self.width, height=self.height, borderwidth=0, highlightthickness=0
         )
-        self.canvas.pack()
+        self.canvas.pack(fill=BOTH, expand=True)
 
         self.canvas.bind("<B1-Motion>", self.drag)
         self.window.bind("<Button-1>", self.click)
@@ -123,7 +122,6 @@ class GUI:
         if parameters_filename is not None:
             self.open_file(parameters_filename)
         self.restart()
-        self.screenshot().save("tmp.png")
         self.window.mainloop()
 
     def _create_menu(self) -> None:
@@ -142,9 +140,15 @@ class GUI:
         tools_menu = Menu(self.menu_bar, tearoff=0)
         tools_menu.add_command(label="Clear Cache", command=self.clear_cache)
         tools_menu.add_command(label="Change map dimensions", command=self._size_dialog)
-        tools_menu.add_command(label="Screenshot", command=self.clear_cache)
+        tools_menu.add_command(label="Screenshot", command=self._screenshot_dialog)
         self.menu_bar.add_cascade(label="Tools", menu=tools_menu)
         self.window.config(menu=self.menu_bar)
+
+    def _screenshot_dialog(self) -> None:
+        filename = tkinter.filedialog.asksaveasfilename(
+            initialfile="Screenshot.png", filetypes=[("PNG", "*.png")]
+        )
+        self.screenshot().save(filename)
 
     def screenshot(self) -> img.Image:  # type: ignore
         """Take a screenshot of the canvas and return as image.
