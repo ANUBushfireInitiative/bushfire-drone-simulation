@@ -9,7 +9,7 @@ from functools import partial
 from io import BytesIO
 from pathlib import Path
 from tkinter import Canvas, DoubleVar, Event, Frame, Menu, Scale, Text, ttk
-from tkinter.constants import BOTH, DISABLED, HORIZONTAL, INSERT, X
+from tkinter.constants import DISABLED, HORIZONTAL, INSERT, X
 from typing import Dict, Optional
 
 from PIL import Image as img
@@ -18,12 +18,13 @@ from PIL import ImageDraw, ImageFont, ImageTk
 from bushfire_drone_simulation.gui.gui_data import GUIData
 from bushfire_drone_simulation.gui.map_downloader import cache_folder
 from bushfire_drone_simulation.gui.map_image import MapImage
+from bushfire_drone_simulation.gui.popup import GuiPopup
 from bushfire_drone_simulation.gui.tk_hyperlink_manager import HyperlinkManager
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.simulator import run_simulations
 
-WIDTH = 600
-HEIGHT = 40
+WIDTH = 400
+HEIGHT = 200
 ZOOM = 7
 LATITUDE = -36.25
 LONGITUDE = 147.9
@@ -42,8 +43,10 @@ class GUI:
 
         self.window = tk.Tk()
         self.window.title("ANU Bushfire Initiative Drone Simulation")
-        self.canvas: Canvas = tk.Canvas(self.window)
-        self.canvas.pack(fill=BOTH, expand=True)
+        self.canvas: Canvas = tk.Canvas(
+            self.window, width=self.width, height=self.height, borderwidth=0, highlightthickness=0
+        )
+        self.canvas.pack()
 
         self.canvas.bind("<B1-Motion>", self.drag)
         self.window.bind("<Button-1>", self.click)
@@ -138,6 +141,8 @@ class GUI:
         self.menu_bar.add_cascade(label="Scenario", menu=self.scenario_menu)
         tools_menu = Menu(self.menu_bar, tearoff=0)
         tools_menu.add_command(label="Clear Cache", command=self.clear_cache)
+        tools_menu.add_command(label="Change map dimensions", command=self._size_dialog)
+        tools_menu.add_command(label="Screenshot", command=self.clear_cache)
         self.menu_bar.add_cascade(label="Tools", menu=tools_menu)
         self.window.config(menu=self.menu_bar)
 
@@ -181,13 +186,7 @@ class GUI:
 
     def clear_cache(self) -> None:
         """Remove all cached map tiles."""
-        popup_height = 100
-        popup_width = 250
-        popup = tk.Toplevel()
-        popup.grab_set()
-        popup_x = self.window.winfo_x() + (self.window.winfo_width() - popup_width) // 2
-        popup_y = self.window.winfo_y() + (self.window.winfo_height() - popup_height) // 2
-        popup.geometry(f"{popup_width}x{popup_height}+{popup_x}+{popup_y}")
+        popup = GuiPopup(self.window, 250, 100)
         tk.Label(popup, text="Deleting cached tiles").pack()
         progress_var = tk.DoubleVar()
         ttk.Progressbar(
@@ -197,8 +196,33 @@ class GUI:
             popup.update()
             os.remove(cache_img)
             progress_var.set(progress_var.get() + 1)
-        popup.grab_release()  # type: ignore
-        popup.destroy()
+        popup.close()
+
+    def _size_dialog(self) -> None:
+        """Change size of map."""
+        popup = GuiPopup(self.window, 250, 100)
+        popup.grid_columnconfigure(0, weight=1)
+        popup.grid_columnconfigure(1, weight=1)
+        tk.Label(popup, text="Select map size").grid(row=0, column=0, columnspan=2)
+        width_box = tk.Entry(popup)
+        width_box.insert(0, str(self.width))
+        height_box = tk.Entry(popup)
+        height_box.insert(0, str(self.height))
+
+        def set_size() -> None:
+            self.width = int(width_box.get())
+            self.height = int(height_box.get())
+            self.canvas.config(width=self.width, height=self.height)
+            popup.close()
+            self.redraw()
+
+        tk.Label(popup, text="Width:").grid(row=1, column=0)
+        width_box.grid(row=1, column=1)
+        tk.Label(popup, text="Height:").grid(row=2, column=0)
+        height_box.grid(row=2, column=1)
+        ttk.Button(popup, text="Set dimensions", command=set_size).grid(
+            row=3, column=0, columnspan=2
+        )
 
     def open_file_dialog(self) -> None:
         """Create open file dialog."""
@@ -399,7 +423,9 @@ class GUI:
         # profiler.enable()
         self.image = self.map_image.get_image()
         self.tk_image = ImageTk.PhotoImage(self.image)
-        map_object = self.canvas.create_image(self.width / 2, self.height / 2, image=self.tk_image)
+        map_object = self.canvas.create_image(
+            self.width // 2, self.height // 2, image=self.tk_image
+        )
 
         self.zoom_in_button.place(x=self.width - 50, y=self.height - 80)
         self.zoom_out_button.place(x=self.width - 50, y=self.height - 50)
