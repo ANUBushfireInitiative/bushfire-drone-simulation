@@ -60,10 +60,10 @@ repos:
         language: python
         types:
           - python
-    -   id: sphinx-doctest
-        name: sphinx doctest
-        entry: python -m sphinx.cmd.build
-        args: [-a, -E, -b, doctest, docs/source, sphinx]
-        language: system
-        types: [python]
-        pass_filenames: false
+    #-   id: sphinx-doctest
+        #name: sphinx doctest
+        #entry: python -m sphinx.cmd.build
+        #args: [-a, -E, -b, doctest, docs/source, sphinx]
+        #language: system
+        #types: [python]
+        #pass_filenames: false
