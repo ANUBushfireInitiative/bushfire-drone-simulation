@@ -22,6 +22,9 @@ jobs:
     - name: Install dependencies
       run: |
         source tools/install-dev-env
-    - name: Run test
+    - name: Run pytest
       run: |
           pytest
+    - name: Run doctest
+      run: |
+          python -m sphinx.cmd.build -a -E -b doctest docs/source sphinx

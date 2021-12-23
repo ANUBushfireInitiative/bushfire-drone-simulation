@@ -151,14 +151,14 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                 inspection_time = uav.arrival_time([lightning]) - lightning.spawn_time
                 temp_arr_time = inspection_time ** mean_time_power
                 if inspection_time > target_max_time:
-                    if temp_arr_time < min_arr_time_above_target:
-                        min_arr_time_above_target = temp_arr_time
+                    if temp_arr_time < min_arr_time_above_target:  # type: ignore
+                        min_arr_time_above_target = temp_arr_time  # type: ignore
                         assigned_locations_above_target = [lightning]
                         start_from_above_target = None
                         best_uav_above_target = uav
 
-                elif temp_arr_time < min_arrival_time:
-                    min_arrival_time = temp_arr_time
+                elif temp_arr_time < min_arrival_time:  # type: ignore
+                    min_arrival_time = temp_arr_time  # type: ignore
                     best_uav = uav
                     assigned_locations = [lightning]
                     start_from = None
@@ -174,14 +174,14 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                         temp_arr_time = inspection_time ** mean_time_power
 
                         if inspection_time > target_max_time:
-                            if temp_arr_time < min_arr_time_above_target:
-                                min_arr_time_above_target = temp_arr_time
+                            if temp_arr_time < min_arr_time_above_target:  # type: ignore
+                                min_arr_time_above_target = temp_arr_time  # type: ignore
                                 assigned_locations_above_target = [uav_base, lightning]
                                 start_from_above_target = None
                                 best_uav_above_target = uav
 
-                        elif temp_arr_time < min_arrival_time:
-                            min_arrival_time = temp_arr_time
+                        elif temp_arr_time < min_arrival_time:  # type: ignore
+                            min_arrival_time = temp_arr_time  # type: ignore
                             best_uav = uav
                             assigned_locations = [uav_base, lightning]
                             start_from = None
@@ -387,13 +387,13 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                     suppression_time = water_bomber.arrival_time([ignition]) - ignition.spawn_time
                     temp_arr_time = suppression_time ** mean_time_power
                     if suppression_time > target_max_time:
-                        if temp_arr_time < min_arr_time_above_target:
-                            min_arr_time_above_target = temp_arr_time
+                        if temp_arr_time < min_arr_time_above_target:  # type: ignore
+                            min_arr_time_above_target = temp_arr_time  # type: ignore
                             assigned_locations_above_target = [ignition]
                             start_from_above_target = None
                             best_water_bomber_above_target = water_bomber
-                    elif temp_arr_time < min_arrival_time:
-                        min_arrival_time = temp_arr_time
+                    elif temp_arr_time < min_arrival_time:  # type: ignore
+                        min_arrival_time = temp_arr_time  # type: ignore
                         best_water_bomber = water_bomber
                         assigned_locations = [ignition]
                         start_from = None
@@ -409,13 +409,13 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                             )
                             temp_arr_time = suppression_time ** mean_time_power
                             if suppression_time > target_max_time:
-                                if temp_arr_time < min_arr_time_above_target:
-                                    min_arr_time_above_target = temp_arr_time
+                                if temp_arr_time < min_arr_time_above_target:  # type: ignore
+                                    min_arr_time_above_target = temp_arr_time  # type: ignore
                                     assigned_locations_above_target = [base, ignition]
                                     start_from_above_target = None
                                     best_water_bomber_above_target = water_bomber
-                            elif temp_arr_time < min_arrival_time:
-                                min_arrival_time = temp_arr_time
+                            elif temp_arr_time < min_arrival_time:  # type: ignore
+                                min_arrival_time = temp_arr_time  # type: ignore
                                 best_water_bomber = water_bomber
                                 assigned_locations = [base, ignition]
                                 start_from = None
@@ -435,13 +435,13 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                         )
                         temp_arr_time = suppression_time ** mean_time_power
                         if suppression_time > target_max_time:
-                            if temp_arr_time < min_arr_time_above_target:
-                                min_arr_time_above_target = temp_arr_time
+                            if temp_arr_time < min_arr_time_above_target:  # type: ignore
+                                min_arr_time_above_target = temp_arr_time  # type: ignore
                                 assigned_locations_above_target = [water_tank, ignition]
                                 start_from_above_target = None
                                 best_water_bomber_above_target = water_bomber
-                        elif temp_arr_time < min_arrival_time:
-                            min_arrival_time = temp_arr_time
+                        elif temp_arr_time < min_arrival_time:  # type: ignore
+                            min_arrival_time = temp_arr_time  # type: ignore
                             best_water_bomber = water_bomber
                             assigned_locations = [water_tank, ignition]
                             go_via_base = False
@@ -467,8 +467,8 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                                 )
                                 temp_arr_time = suppression_time ** mean_time_power
                                 if suppression_time > target_max_time:
-                                    if temp_arr_time < min_arr_time_above_target:
-                                        min_arr_time_above_target = temp_arr_time
+                                    if temp_arr_time < min_arr_time_above_target:  # type: ignore
+                                        min_arr_time_above_target = temp_arr_time  # type: ignore
                                         assigned_locations_above_target = [
                                             water_tank,
                                             base,
@@ -476,8 +476,8 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                                         ]
                                         start_from_above_target = None
                                         best_water_bomber_above_target = water_bomber
-                                elif temp_arr_time < min_arrival_time:
-                                    min_arrival_time = temp_arr_time
+                                elif temp_arr_time < min_arrival_time:  # type: ignore
+                                    min_arrival_time = temp_arr_time  # type: ignore
                                     best_water_bomber = water_bomber
                                     assigned_locations = [water_tank, base, ignition]
                                     start_from = None
@@ -499,8 +499,8 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                                 )
                                 temp_arr_time = suppression_time ** mean_time_power
                                 if suppression_time > target_max_time:
-                                    if temp_arr_time < min_arr_time_above_target:
-                                        min_arr_time_above_target = temp_arr_time
+                                    if temp_arr_time < min_arr_time_above_target:  # type: ignore
+                                        min_arr_time_above_target = temp_arr_time  # type: ignore
                                         assigned_locations_above_target = [
                                             base,
                                             water_tank,
@@ -508,8 +508,8 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                                         ]
                                         start_from_above_target = None
                                         best_water_bomber_above_target = water_bomber
-                                elif temp_arr_time < min_arrival_time:
-                                    min_arrival_time = temp_arr_time
+                                elif temp_arr_time < min_arrival_time:  # type: ignore
+                                    min_arrival_time = temp_arr_time  # type: ignore
                                     best_water_bomber = water_bomber
                                     assigned_locations = [base, water_tank, ignition]
                                     start_from = None
