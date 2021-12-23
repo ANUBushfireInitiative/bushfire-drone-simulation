@@ -1,16 +1,19 @@
-"""
-Class for managing creating simple popup windows in GUI.
-"""
+"""Class for managing creating simple popup windows in GUI."""
 
 import tkinter as tk
 
 
 class GuiPopup(tk.Toplevel):
-    """
-    Class for managing creating simple popup windows in GUI.
-    """
+    """Class for managing creating simple popup windows in GUI."""
 
     def __init__(self, parent_window: tk.Tk, width: int, height: int) -> None:
+        """Initialise GUI popup.
+
+        Args:
+            parent_window (tk.Tk): parent_window
+            width (int): width
+            height (int): height
+        """
         super().__init__(parent_window)
         self.width = width
         self.height = height
