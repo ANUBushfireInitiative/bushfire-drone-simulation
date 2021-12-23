@@ -59,38 +59,7 @@ class GUI:
 
         self.zoom_in_button = self.add_zoom_button("+", +1)
         self.zoom_out_button = self.add_zoom_button("-", -1)
-        self.start_time = DoubleVar()
-        self.end_time = DoubleVar()
-
-        self.start_scale = Scale(
-            self.window,
-            variable=self.start_time,
-            orient=HORIZONTAL,
-            from_=0,
-            to=int(self.gui_data.max_time / 3600 + 1.0),
-            label="Start Time (hrs)",
-            resolution=0.01,
-            length=self.width,
-            sliderlength=20,
-            tickinterval=1,
-            command=self.start_slider_update,
-        )
-        self.end_scale = Scale(
-            self.window,
-            variable=self.end_time,
-            orient=HORIZONTAL,
-            from_=0,
-            to=int(self.gui_data.max_time / 3600 + 1.0),
-            label="End Time (hrs)",
-            resolution=0.01,
-            length=self.width,
-            sliderlength=20,
-            tickinterval=1,
-            command=self.end_slider_update,
-        )
-        self.end_scale.set(int(self.gui_data.max_time / 3600 + 1.0))  # type: ignore
-        self.start_scale.pack(fill=X)
-        self.end_scale.pack(fill=X)
+        self._add_scales()
 
         self.coords = (0, 0)
         self.image = None
@@ -137,6 +106,8 @@ class GUI:
         self.menu_bar.add_cascade(label="View", menu=self.view_menu)
         self.scenario_menu = Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="Scenario", menu=self.scenario_menu)
+        self.plot_menu = Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="Plots", menu=self.plot_menu)
         tools_menu = Menu(self.menu_bar, tearoff=0)
         tools_menu.add_command(label="Clear Cache", command=self.clear_cache)
         tools_menu.add_command(label="Change map dimensions", command=self._size_dialog)
@@ -149,6 +120,40 @@ class GUI:
             initialfile="Screenshot.png", filetypes=[("PNG", "*.png")]
         )
         self.screenshot().save(filename)
+
+    def _add_scales(self) -> None:
+        self.start_time = DoubleVar()
+        self.end_time = DoubleVar()
+
+        self.start_scale = Scale(
+            self.window,
+            variable=self.start_time,
+            orient=HORIZONTAL,
+            from_=0,
+            to=int(self.gui_data.max_time / 3600 + 1.0),
+            label="Start Time (hrs)",
+            resolution=0.01,
+            length=self.width,
+            sliderlength=20,
+            tickinterval=1,
+            command=self.start_slider_update,
+        )
+        self.end_scale = Scale(
+            self.window,
+            variable=self.end_time,
+            orient=HORIZONTAL,
+            from_=0,
+            to=int(self.gui_data.max_time / 3600 + 1.0),
+            label="End Time (hrs)",
+            resolution=0.01,
+            length=self.width,
+            sliderlength=20,
+            tickinterval=1,
+            command=self.end_slider_update,
+        )
+        self.end_scale.set(int(self.gui_data.max_time / 3600 + 1.0))  # type: ignore
+        self.start_scale.pack(fill=X)
+        self.end_scale.pack(fill=X)
 
     def screenshot(self) -> img.Image:  # type: ignore
         """Take a screenshot of the canvas and return as image.
@@ -431,8 +436,8 @@ class GUI:
             self.width // 2, self.height // 2, image=self.tk_image
         )
 
-        self.zoom_in_button.place(x=self.width - 50, y=self.height - 80)
-        self.zoom_out_button.place(x=self.width - 50, y=self.height - 50)
+        self.zoom_in_button.place(x=self.width - 30, y=self.height - 70)
+        self.zoom_out_button.place(x=self.width - 30, y=self.height - 40)
         self.copyright_frame.place(x=self.width - 400, y=self.height)
 
         self.canvas.lower(map_object)
