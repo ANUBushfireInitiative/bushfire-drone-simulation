@@ -2,47 +2,25 @@ Bushfire Drone Simulation
 =========================
 
 This is a python application that allows the simulation of drones for fast lightning strike investigation and potential suppression by a fleet of water bombers.
-The main application can be run using the command ``bushfire_drone_simulation run-simulation``:
 
-.. code-block:: bash
-
-    Usage: bushfire_drone_simulation run-simulation [OPTIONS]
-
-        Run bushfire drone simulation.
-
-    Options:
-        --help  Show this message and exit.
-
+The main application can be run using the command ``bushfire_drone_simulation``. It can be operated via either a command line or graphical interface. The graphical interface can be started with the command ``bushfire_drone_simulation gui`` or alternatively the simulation can be run via the command line using ``bushfire_drone_simulation run-simulation [PARAMATERS_FILENAME]``
 
 Required Input
 --------------
 
-Several input files are required to run the bushfire drone simulation. Most importantly is the parameters file,
-detailing most of the parameters for the simulation. The program additionally utilises a number of csv files to specify
-details such as times, locations and capacities or to run the simulation varying specific parameters to create multiple scenarios.
+Several input files are required to run the bushfire drone simulation. The primary input is the parameters file,
+which details most of the parameters for the simulation in json format. The program additionally utilises several csv files to specify
+details such as the times and locations of strikes and the capacities of water reservoirs.
 
 Parameters File
 ~~~~~~~~~~~~~~~
 
-The parameters file is a JSON file containing all information (or paths to files containing information)
-required to run the Bushfire Drone Simulation. The path to the parameters file from the current working directory
-is taken as input to the run-simulation command. The default parameters filename (if none is specified) is 'parameters.json'.
-To change the current working directory to the directory containing the parameters file, use the following
-commands from the terminal:
-
-.. code-block::
-
-    cd directory_name
-    ls
-
-To either change or list sub directories respectively until the desired directory is reached.
-Alternatively, specify the path to the JSON parameters file from the current working directory.
+The parameters file is a JSON file containing all of the information required to run the Bushfire Drone Simulation. The path to the parameters file is taken as input to the run-simulation command or can be selected via ``File -> New Simulation`` in the GUI. The default parameters filename (if none is specified) is 'parameters.json'.
 
 The JSON parameters file should contain the following information formatted as indicated
-(note that the ordering of these parameters does not matter however the nesting does):
+(note that following the JSON specification the ordering of these parameters does not matter however the nesting does):
 
-
-*  The paths to the following csv files relative to the JSON parameter file:
+*  The paths to each of the csv files relative to the parameter file:
 
     .. code-block:: json
 
@@ -53,9 +31,9 @@ The JSON parameters file should contain the following information formatted as i
             "lightning_filename": "path_to_file"
         }
 
-    The information provided in these files and the correct formatting is discussed below.
+    The information required in these files and the correct formatting is discussed below.
 
-*  The path to a folder where the output of the simulation will be written to
+*  The path to a folder to write the output of the simulation
 
     .. code-block:: json
 
@@ -64,9 +42,9 @@ The JSON parameters file should contain the following information formatted as i
         }
 
     If this folder already exists and is not empty, the user will be prompted as to whether they wish to
-    overwrite the current contents of the folder or respecify the output destination.
+    overwrite the current contents of the folder.
 
-*  The coordinator class of the UAVs and water bombers
+*  The coordinator type for the UAVs and water bombers
 
     .. code-block:: json
 
@@ -75,22 +53,24 @@ The JSON parameters file should contain the following information formatted as i
             "wb_coordinator": "Name of water bomber coordinator class"
         }
 
-    The coordinators are stored in two dictionaries in main.py which are as follows:
+    Several coordinators are provided with the application which prioritise strikes differently. The different coordinators are stored in two dictionaries in simulator.py as follows:
 
     .. code-block:: python
 
-        UAV_COORDINATORS = {
+        UAV_COORDINATORS: Dict[str, Union[Type[UAVCoordinator]]] = {
             "MatlabUAVCoordinator": MatlabUAVCoordinator,
             "NewStrikesFirstUAVCoordinator": NewStrikesFirstUAVCoordinator,
             "InsertionUAVCoordinator": InsertionUAVCoordinator,
             "MinimiseMeanTimeUAVCoordinator": MinimiseMeanTimeUAVCoordinator,
+            "ReprocessMaxTimeUAVCoordinator": ReprocessMaxTimeUAVCoordinator,
         }
 
-        WB_COORDINATORS = {
+        WB_COORDINATORS: Dict[str, Union[Type[WBCoordinator]]] = {
             "MatlabWBCoordinator": MatlabWBCoordinator,
             "NewStrikesFirstWBCoordinator": NewStrikesFirstWBCoordinator,
             "InsertionWBCoordinator": InsertionWBCoordinator,
             "MinimiseMeanTimeWBCoordinator": MinimiseMeanTimeWBCoordinator,
+            "ReprocessMaxTimeWBCoordinator": ReprocessMaxTimeWBCoordinator,
         }
 
     The provided name of the coordinator in the JSON file should be the key to the desired coordinator
@@ -107,7 +87,7 @@ The JSON parameters file should contain the following information formatted as i
     - **NewStrikesFirstUAVCoordinator**: This coordinator assigns each new lighning strike to the UAV that would currently be able to get there the fastest and then reassigns the lightning strikes that were assigned to that UAV prior. WARNING: This is very slow, and does not appear to improve on the basic matlab coordinator.
     - **NewStrikesFirstWBCoordinator**: Water bomber equivalent of NewStrikesFirstUAVCoordinator.
 
-*  The following generic variables:
+*  The following configuration variables:
 
     .. code-block:: json
 
@@ -119,9 +99,9 @@ The JSON parameters file should contain the following information formatted as i
             "ignition_probability": "the probability a given lightning strike will ignite"
         }
 
-    ``uav_mean_time_power`` and ``wb_mean_time_power`` are only required when using the MinimiseMeanTimeUAVCoordinator and MinimiseMeanTimeWBCoordinator respectively. They control the power of the time that the program tries to minimize, e.g. a value of 1 will try to minimize the mean time whereas a value of 2 will try to minimize the mean(time^2).
+    ``uav_mean_time_power`` and ``wb_mean_time_power`` are only required when using the MinimiseMeanTimeUAVCoordinator and MinimiseMeanTimeWBCoordinator respectively. They control the power of the time that the program tries to minimize, e.g. a value of 1 will try to minimize the mean time whereas a value of 2 will try to minimize the mean (time^2).
 
-    ``target_maximum_inspection_time`` and ``target_maximum_suppression_time`` (in hours) are similarly only required when using the MinimiseMeanTimeUAVCoordinator or MinimiseMeanTimeWBCoordinator.    They will try to avoid the coordinator reallocating aircraft such that the inspection/supression times
+    ``target_maximum_inspection_time`` and ``target_maximum_suppression_time`` (in hours) are similarly only required when using the MinimiseMeanTimeUAVCoordinator or MinimiseMeanTimeWBCoordinator. They will try to avoid the coordinator reallocating aircraft such that the inspection/supression times
     exceed the target maximum provided. However if it is not possible for the coordinator to reallocate
     such that this is the case then the coordinator will select the allocation that minimises the mean time
     (to a given power as discussed above).
@@ -164,13 +144,17 @@ The JSON parameters file should contain the following information formatted as i
                 }
             },
             "water_bomber_type_2": {
-                "Same attribute structure as above"
+                "spawn_loc_file": "path_to_file",
+                "attributes": {
+                    "Same attribute structure as above"
+                }
             },
             "Additional water bombers can be added using the same structure shown above"
         }
     }
 
 *  And an optional dictionary containing the following information about how the coordinator should treat unassigned drones.
+
     If this dictionary is included in the parameters file, then at the end of every time interval dt,
     the unassigned aircraft will move according to the following instructions:
     they will be attracted to any targets provided in the target file (details specified below),
@@ -181,7 +165,7 @@ The JSON parameters file should contain the following information formatted as i
 
         const \times (dist\ from\ unassigned\ aircraft\ to\ position) ^ {power}
 
-    where the const and power and defined in the parameters file.
+    where the const and power are defined in the parameters file.
 
 
     If these instructions tell a drone to leave the boundary, it will
@@ -211,7 +195,7 @@ The JSON parameters file should contain the following information formatted as i
 CSV File formats
 ~~~~~~~~~~~~~~~~
 
-The paths to csv files specified above should contain the following information and format requirements.
+The paths to csv files specified above should contain the following information and formatting.
 Note that the column headers must follow the same naming conventions however the data that follows
 is just sample input.
 
@@ -229,9 +213,9 @@ is just sample input.
         -38.068,147.06,20000, "", 1, ""
 
 
-    The location and fuel capacity of the water base should be indicated in the first three columns.
+    The location and fuel capacity of the water bomber base should be indicated in the first three columns.
     To denote an infinite capacity please enter "inf" rather than a number.
-    To indicate the which types of water bombers the base can refill, the following columns should be
+    To indicate which types of water bombers the base can refill, the following columns should be
     labelled 'all' followed by the names of the water bombers (defined in the water bomber dictionary above).
     If the base can be accessed by any water bomber, a '1' should be placed in the 'all' column. To specify
     bases only being accessible by certain water bombers, the remaining columns should be used (placing a
@@ -242,7 +226,7 @@ is just sample input.
 
 *  uav_bases_filename
 
-    This file should specify the location and capacity of each UAV base, it is assumed that all UAVs
+    This file should specify the location and capacity of each UAV base. It is assumed that all UAVs
     can access all UAV bases. This should be formatted as follows:
 
     .. csv-table::
@@ -250,12 +234,12 @@ is just sample input.
 
         -37.81,144.97,10000
 
-    With the location of the base indicated in the first two columns and the capacity (in L) indicated in the
+    With the location of the base indicated in the first two columns and the capacity (in litres) indicated in the
     third, again using "inf" to indicate an infinite capacity.
 
 *  water_tanks_filename
 
-    Should be formatted exactly as the uav_bases_filename is formatted.
+    This should be formatted exactly the same as uav_bases_filename  however the capacity is now the capacity of the water tank in litres.
 
 * lightning_filename
 
@@ -291,7 +275,7 @@ is just sample input.
 *  spawn_loc_file
 
     The spawn locations file, required for each type of aircraft, designates the initial location of each
-    aircraft as well as it's inital conditions. The should all be formatted as follows
+    aircraft as well as it's inital conditions. This should be formatted as follows
 
     .. csv-table::
         :header: "latitude", "longitude", "starting at base", "inital fuel"
@@ -313,12 +297,12 @@ is just sample input.
 
         -37.81,144.97,0,80000
 
-    Note that as always it is possible to enter "inf" to indicate a time that comes after all other times.
+    Note that it is possible to enter "inf" to indicate an infinite end time.
 
 * boundary_polygon_file
 
     The optional boundary polygon file, required if the unassigned_drones dictionary is included,
-    designates the verticies of a boundary polygon of the desired simulation area.
+    designates the verticies of a boundary polygon for the simulation area.
 
     .. csv-table::
         :header: "latitude", "longitude"
@@ -326,18 +310,18 @@ is just sample input.
         -37.81,144.97
 
 
-Multiple Simulations
-~~~~~~~~~~~~~~~~~~~~
+Multiple Simulation Scenarios
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In order to run multiple simulations at once from the same csv file, a few alterations to the above format
-may be made. Firstly, any variables (including csv files) that would like to be varied between simulations
+To run multiple simulations at once from the same csv file, a few alterations to the above format
+can be made. Firstly, any variables (including csv files) that would like to be varied between simulations
 should be replaced with a "?" in the JSON parameters file.
 The values of these variables should be recorded in a csv file. The title of each column of this csv
-file should indicate the variable altered. Each row that follows contains a scenario to be run,
-each of the parameters in the file should be specified for each scenario. The name of the scenario should be
+file should match the variable being altered. Each row that follows contains a scenario to be run.
+All of the parameters in the file should be specified for each scenario. The name of the scenario should be
 indicated in the first column of the file which will be used in the output to distinguish between scenarios.
-The path to this file (relative to the JSON parameter file) should be recorded in the JSON parameter file
-as follows:
+The path to this file (relative to the parameter file) should be recorded in the JSON parameter file
+with an additional variable as follows:
 
 .. code-block:: json
 
@@ -368,19 +352,17 @@ would require the file scenario_parameters.csv to be formatted as follows
 .. csv-table::
     :header: "scenario_name","ignition_probability","uavs/attributes/fuel_refill_time"
 
-    "s1", "0.07", "30"
-    "s2", "0.2", "25"
-    "s3", "0.5", "20"
+    "Senario 1", "0.07", "30"
+    "Scenario 2", "0.2", "25"
+    "Scenario 3", "0.5", "20"
 
-Note that all aircraft have a fuel_refill_time attribute so to distinguish between them the
-nesting of the dictionary is used with '/' in between each nesting.
-
+Note that all aircraft have a fuel_refill_time attribute so to distinguish between them the nesting is indicated with '/'.
 
 
 Example Input
 ~~~~~~~~~~~~~
 
-Finally, please see the following parameter file for example input to the simulation.
+The following is a full example of the contents for the paramaters JSON file.
 To also view the csv files required and examples for how to run multiple simulations,
 please see bushfire_drone_simulation/example_input.
 
@@ -440,13 +422,12 @@ please see bushfire_drone_simulation/example_input.
     }
 
 
-
 Simulation Output
 -----------------
 
-The output from the simulation consits of 4 files and a simulation input folder for each scenario
-which can be found in the output folder. The files and folder are denoted with their associated
-scenario name (specified in the scenario parameters file (see Required Input)) and then a name describing
+The output from the simulation consists of 4 files for each scenario, a simulation input folder, and a gui.json file which contains the required information to open the simulation output in the GUI.
+All of these outputs can be found in the output folder specified. The files and folder are denoted with their associated
+scenario name (specified in the scenario parameters file, see Required Input) and then a name describing
 the output they contain. The contents of the 4 files and simulation input folder are described below.
 
 Simulation Input Folder
@@ -490,9 +471,9 @@ This png file contains 4 plots which are as follows:
 Simulation Output
 ~~~~~~~~~~~~~~~~~
 
-This csv file simply contains the ID number, position, spawn time, inspection time and supression time
+This csv file contains the ID number, position, spawn time, inspection time and supression time
 of every strike from the scenario. If a strike was not inspected or suppressed (either because it
-did not ignite or there were no water bombers avalible), the inspected or suppression time will be
+did not ignite or there were no water bombers available), the inspected or suppression time will be
 denoted 'N/A'.
 
 UAV Event Updates
@@ -525,4 +506,4 @@ additional column:
 GUI
 ---
 
-The bushfire drone simulation also comes with a graphical user interface for viewing the simulation overlayed on a map (thanks to `OpenStreetMap <https://www.openstreetmap.org/>`_). There are two ways to run the GUI. Firstly, you can run the simulation from scratch and then view the results in the GUI using the command ``bushfire_drone_simulation gui`` with the same input format as the ``run-simulation`` command described above. In addition, you can open the GUI for a previously run simulation by navigating to the output folder of that simulation and running the command ``bushfire_drone_simulation gui-from-output SCENARIO_NAME`` replacing ``SCENARIO_NAME`` with the name of the scenario you wish to view (or ``""`` if only a single scenario was run). This output must be in the same format as the output from the simulation for the GUI to be able to read it.
+The bushfire drone simulation also comes with a graphical user interface for viewing the simulation overlayed on a map (thanks to `OpenStreetMap <https://www.openstreetmap.org/>`_). To run the GUI use the command ``bushfire_drone_simulation gui``. You can then select to open a previously run simulation with ``File -> Open`` and then selecting the ``gui.json`` file in the output or you can run a new simulation with ``File -> New Simulation`` and then selecting the parameters JSON file for the simulation you would like to run.
