@@ -30,12 +30,12 @@ def test_times_chronological(simulations: List[Simulator]) -> None:
         for uav in simulator.uavs:
             for idx, update in enumerate(uav.past_locations[1:]):
                 assert (
-                    update.time >= uav.past_locations[idx - 1].time
+                    update.time >= uav.past_locations[idx].time
                 ), f"The event updates of {uav.get_name()} were not in chronological order"
         for water_bomber in simulator.water_bombers:
             for idx, update in enumerate(water_bomber.past_locations[1:]):
                 assert (
-                    update.time >= water_bomber.past_locations[idx - 1].time
+                    update.time >= water_bomber.past_locations[idx].time
                 ), f"The event updates of {water_bomber.name} were not in chronological order"
 
 
