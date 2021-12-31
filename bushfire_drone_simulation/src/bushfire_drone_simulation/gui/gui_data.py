@@ -316,7 +316,7 @@ def extract_aircraft_from_output(
             aircraft_id,
             row[2],
             row[3],
-            Time.from_time(row[4] * MINUTES_TO_SECONDS).get(),
+            Time.from_float(row[4] * MINUTES_TO_SECONDS).get(),
             status,
             row[5],
             row[7],

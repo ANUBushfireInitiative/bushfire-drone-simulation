@@ -25,6 +25,3 @@ jobs:
     - name: Run pytest
       run: |
           pytest
-    - name: Run doctest
-      run: |
-          python -m sphinx.cmd.build -a -E -b doctest docs/source sphinx

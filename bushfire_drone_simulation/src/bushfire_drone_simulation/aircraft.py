@@ -1,4 +1,4 @@
-"""Aircraft module for various aircraft classes."""
+"""UAV and Water Bomber classes with abstract Aircraft class."""
 import logging
 import math
 from abc import abstractmethod
@@ -28,7 +28,7 @@ EPSILON: float = 0.001
 
 
 class Status(Enum):
-    """Enum for Aircraft status."""
+    """Aircraft status."""
 
     HOVERING = "Hovering"
     GOING_TO_STRIKE = "Going to strike"
@@ -80,7 +80,7 @@ class UpdateEvent(Location):  # pylint: disable=too-few-public-methods
         Args:
             name (str): name of aircraft
             latitude (float): latitude of aircraft
-            longitude (float): logitude of aircraft
+            longitude (float): longitude of aircraft
             time (float): time of event
             status (Status): status of aircraft
             distance_travelled (float): distance travelled by aircraft since last event update
