@@ -22,6 +22,7 @@ jobs:
     - name: Install dependencies
       run: |
         source tools/install-dev-env
+        apt install ghostscript
     - name: Setup display and run pytest
       run: |
         disp=:99
