@@ -22,17 +22,15 @@ jobs:
     - name: Install dependencies
       run: |
         source tools/install-dev-env
-    - name: Setup Display
+    - name: Setup display and run pytest
       run: |
         disp=:99
         screen=0
         geom=640x480x24
         exec Xvfb $disp -screen $screen $geom 2>/tmp/Xvfb.log &
         export DISPLAY=:99
-    - name: Run pytest
-      run: |
-          python -m coverage run --source=. -m pytest
-          python -m coverage xml
+        python -m coverage run --source=. -m pytest
+        python -m coverage xml
     - name: Upload coverage
       run: |
           export CODECOV_TOKEN=ac54371c-aacc-460f-bcb6-c545418d7ae6
