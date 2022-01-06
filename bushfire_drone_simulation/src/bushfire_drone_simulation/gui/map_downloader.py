@@ -29,7 +29,7 @@ def url_to_filename(url: str) -> str:
     Returns:
         str: Filename
     """
-    return url[9:].replace("/", "").split("?")[0]
+    return url[8:].replace("/", "-").split("?")[0]
 
 
 def check_in_cache(url: str) -> bool:

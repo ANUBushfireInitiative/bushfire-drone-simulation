@@ -433,7 +433,7 @@ class GUI:
         # profiler = cProfile.Profile()
         # profiler.enable()
         self.image = self.map_image.get_image()
-        self.tk_image = ImageTk.PhotoImage(self.image)
+        self.tk_image = ImageTk.PhotoImage(self.image, master=self.window)
         map_object = self.canvas.create_image(
             self.width // 2, self.height // 2, image=self.tk_image
         )
