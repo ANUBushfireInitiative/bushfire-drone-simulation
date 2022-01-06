@@ -25,7 +25,7 @@ class UAVCoordinator:
         scenario_idx: int,
         prioritisation_function: Callable[[float, float], float],
     ):
-        """Initialise UAV Coordinator
+        """Initialise UAV Coordinator.
 
         Args:
             uavs (List[UAV]): List of UAVs (Must match list of uavs in simulator)

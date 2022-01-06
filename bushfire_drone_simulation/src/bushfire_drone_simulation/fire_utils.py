@@ -262,7 +262,7 @@ class Time:
 
     @classmethod
     def from_float(cls, time: float, units: str = DEFAULT_DURATION_UNITS) -> "Time":
-        """Initialise Time from a float
+        """Initialise Time from a float.
 
         Args:
             time (float): time as a float
@@ -276,7 +276,7 @@ class Time:
         return ret_time
 
     def get(self, units: str = DEFAULT_DURATION_UNITS) -> float:
-        """Return time as a float using specified units
+        """Return time as a float using specified units.
 
         Args:
             units (str): units (Default: DEFAULT_DURATION_UNITS)

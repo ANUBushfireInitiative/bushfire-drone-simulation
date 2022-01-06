@@ -17,7 +17,7 @@ def create_distance_array(
     The ith jth should contain the distance between the ith element from list1
     and the jth element from list2.
     """
-    ret_array = np.empty((len(list1), len(list2)), float)
+    ret_array: npt.NDArray[np.float64] = np.empty((len(list1), len(list2)), float)
     for i, element1 in enumerate(list1):
         for j, element2 in enumerate(list2):
             ret_array[i][j] = element1.distance(element2)
@@ -36,7 +36,9 @@ class PreComputedDistances:
     ):
         """Initialize precomputed distances."""
         self.to_ignition_id: Dict[int, int] = {}
-        self.strike_to_strike_array = np.empty((len(lightning), len(lightning)), float)
+        self.strike_to_strike_array: npt.NDArray[np.float64] = np.empty(
+            (len(lightning), len(lightning)), float
+        )
         ignitions = []
         ignition_id = 0
         for i, strike in enumerate(lightning):

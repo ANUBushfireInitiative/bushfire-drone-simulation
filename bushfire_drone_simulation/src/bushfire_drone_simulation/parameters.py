@@ -15,6 +15,7 @@ from typing import Any, Callable, Dict, List, Tuple, Union
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 
 from bushfire_drone_simulation.aircraft import UAV, UpdateEvent, WaterBomber
 from bushfire_drone_simulation.fire_utils import (
@@ -394,15 +395,15 @@ class JSONParameters:
             (suppression_times, "suppression time", "wbs"),
         ]:
             if len(times) != 0:
-                times_np = np.array(times)
+                times_np: npt.NDArray[np.float64] = np.array(times)
                 mean_time = np.mean(times_np)
                 title += f"Mean {name} of {mean_time} hrs\n"
                 summary_results[aircraft_type] = [
                     float(mean_time),
                     float(np.amax(times_np)),
-                    float(np.percentile(times_np, 99)),  # type: ignore
-                    float(np.percentile(times_np, 90)),  # type: ignore
-                    float(np.percentile(times_np, 50)),  # type: ignore
+                    float(np.percentile(times_np, 99)),
+                    float(np.percentile(times_np, 90)),
+                    float(np.percentile(times_np, 50)),
                 ]
 
         fig, axs = plt.subplots(2, 2, figsize=(12, 8), dpi=300)
