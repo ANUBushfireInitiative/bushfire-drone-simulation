@@ -480,23 +480,23 @@ class JSONParameters:
                 id_nos.append(strike.id_no)
                 lats.append(strike.lat)
                 lons.append(strike.lon)
-                spawn_times.append(Time.from_time(strike.spawn_time).get("hr"))
+                spawn_times.append(Time.from_float(strike.spawn_time).get("hr"))
                 if strike.inspected_time is not None:
                     inspection_times.append(
-                        Time.from_time(strike.inspected_time - strike.spawn_time).get("hr"),
+                        Time.from_float(strike.inspected_time - strike.spawn_time).get("hr"),
                     )
                     inspection_times_to_return.append(
-                        Time.from_time(strike.inspected_time - strike.spawn_time).get("hr"),
+                        Time.from_float(strike.inspected_time - strike.spawn_time).get("hr"),
                     )
                 else:
                     _LOG.error("strike %s was not inspected", str(strike.id_no))
                     inspection_times.append("N/A")
                 if strike.suppressed_time is not None:
                     suppression_times.append(
-                        Time.from_time(strike.suppressed_time - strike.spawn_time).get("hr"),
+                        Time.from_float(strike.suppressed_time - strike.spawn_time).get("hr"),
                     )
                     suppression_times_to_return.append(
-                        Time.from_time(strike.suppressed_time - strike.spawn_time).get("hr"),
+                        Time.from_float(strike.suppressed_time - strike.spawn_time).get("hr"),
                     )
                 else:
                     suppression_times.append("N/A")
@@ -590,7 +590,7 @@ class JSONParameters:
                         uav_update.name,
                         uav_update.lat,
                         uav_update.lon,
-                        Time.from_time(uav_update.time).get("min"),
+                        Time.from_float(uav_update.time).get("min"),
                         Distance(uav_update.distance_travelled).get("km"),
                         Distance(uav_update.distance_hovered).get("km"),
                         uav_update.fuel * 100,
@@ -639,7 +639,7 @@ class JSONParameters:
                         wb_update.name,
                         wb_update.lat,
                         wb_update.lon,
-                        Time.from_time(wb_update.time).get("min"),
+                        Time.from_float(wb_update.time).get("min"),
                         Distance(wb_update.distance_travelled).get("km"),
                         Distance(wb_update.distance_hovered).get("km"),
                         wb_update.fuel * 100,

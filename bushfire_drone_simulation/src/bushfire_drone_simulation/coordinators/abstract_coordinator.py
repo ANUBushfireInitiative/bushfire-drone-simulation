@@ -15,7 +15,7 @@ from bushfire_drone_simulation.precomupted import PreComputedDistances
 
 
 class UAVCoordinator:
-    """Class for centrally coordinating UAVs."""
+    """Abstract class for coordinating UAVs."""
 
     def __init__(  # pylint: disable=too-many-arguments
         self,
@@ -25,7 +25,14 @@ class UAVCoordinator:
         scenario_idx: int,
         prioritisation_function: Callable[[float, float], float],
     ):
-        """Initialize coordinator."""
+        """Initialise UAV Coordinator
+
+        Args:
+            uavs (List[UAV]): List of UAVs (Must match list of uavs in simulator)
+            uav_bases (List[Base]): List of UAV bases (Must match list of bases in simulator)
+            parameters (JSONParameters): parameters
+            scenario_idx (int): scenario_idx
+        """
         self.uavs: List[UAV] = uavs
         self.uav_bases: List[Base] = uav_bases
         self.uninspected_strikes: Set[Lightning] = set()

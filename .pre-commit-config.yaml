@@ -16,7 +16,6 @@ repos:
     - id: check-case-conflict
     - id: check-json
     - id: check-merge-conflict
-    - id: check-symlinks
     - id: check-yaml
     - id: end-of-file-fixer
     - id: check-added-large-files
@@ -58,12 +57,13 @@ repos:
         name: pylint
         entry: pylint
         language: python
+        args: ["-j 0"]
         types:
           - python
-    #-   id: sphinx-doctest
-        #name: sphinx doctest
-        #entry: python -m sphinx.cmd.build
-        #args: [-a, -E, -b, doctest, docs/source, sphinx]
-        #language: system
-        #types: [python]
-        #pass_filenames: false
+    -   id: doctest
+        name: doctest
+        entry: python -m doctest
+        args: [-v]
+        language: system
+        types: [python]
+        pass_filenames: True

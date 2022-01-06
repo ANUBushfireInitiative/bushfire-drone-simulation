@@ -111,7 +111,7 @@ def get_inspection_times(
     for strike in simulation.lightning_strikes:
         assert strike.inspected_time is not None, f"Lightning strike {strike} was not inspected"
         inspection_times.append(
-            Time.from_time(strike.inspected_time - strike.spawn_time).get("hr"),
+            Time.from_float(strike.inspected_time - strike.spawn_time).get("hr"),
         )
     return inspection_times
 
@@ -136,6 +136,6 @@ def get_supression_times(
                 strike.suppressed_time is not None
             ), f"Lightning strike {strike} ignighted but was not supressed"
             suppression_times.append(
-                Time.from_time(strike.suppressed_time - strike.spawn_time).get("hr"),
+                Time.from_float(strike.suppressed_time - strike.spawn_time).get("hr"),
             )
     return suppression_times

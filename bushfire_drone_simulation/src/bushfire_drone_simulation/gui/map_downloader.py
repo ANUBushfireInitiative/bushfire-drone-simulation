@@ -206,7 +206,7 @@ class MapDownloader:
             for tile_y in range(self.min_tile_y, self.max_tile_y):
                 url = tile_url(tile_x, tile_y, zoom)
                 if not check_in_cache(url):
-                    requests.append(grequests.get(url))
+                    requests.append(grequests.get(url, timeout=1))
 
         images = grequests.map(requests)
 
@@ -216,9 +216,14 @@ class MapDownloader:
                 url = tile_url(tile_x, tile_y, zoom)
                 tile_img = get_from_cache(url)
                 if tile_img is None:
-                    tile_img = img.open(BytesIO(images[i].content))
+                    if images[i] is None:
+                        tile_img = img.new(
+                            "RGB", (TILE_RESOLUTION, TILE_RESOLUTION), (255, 255, 255)
+                        )
+                    else:
+                        tile_img = img.open(BytesIO(images[i].content))
+                        put_in_cache(url, tile_img)
                     i += 1
-                put_in_cache(url, tile_img)
                 big_image.paste(
                     tile_img,
                     box=(

@@ -19,10 +19,10 @@ class Coordinate:
 
 
 class Location:
-    """Location class storing postion in worldwide latitude and longitude coordinates."""
+    """Position in worldwide latitude and longitude coordinates."""
 
     def __init__(self, latitude: float, longitude: float):
-        """Initialise location from latitude and longitude coordinates."""
+        """Initialise from latitude and longitude coordinates."""
         self.lat = latitude
         self.lon = longitude
 
@@ -36,17 +36,21 @@ class Location:
         )
         return 6371 * 2 * atan2(sqrt(temp), sqrt(1 - temp))
 
+    def plane_distance_sq(self, other: "Location") -> float:
+        """Find planar distance squared in degrees between two locations."""
+        return (self.lat - other.lat) ** 2 + (self.lon - other.lon) ** 2
+
     def __str__(self) -> str:
         """To string method for location."""
         return f"{self.lat} {self.lon}"
 
     def intermediate_point(self, other: "Location", percentage: float) -> "Location":
-        """Find intermediate point percentage of the way between self and other."""
-        angular = self.distance(other) / 6371
-        if angular == 0:
+        """Find intermediate point a proportion of the way between self and other."""
+        angular_distance = self.distance(other) / 6371  # The radius of the earth is 6371 km
+        if angular_distance == 0:
             return self.copy_loc()
-        h_1 = sin(radians((1 - percentage) * angular)) / sin(radians(angular))
-        h_2 = sin(radians(percentage * angular)) / sin(radians(angular))
+        h_1 = sin(radians((1 - percentage) * angular_distance)) / sin(radians(angular_distance))
+        h_2 = sin(radians(percentage * angular_distance)) / sin(radians(angular_distance))
         x = h_1 * cos(radians(self.lat)) * cos(radians(self.lon)) + h_2 * cos(
             radians(other.lat)
         ) * cos(radians(other.lon))
@@ -54,73 +58,39 @@ class Location:
             radians(other.lat)
         ) * sin(radians(other.lon))
         z = h_1 * sin(radians(self.lat)) + h_2 * sin(radians(other.lat))
-        lon = degrees(atan2(y, x))
+        lon = degrees(atan2(y, x)) % 360
         lat = degrees(atan2(z, sqrt(x * x + y * y)))
-        if lon < 0:
-            lon += 360
-        if lat > 0:
-            lat -= 360
         return Location(lat, lon)
 
     def plane_intermediate_point(self, other: "Location", percentage: float) -> "Location":
-        """Find intermediate point percentage of the way between self and other.
+        """Find intermediate point a proportion of the way between self and other.
 
         As if the locations were on a plane.
         """
-        if self.lon == other.lon:
-            new_lat = (1 - percentage) * self.lat + percentage * other.lat
-            return Location(new_lat, self.lon)
+        new_lat = (1 - percentage) * self.lat + percentage * other.lat
         new_lon = (1 - percentage) * self.lon + percentage * other.lon
-        grad = (self.lat - other.lat) / (self.lon - other.lon)
-        new_lat = grad * new_lon + self.lat - grad * self.lon
         return Location(new_lat, new_lon)
 
     def copy_loc(self) -> "Location":
-        """Create a new instance of Location."""
+        """Create a new instance of Location with same lat and lon."""
         return Location(self.lat, self.lon)
 
-    def closest_point_on_line(  # pylint: disable=too-many-return-statements, too-many-branches
-        self, start: "Location", end: "Location"
-    ) -> "Location":
+    def closest_point_on_line(self, start: "Location", end: "Location") -> "Location":
         """Return the closest point to self on line given start and end points."""
-        if start.lon == end.lon:
-            if self.lat > start.lat and self.lat > end.lat:
-                if start.lat > end.lat:
-                    return start.copy_loc()
-                return end.copy_loc()
-            if self.lat < start.lat and self.lat < end.lat:
-                if start.lat < end.lat:
-                    return start.copy_loc()
-                return end.copy_loc()
-            return Location(self.lat, start.lon)
-        if start.lat == end.lat:
-            if self.lon > start.lon and self.lon > end.lon:
-                if start.lon > end.lon:
-                    return start.copy_loc()
-                return end.copy_loc()
-            if self.lon < start.lon and self.lon < end.lon:
-                if start.lon < end.lon:
-                    return start.copy_loc()
-                return end.copy_loc()
-            return Location(start.lat, self.lon)
-        grad = (start.lat - end.lat) / (start.lon - end.lon)
-        line_intercept = start.lat - grad * start.lon
-        perp_intercept = self.lat + self.lon / grad
-        ret_lon = (perp_intercept - line_intercept) / (grad + 1 / grad)
-        ret_lat = grad * ret_lon + line_intercept
-        if ret_lon < start.lon and ret_lon < end.lon:
-            if start.lon < end.lon:
-                return start.copy_loc()
+        dot_prod = (start.lat - self.lat) * (start.lat - end.lat) + (start.lon - self.lon) * (
+            start.lon - end.lon
+        )
+        prop = dot_prod / start.plane_distance_sq(end)
+
+        if prop < 0:
+            return start.copy_loc()
+        if prop > 1:
             return end.copy_loc()
-        if ret_lon > start.lon and ret_lon > end.lon:
-            if start.lon > end.lon:
-                return start.copy_loc()
-            return end.copy_loc()
-        return Location(ret_lat, ret_lon)
+        return start.plane_intermediate_point(end, prop)
 
 
 class Target(Location):
-    """Location and time frame for aircraft to target."""
+    """Location and time frame for UAV target (level of attraction defined in parameters file)."""
 
     def __init__(self, latitude: float, longitude: float, start_time: float, end_time: float):
         """Initialize target."""
@@ -134,7 +104,7 @@ class Target(Location):
 
 
 class WaterTank(Location):
-    """Class containing a water tank's location and capacity."""
+    """Water tank's location and capacity."""
 
     def __init__(self, latitude: float, longitude: float, capacity: float, id_no: int):
         """Initialise watertank from location and capacity."""
@@ -161,12 +131,12 @@ class WaterTank(Location):
     def get_water_capacity(self, future_capacity: bool = False) -> float:
         """Return water capacity of tank.
 
-        The actual capacity (self.capacity) by default or the future capacity if future_capacity
+        The actual capacity (self.capacity) or the unallocated capacity if future_capacity
         is True
 
         Args:
             future_capacity (bool): Select whether to return current or future capacity.
-            Defaults to False
+            Default: False
 
         Returns:
             Volume: Water capacity
@@ -177,7 +147,7 @@ class WaterTank(Location):
 
 
 class Base(Location):
-    """Class containing a base's location and fuel capacity."""
+    """Base's location and fuel capacity."""
 
     def __init__(self, latitude: float, longitude: float, capacity: float, id_no: int):
         """Initialise aircraft base from location and fuel capacity."""
@@ -202,7 +172,7 @@ class Base(Location):
     def get_fuel_capacity(self, future_capacity: bool = False) -> float:
         """Return water capacity of tank.
 
-        The actual capacity (self.capacity) by default or the future capacity if future_capacity
+        The actual capacity (self.capacity) by or the unallocated capacity if future_capacity
         is True
 
         Args:
@@ -218,7 +188,16 @@ class Base(Location):
 
 
 def month_to_days(month: int, leap_year: bool = False) -> int:
-    """Month is coverted to the number of days since the beginning of the year."""
+    """Convert month to the number of days since the beginning of the year to beginning of month.
+
+    Usage:
+        >>> from bushfire_drone_simulation.fire_utils import month_to_days
+        >>> month_to_days(13)
+        365
+
+        >>> month_to_days(13, leap_year=True)
+        366
+    """
     month -= 1
     days = month * 31
     if month >= 2:
@@ -256,14 +235,14 @@ def days_to_month(days: int, leap_year: bool = False) -> Tuple[int, int]:
 
 
 class Time:
-    """Time class storing time in the form YYYY-MM-DD-HH-MM-SS."""
+    """Time in the form YYYY-MM-DD-HH-MM-SS."""
 
     def __init__(self, time_in: str):
         """Initialise time from string in the form YYYY*MM*DD*HH*MM*SS.
 
-        "*" represents any character, e.g. 2033-11/03D12*00?12 would be accepted
-        Alternatively enter "inf" for an 'infnite time' (i.e. all times occur before it)
-        Or "0" for time 0.
+        "*" represents any character, e.g. 2033-11/03D12*00?12 would be accepted.
+        Alternatively enter "inf" for an 'infinite time' (i.e. all times occur before it)
+        or "0" for time 0.
         """
         if time_in == "inf":
             self.time: Duration = Duration(inf)
@@ -282,14 +261,29 @@ class Time:
                 )
 
     @classmethod
-    def from_time(cls, time: float) -> "Time":
-        """Initialise time from float, assume float is in DEFAULT_DURATION_UNITS."""
+    def from_float(cls, time: float, units: str = DEFAULT_DURATION_UNITS) -> "Time":
+        """Initialise Time from a float
+
+        Args:
+            time (float): time as a float
+            units (str): units [Default: DEFAULT_DURATION_UNITS]
+
+        Returns:
+            Time: Time object
+        """
         ret_time = Time("0")
-        ret_time.time = Duration(time)
+        ret_time.time = Duration(time, units)
         return ret_time
 
     def get(self, units: str = DEFAULT_DURATION_UNITS) -> float:
-        """Return time."""
+        """Return time as a float using specified units
+
+        Args:
+            units (str): units (Default: DEFAULT_DURATION_UNITS)
+
+        Returns:
+            float: Time in specified units relative to time "0"
+        """
         return self.time.get(units)
 
     def copy(self) -> "Time":
@@ -335,36 +329,36 @@ class Time:
 
 
 def assert_number(value: Any, message: str) -> float:
-    """assert_number.
+    """Assert that a value can be converted to a float and return converted value.
 
     Args:
-        value (Any): value
-        message (str): message
+        value (Any): value to be converted to float
+        message (str): message to be output in error if value cannot be converted to a float
 
     Returns:
-        float:
+        float: Value as a float.
     """
     if str(value) == "inf":
         return inf
     try:
-        int(value)
         return float(value)
-    except ValueError:
-        assert False, message
+    except ValueError as err:
+        raise ValueError(message) from err
 
 
 def assert_bool(value: Any, message: str) -> bool:
-    """assert_bool.
+    """Assert a value can be converted to a boolean and return the converted value.
 
     Args:
-        value (Any): value
-        message (str): message
+        value (Any): value to be converted to a boolean
+        message (str): message to be output in error if value cannot be converted to a boolean
 
     Returns:
-        bool:
+        bool: value converted to a boolean
     """
     value = str(value)
     if value.lower() in ["1", "1.0", "t", "true", "yes", "y"]:
         return True
-    assert value.lower() in ["0", "0.0", "f", "false", "no", "n", "", "nan"], message
-    return False
+    if value.lower() in ["0", "0.0", "f", "false", "no", "n", "", "nan"]:
+        return False
+    raise ValueError(message)
