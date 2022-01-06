@@ -92,7 +92,7 @@ WindowsPowershell as before and then navigating to the target folder
 using ``cd`` (change directory). You can now run the following commands
 to download and install the application:
 
-1. ``git clone https://github.com/ryanstocks00/anu-bushfire-initiative-simulation``
+1. ``git clone https://github.com/ANUBushfireInitiative/bushfire-drone-simulation``
 2. ``cd anu-bushfire-initiative-simulation``
 3. ``.\tools\windows-install.ps1``
 
@@ -169,7 +169,7 @@ To download the source code and install the application, please open a
 terminal, navigate to the folder in which you would like to perform the
 installation and run the commands
 
-1. ``git clone https://github.com/ryanstocks00/anu-bushfire-initiative-simulation``
+1. ``git clone https://github.com/ANUBushfireInitiative/bushfire-drone-simulation``
 2. ``cd anu-bushfire-initiative-simulation``
 3. ``source tools/install-dev-env``
 
@@ -228,10 +228,10 @@ the application, contributing, or testing, please see this
 documentation.
 
 .. |ANU Bushfire Initiative Drone Logo| image:: docs/source/drone_simulation_logo_with_title.png
-   :target: https://github.com/ryanstocks00/anu-bushfire-initiative-simulation
-.. |pre-commit| image:: https://github.com/ryanstocks00/anu-bushfire-initiative-simulation/actions/workflows/python-3.8-pre-commit.yml/badge.svg
-   :target: https://github.com/ryanstocks00/anu-bushfire-initiative-simulation/actions/workflows/python-3.8-pre-commit.yml
-.. |test| image:: https://github.com/ryanstocks00/anu-bushfire-initiative-simulation/actions/workflows/python-3.8-test.yml/badge.svg
-   :target: https://github.com/ryanstocks00/anu-bushfire-initiative-simulation/actions/workflows/python-3.8-test.yml
-.. |coverage| image:: https://codecov.io/gh/ryanstocks00/anu-bushfire-initiative-simulation/branch/main/graph/badge.svg?token=QURRC5T44H
-   :target: https://codecov.io/gh/ryanstocks00/anu-bushfire-initiative-simulation
+   :target: https://github.com/ANUBushfireInitiative/bushfire-drone-simulation
+.. |pre-commit| image:: https://github.com/ANUBushfireInitiative/bushfire-drone-simulation/actions/workflows/python-3.8-pre-commit.yml/badge.svg
+   :target: https://github.com/ANUBushfireInitiative/bushfire-drone-simulation/actions/workflows/python-3.8-pre-commit.yml
+.. |test| image:: https://github.com/ANUBushfireInitiative/bushfire-drone-simulation/actions/workflows/python-3.8-test.yml/badge.svg
+   :target: https://github.com/ANUBushfireInitiative/bushfire-drone-simulation/actions/workflows/python-3.8-test.yml
+.. |coverage| image:: https://codecov.io/gh/ANUBushfireInitiative/bushfire-drone-simulation/branch/main/graph/badge.svg?token=QURRC5T44H
+   :target: https://codecov.io/gh/ANUBushfireInitiative/bushfire-drone-simulation

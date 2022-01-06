@@ -33,7 +33,7 @@ jobs:
         python -m coverage xml
     - name: Upload coverage
       run: |
-          export CODECOV_TOKEN=ac54371c-aacc-460f-bcb6-c545418d7ae6
+          export CODECOV_TOKEN=fca5ec9c-2568-4c8b-9e47-1b570b85fad4
           curl -Os https://uploader.codecov.io/latest/linux/codecov
           chmod +x codecov
           ./codecov -t ${CODECOV_TOKEN}
