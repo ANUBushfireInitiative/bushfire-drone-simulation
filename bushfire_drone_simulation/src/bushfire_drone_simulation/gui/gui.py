@@ -33,7 +33,7 @@ LONGITUDE = 147.9
 class GUI:
     """GUI class for bushfire drone simulation."""
 
-    def __init__(self, parameters_filename: Optional[Path]) -> None:
+    def __init__(self, parameters_filename: Optional[Path] = None, mainloop: bool = True) -> None:
         """Run GUI."""
         self.content = False
         self.width, self.height = WIDTH, HEIGHT
@@ -91,7 +91,8 @@ class GUI:
         if parameters_filename is not None:
             self.open_file(parameters_filename)
         self.restart()
-        self.window.mainloop()
+        if mainloop:
+            self.window.mainloop()
 
     def _create_menu(self) -> None:
         """Create gui menu bar."""
