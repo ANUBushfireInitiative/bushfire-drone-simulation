@@ -16,21 +16,17 @@ from bushfire_drone_simulation.coordinators.insertion_coordinator import (
     InsertionUAVCoordinator,
     InsertionWBCoordinator,
 )
-from bushfire_drone_simulation.coordinators.matlab_coordinator import (
-    MatlabUAVCoordinator,
-    MatlabWBCoordinator,
-)
 from bushfire_drone_simulation.coordinators.minimise_mean_time_coordinator import (
     MinimiseMeanTimeUAVCoordinator,
     MinimiseMeanTimeWBCoordinator,
 )
-from bushfire_drone_simulation.coordinators.new_strikes_first_coordinator import (
-    NewStrikesFirstUAVCoordinator,
-    NewStrikesFirstWBCoordinator,
-)
 from bushfire_drone_simulation.coordinators.reprocess_max_time_coordinator import (
     ReprocessMaxTimeUAVCoordinator,
     ReprocessMaxTimeWBCoordinator,
+)
+from bushfire_drone_simulation.coordinators.simple_coordinator import (
+    SimpleUAVCoordinator,
+    SimpleWBCoordinator,
 )
 from bushfire_drone_simulation.coordinators.unassigned_coordinator import (
     SimpleUnassignedCoordinator,
@@ -39,17 +35,15 @@ from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.precomupted import PreComputedDistances
 
-UAV_COORDINATORS: Dict[str, Union[Type[UAVCoordinator]]] = {
-    "MatlabUAVCoordinator": MatlabUAVCoordinator,
-    "NewStrikesFirstUAVCoordinator": NewStrikesFirstUAVCoordinator,
+UAV_COORDINATORS: Dict[str, Type[UAVCoordinator]] = {
+    "SimpleUAVCoordinator": SimpleUAVCoordinator,
     "InsertionUAVCoordinator": InsertionUAVCoordinator,
     "MinimiseMeanTimeUAVCoordinator": MinimiseMeanTimeUAVCoordinator,
     "ReprocessMaxTimeUAVCoordinator": ReprocessMaxTimeUAVCoordinator,
 }
 
-WB_COORDINATORS: Dict[str, Union[Type[WBCoordinator]]] = {
-    "MatlabWBCoordinator": MatlabWBCoordinator,
-    "NewStrikesFirstWBCoordinator": NewStrikesFirstWBCoordinator,
+WB_COORDINATORS: Dict[str, Type[WBCoordinator]] = {
+    "SimpleWBCoordinator": SimpleWBCoordinator,
     "InsertionWBCoordinator": InsertionWBCoordinator,
     "MinimiseMeanTimeWBCoordinator": MinimiseMeanTimeWBCoordinator,
     "ReprocessMaxTimeWBCoordinator": ReprocessMaxTimeWBCoordinator,
@@ -79,6 +73,10 @@ class Simulator:
             self.lightning_strikes, self.uav_bases, self.water_bomber_bases_dict, self.water_tanks
         )
         self.summary_results: Dict[str, List[Union[float, str]]] = {}
+        self.uav_prioritisation_function = params.get_prioritisation_function("uavs", scenario_idx)
+        self.wb_prioritisation_function = params.get_prioritisation_function(
+            "water_bombers", scenario_idx
+        )
 
     def run_simulation(  # pylint: disable=too-many-branches
         self,
@@ -197,7 +195,11 @@ def run_simulations(params: JSONParameters) -> List[Simulator]:
     for scenario_idx in tqdm(range(0, len(params.scenarios)), unit="scenario"):
         simulator = Simulator(params, scenario_idx)
         uav_coordinator = UAV_COORDINATORS[params.get_attribute("uav_coordinator", scenario_idx)](
-            simulator.uavs, simulator.uav_bases, params, scenario_idx
+            simulator.uavs,
+            simulator.uav_bases,
+            params,
+            scenario_idx,
+            simulator.uav_prioritisation_function,
         )
         wb_coordinator = WB_COORDINATORS[params.get_attribute("wb_coordinator", scenario_idx)](
             simulator.water_bombers,
@@ -205,6 +207,7 @@ def run_simulations(params: JSONParameters) -> List[Simulator]:
             simulator.water_tanks,
             params,
             scenario_idx,
+            simulator.wb_prioritisation_function,
         )
         unassigned_coordinator: Optional[UnassignedCoordinator] = None
         if "unassigned_drones" in params.parameters:

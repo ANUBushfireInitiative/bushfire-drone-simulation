@@ -75,14 +75,18 @@ class InsertionUAVCoordinator(UAVCoordinator):
                     future_events.insert(0, event.position)
                     if prev_event is None:  # no more events in queue, use aircraft current state
                         temp_arr_time = uav.enough_fuel(
-                            lightning_event + future_events + base, "self"
+                            lightning_event + future_events + base,
+                            self.prioritisation_function,
+                            "self",
                         )
                     else:
                         assert isinstance(
                             prev_event.value, Event
                         ), f"{uav.get_name()}s event queue contained a non event"
                         temp_arr_time = uav.enough_fuel(
-                            lightning_event + future_events + base, prev_event.value
+                            lightning_event + future_events + base,
+                            self.prioritisation_function,
+                            prev_event.value,
                         )
                     if temp_arr_time is not None:
                         if temp_arr_time < min_arrival_time:
@@ -98,7 +102,9 @@ class InsertionUAVCoordinator(UAVCoordinator):
             # go to the lightning strike and then to the nearest base
             # and if so determine the arrival time at the lightning strike
             # updating if it is currently the minimum
-            temp_arr_time = uav.enough_fuel([lightning, self.uav_bases[base_index]])
+            temp_arr_time = uav.enough_fuel(
+                [lightning, self.uav_bases[base_index]], self.prioritisation_function
+            )
             if temp_arr_time is not None:
                 if temp_arr_time < min_arrival_time:
                     min_arrival_time = temp_arr_time
@@ -108,7 +114,8 @@ class InsertionUAVCoordinator(UAVCoordinator):
             else:  # Need to go via a base to refuel
                 for uav_base in self.uav_bases:
                     temp_arr_time = uav.enough_fuel(
-                        [uav_base, lightning, self.uav_bases[base_index]]
+                        [uav_base, lightning, self.uav_bases[base_index]],
+                        self.prioritisation_function,
                     )
                     if temp_arr_time is not None:
                         if temp_arr_time < min_arrival_time:
@@ -174,7 +181,9 @@ class InsertionWBCoordinator(WBCoordinator):
                     if prev_event is None:  # no more events in queue, use aircraft current state
                         if water_bomber.enough_water(ignition_event + future_events, "self"):
                             temp_arr_time = water_bomber.enough_fuel(
-                                ignition_event + future_events + closest_base_to_last_event, "self"
+                                ignition_event + future_events + closest_base_to_last_event,
+                                self.prioritisation_function,
+                                "self",
                             )
                     else:
                         if water_bomber.enough_water(
@@ -182,6 +191,7 @@ class InsertionWBCoordinator(WBCoordinator):
                         ):
                             temp_arr_time = water_bomber.enough_fuel(
                                 ignition_event + future_events + closest_base_to_last_event,
+                                self.prioritisation_function,
                                 prev_event.value,
                             )
                     if temp_arr_time is not None:
@@ -199,7 +209,9 @@ class InsertionWBCoordinator(WBCoordinator):
             else:
                 base_index = self.precomputed.closest_wb_base(ignition, water_bomber.get_type())
             if water_bomber.enough_water([ignition]):
-                temp_arr_time = water_bomber.enough_fuel([ignition, bases[base_index]])
+                temp_arr_time = water_bomber.enough_fuel(
+                    [ignition, bases[base_index]], self.prioritisation_function
+                )
                 if temp_arr_time is not None:
                     if temp_arr_time < min_arrival_time:
                         min_arrival_time = temp_arr_time
@@ -210,7 +222,7 @@ class InsertionWBCoordinator(WBCoordinator):
                     _LOG.debug("%s needs to refuel", water_bomber.get_name())
                     for base in bases:
                         temp_arr_time = water_bomber.enough_fuel(
-                            [base, ignition, bases[base_index]]
+                            [base, ignition, bases[base_index]], self.prioritisation_function
                         )
                         if temp_arr_time is not None:
                             if temp_arr_time < min_arrival_time:
@@ -226,7 +238,7 @@ class InsertionWBCoordinator(WBCoordinator):
                 go_via_base = True
                 for water_tank in self.water_tanks:
                     temp_arr_time = water_bomber.enough_fuel(
-                        [water_tank, ignition, bases[base_index]]
+                        [water_tank, ignition, bases[base_index]], self.prioritisation_function
                     )
                     if water_bomber.check_water_tank(water_tank) and temp_arr_time is not None:
                         if temp_arr_time < min_arrival_time:
@@ -244,7 +256,8 @@ class InsertionWBCoordinator(WBCoordinator):
                                     base,
                                     ignition,
                                     bases[base_index],
-                                ]
+                                ],
+                                self.prioritisation_function,
                             )
                             if (
                                 water_bomber.check_water_tank(water_tank)
@@ -261,7 +274,8 @@ class InsertionWBCoordinator(WBCoordinator):
                                     water_tank,
                                     ignition,
                                     bases[base_index],
-                                ]
+                                ],
+                                self.prioritisation_function,
                             )
                             if (
                                 water_bomber.check_water_tank(water_tank)

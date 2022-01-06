@@ -9,7 +9,7 @@ strike and rather discounts the option if it does not possess enough fuel or wat
 """
 
 import logging
-from typing import Dict, List
+from typing import Callable, Dict, List
 
 from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.coordinators.minimise_mean_time_coordinator import (
@@ -29,11 +29,16 @@ class ReprocessMaxTimeUAVCoordinator(MinimiseMeanTimeUAVCoordinator):
     and minimise the new strikes inspection time.
     """
 
-    def __init__(
-        self, uavs: List[UAV], uav_bases: List[Base], parameters: JSONParameters, scenario_idx: int
+    def __init__(  # pylint: disable=too-many-arguments
+        self,
+        uavs: List[UAV],
+        uav_bases: List[Base],
+        parameters: JSONParameters,
+        scenario_idx: int,
+        prioritisation_function: Callable[[float, float], float],
     ):
         """Initialize coordinator."""
-        super().__init__(uavs, uav_bases, parameters, scenario_idx)
+        super().__init__(uavs, uav_bases, parameters, scenario_idx, prioritisation_function)
         self.reprocess_max: bool = True
 
 
@@ -51,7 +56,15 @@ class ReprocessMaxTimeWBCoordinator(MinimiseMeanTimeWBCoordinator):
         water_tanks: List[WaterTank],
         parameters: JSONParameters,
         scenario_idx: int,
+        prioritisation_function: Callable[[float, float], float],
     ):
         """Initialize coordinator."""
-        super().__init__(water_bombers, water_bomber_bases, water_tanks, parameters, scenario_idx)
+        super().__init__(
+            water_bombers,
+            water_bomber_bases,
+            water_tanks,
+            parameters,
+            scenario_idx,
+            prioritisation_function,
+        )
         self.reprocess_max = True

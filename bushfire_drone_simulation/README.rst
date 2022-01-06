@@ -58,16 +58,14 @@ The JSON parameters file should contain the following information formatted as i
     .. code-block:: python
 
         UAV_COORDINATORS: Dict[str, Union[Type[UAVCoordinator]]] = {
-            "MatlabUAVCoordinator": MatlabUAVCoordinator,
-            "NewStrikesFirstUAVCoordinator": NewStrikesFirstUAVCoordinator,
+            "SimpleUAVCoordinator": SimpleUAVCoordinator,
             "InsertionUAVCoordinator": InsertionUAVCoordinator,
             "MinimiseMeanTimeUAVCoordinator": MinimiseMeanTimeUAVCoordinator,
             "ReprocessMaxTimeUAVCoordinator": ReprocessMaxTimeUAVCoordinator,
         }
 
         WB_COORDINATORS: Dict[str, Union[Type[WBCoordinator]]] = {
-            "MatlabWBCoordinator": MatlabWBCoordinator,
-            "NewStrikesFirstWBCoordinator": NewStrikesFirstWBCoordinator,
+            "SimpleWBCoordinator": SimpleWBCoordinator,
             "InsertionWBCoordinator": InsertionWBCoordinator,
             "MinimiseMeanTimeWBCoordinator": MinimiseMeanTimeWBCoordinator,
             "ReprocessMaxTimeWBCoordinator": ReprocessMaxTimeWBCoordinator,
@@ -78,14 +76,14 @@ The JSON parameters file should contain the following information formatted as i
 
     The currently implemented coordinators are described below:
 
-    - **MatlabUAVCoordinator**: Equivalent of the original matlab implementation. This simply assigns each lighning strike as it occurs to the UAV which will get to it the fastest when appended to it's queue of tasks.
-    - **MatlabWBCoordinator**: Water bomber equivalent of MatlabUAVCoordinator.
-    - **InsertionUAVCoordinator**: This is an improvement on the MatlabUAVCoordinator that allows the lighning strike to be inserted anywhere into the queue of tasks.
+    - **SimpleUAVCoordinator**: Equivalent of the original matlab implementation. This simply assigns each lightning strike as it occurs to the UAV which will get to it the fastest when appended to it's queue of tasks.
+    - **SimpleWBCoordinator**: Water bomber equivalent of SimpleUAVCoordinator.
+    - **InsertionUAVCoordinator**: This is an improvement on the SimpleUAVCoordinator that allows the lightning strike to be inserted anywhere into the queue of tasks of each aircraft.
     - **InsertionWBCoordinator**: Water bomber equivalent of InsertionUAVCoordinator.
     - **MinimiseMeanTimeUAVCoordinator**: This is an improvement on the InsertionUAVCoordinator that minimizes the total increase in the average inspection time given an insertion into the UAV task queue.
     - **MinimiseMeanTimeWBCoordinator**: Water bomber equivalent of MinimiseMeanTimeUAVCoordinator.
-    - **NewStrikesFirstUAVCoordinator**: This coordinator assigns each new lighning strike to the UAV that would currently be able to get there the fastest and then reassigns the lightning strikes that were assigned to that UAV prior. WARNING: This is very slow, and does not appear to improve on the basic matlab coordinator.
-    - **NewStrikesFirstWBCoordinator**: Water bomber equivalent of NewStrikesFirstUAVCoordinator.
+    - **ReprocessMaxTimeUAVCoordinator**: This is an extension to the MinimiseMeanTimeUAVCoordinator that aims to reduce the maximum inspection time by reprocessing the strike with the largest inspection time.
+    - **ReprocessMaxTimeWBCoordinator**: Water bomber equivalent of ReprocessMaxTimeUAVCoordinator.
 
 *  The following configuration variables:
 
@@ -121,6 +119,7 @@ The JSON parameters file should contain the following information formatted as i
                     "range": "total range of uav traveling at 'flight_speed' with a full tank in km"
                     "inspection_time": "time spent inspecting strike in min"
                 }
+                "prioritisation_function": "how uavs should prioritise lightning strikes, see below."
             }
         }
 
@@ -243,13 +242,13 @@ is just sample input.
 
 * lightning_filename
 
-    The lighning file should contain the location and time of each lightning strike (not necessarily in
-    chronological order). This should be formatted as follows:
+    The lightning file should contain the location and time of each lightning strike (not necessarily in
+    chronological order) and optionally a risk rating. This should be formatted as follows:
 
     .. csv-table::
-        :header: "latitude", "longitude", "time"
+        :header: "latitude", "longitude", "time", "risk_rating"
 
-        -37.81,144.97,2020/12/13/10/20/30
+        -37.81,144.97,2020/12/13/10/20/30,0.5
 
     Note that the time can either be in the form YYYY*MM*DD*HH*MM*SS where "*" represents any character
     (e.g. 2033-11/03D12*00?12 would be accepted) or in minutes from time 0.
@@ -375,8 +374,8 @@ please see bushfire_drone_simulation/example_input.
         "lightning_filename": "lightning.csv",
         "scenario_parameters_filename": "scenario_parameters.csv",
         "output_folder_name": "output",
-        "uav_coordinator": "MatlabUAVCoordinator",
-        "wb_coordinator": "MatlabWBCoordinator",
+        "uav_coordinator": "SimpleUAVCoordinator",
+        "wb_coordinator": "SimpleWBCoordinator",
         "uav_mean_time_power": 1,
         "wb_mean_time_power": 1,
         "target_maximum_inspection_time": 0.5,

@@ -21,8 +21,8 @@ from bushfire_drone_simulation.lightning import Lightning
 _LOG = logging.getLogger(__name__)
 
 
-class MatlabUAVCoordinator(UAVCoordinator):
-    """Matlab UAV Coordinator."""
+class SimpleUAVCoordinator(UAVCoordinator):
+    """Simple UAV Coordinator."""
 
     def process_new_strike(self, lightning: Lightning) -> None:  # pylint: disable=too-many-branches
         """Receive lightning strike that just occurred and assign best uav."""
@@ -38,7 +38,9 @@ class MatlabUAVCoordinator(UAVCoordinator):
             # go to the lightning strike and then to the nearest base
             # and if so determine the arrival time at the lightning strike
             # updating if it is currently the minimum
-            temp_arr_time = uav.enough_fuel([lightning, self.uav_bases[base_index]])
+            temp_arr_time = uav.enough_fuel(
+                [lightning, self.uav_bases[base_index]], self.prioritisation_function
+            )
             if temp_arr_time is not None:
                 if temp_arr_time < min_arrival_time:
                     min_arrival_time = temp_arr_time
@@ -48,7 +50,8 @@ class MatlabUAVCoordinator(UAVCoordinator):
             else:
                 for uav_base in self.uav_bases:
                     temp_arr_time = uav.enough_fuel(
-                        [uav_base, lightning, self.uav_bases[base_index]]
+                        [uav_base, lightning, self.uav_bases[base_index]],
+                        self.prioritisation_function,
                     )
                     if temp_arr_time is not None:
                         if temp_arr_time < min_arrival_time:
@@ -71,8 +74,8 @@ class MatlabUAVCoordinator(UAVCoordinator):
             uav.go_to_base_when_necessary(self.uav_bases, lightning.spawn_time)
 
 
-class MatlabWBCoordinator(WBCoordinator):
-    """Matlab water bomber coordinator."""
+class SimpleWBCoordinator(WBCoordinator):
+    """Simple water bomber coordinator."""
 
     def process_new_ignition(  # pylint: disable=too-many-branches, too-many-statements
         self, ignition: Lightning
@@ -89,7 +92,9 @@ class MatlabWBCoordinator(WBCoordinator):
             else:
                 base_index = self.precomputed.closest_wb_base(ignition, water_bomber.get_type())
             if water_bomber.enough_water([ignition]):
-                temp_arr_time = water_bomber.enough_fuel([ignition, bases[base_index]])
+                temp_arr_time = water_bomber.enough_fuel(
+                    [ignition, bases[base_index]], self.prioritisation_function
+                )
                 if temp_arr_time is not None:
                     # temp_arr_time = water_bomber.arrival_time([ignition], ignition.inspected_time)
                     if temp_arr_time < min_arrival_time:
@@ -100,7 +105,7 @@ class MatlabWBCoordinator(WBCoordinator):
                     _LOG.debug("%s needs to refuel", water_bomber.get_name())
                     for base in bases:
                         temp_arr_time = water_bomber.enough_fuel(
-                            [base, ignition, bases[base_index]]
+                            [base, ignition, bases[base_index]], self.prioritisation_function
                         )
                         if temp_arr_time is not None:
                             if temp_arr_time < min_arrival_time:
@@ -115,7 +120,7 @@ class MatlabWBCoordinator(WBCoordinator):
                 go_via_base = True
                 for water_tank in self.water_tanks:
                     temp_arr_time = water_bomber.enough_fuel(
-                        [water_tank, ignition, bases[base_index]]
+                        [water_tank, ignition, bases[base_index]], self.prioritisation_function
                     )
                     if water_bomber.check_water_tank(water_tank) and temp_arr_time is not None:
                         if temp_arr_time < min_arrival_time:
@@ -132,7 +137,8 @@ class MatlabWBCoordinator(WBCoordinator):
                                     base,
                                     ignition,
                                     bases[base_index],
-                                ]
+                                ],
+                                self.prioritisation_function,
                             )
                             if (
                                 water_bomber.check_water_tank(water_tank)
@@ -148,7 +154,8 @@ class MatlabWBCoordinator(WBCoordinator):
                                     water_tank,
                                     ignition,
                                     bases[base_index],
-                                ]
+                                ],
+                                self.prioritisation_function,
                             )
                             if (
                                 water_bomber.check_water_tank(water_tank)

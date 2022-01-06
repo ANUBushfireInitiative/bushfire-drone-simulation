@@ -5,17 +5,17 @@
     "lightning_filename": "input_data/lightning.csv",
     "scenario_parameters_filename": "input_data/scenario_parameters.csv",
     "output_folder_name": "output",
-    "uav_coordinator": "MinimiseMeanTimeUAVCoordinator",
-    "wb_coordinator": "MinimiseMeanTimeWBCoordinator",
+    "uav_coordinator": "InsertionUAVCoordinator",
+    "wb_coordinator": "InsertionWBCoordinator",
     "uav_mean_time_power": 1,
     "wb_mean_time_power": 1,
     "target_maximum_inspection_time": 0.5,
     "target_maximum_suppression_time": 1,
-    "ignition_probability": "?",
+    "ignition_probability": 1,
 
     "uavs": {"spawn_loc_file": "input_data/uav_spawn_locations.csv",
         "attributes": {
-            "flight_speed": "?",
+            "flight_speed": 250,
             "fuel_refill_time": 30,
             "range": 650,
             "inspection_time": 1
@@ -52,19 +52,5 @@
                 "water_capacity": 11500
             }
         }
-    },
-
-    "unassigned_drones": {
-        "targets_filename": "input_data/targets.csv",
-        "boundary_polygon_filename": "input_data/boundary_polygon.csv",
-        "dt": 60,
-        "uav_repulsion_const": 50000.0,
-        "uav_repulsion_power": -3,
-        "target_attraction_const": 200.0,
-        "target_attraction_power": -1.2,
-        "boundary_repulsion_const": 200.0,
-        "boundary_repulsion_power": -1.5,
-        "centre_lat": -36.5,
-        "centre_lon": 148
     }
 }

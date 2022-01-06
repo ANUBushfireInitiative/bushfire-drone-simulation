@@ -10,7 +10,7 @@ strike and rather discounts the option if it does not possess enough fuel or wat
 
 import logging
 from math import inf
-from typing import Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 
@@ -35,11 +35,16 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
     and minimise the new strikes inspection time.
     """
 
-    def __init__(
-        self, uavs: List[UAV], uav_bases: List[Base], parameters: JSONParameters, scenario_idx: int
+    def __init__(  # pylint: disable=too-many-arguments
+        self,
+        uavs: List[UAV],
+        uav_bases: List[Base],
+        parameters: JSONParameters,
+        scenario_idx: int,
+        prioritisation_function: Callable[[float, float], float],
     ):
         """Initialize coordinator."""
-        super().__init__(uavs, uav_bases, parameters, scenario_idx)
+        super().__init__(uavs, uav_bases, parameters, scenario_idx, prioritisation_function)
         self.max_inspection_time: float = 0
         self.consider_max_inspection_time: bool = True
         self.reprocess_max = True
@@ -106,6 +111,7 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                             if closest_base_to_last_event is not None
                             else []
                         ),
+                        self.prioritisation_function,
                         prev_state,
                     )
                     if enough_fuel is not None:
@@ -146,7 +152,9 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
             # go to the lightning strike and then to the nearest base
             # and if so determine the arrival time at the lightning strike
             # updating if it is currently the minimum
-            temp_arr_time = uav.enough_fuel([lightning, self.uav_bases[index_of_closest_base]])
+            temp_arr_time = uav.enough_fuel(
+                [lightning, self.uav_bases[index_of_closest_base]], self.prioritisation_function
+            )
             if temp_arr_time is not None:
                 inspection_time = uav.arrival_time([lightning]) - lightning.spawn_time
                 temp_arr_time = inspection_time ** mean_time_power
@@ -165,7 +173,8 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
             else:  # Need to go via a base to refuel
                 for uav_base in self.uav_bases:
                     temp_arr_time = uav.enough_fuel(
-                        [uav_base, lightning, self.uav_bases[index_of_closest_base]]
+                        [uav_base, lightning, self.uav_bases[index_of_closest_base]],
+                        self.prioritisation_function,
                     )
                     if temp_arr_time is not None:
                         inspection_time = (
@@ -275,9 +284,17 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
         water_tanks: List[WaterTank],
         parameters: JSONParameters,
         scenario_idx: int,
+        prioritisation_function: Callable[[float, float], float],
     ):
         """Initialize coordinator."""
-        super().__init__(water_bombers, water_bomber_bases, water_tanks, parameters, scenario_idx)
+        super().__init__(
+            water_bombers,
+            water_bomber_bases,
+            water_tanks,
+            parameters,
+            scenario_idx,
+            prioritisation_function,
+        )
         self.max_inspection_time: float = 0
         self.consider_max_inspection_time: bool = True
         self.reprocess_max = False
@@ -341,6 +358,7 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                                 if closest_base_to_last_event is not None
                                 else []
                             ),
+                            self.prioritisation_function,
                             prev_state,
                         )
                         if enough_fuel is not None:
@@ -382,7 +400,9 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
             else:
                 base_index = self.precomputed.closest_wb_base(ignition, water_bomber.get_type())
             if water_bomber.enough_water([ignition]):
-                temp_arr_time = water_bomber.enough_fuel([ignition, bases[base_index]])
+                temp_arr_time = water_bomber.enough_fuel(
+                    [ignition, bases[base_index]], self.prioritisation_function
+                )
                 if temp_arr_time is not None:
                     suppression_time = water_bomber.arrival_time([ignition]) - ignition.spawn_time
                     temp_arr_time = suppression_time ** mean_time_power
@@ -401,7 +421,7 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                     _LOG.debug("%s needs to refuel", water_bomber.get_name())
                     for base in bases:
                         temp_arr_time = water_bomber.enough_fuel(
-                            [base, ignition, bases[base_index]]
+                            [base, ignition, bases[base_index]], self.prioritisation_function
                         )
                         if temp_arr_time is not None:
                             suppression_time = (
@@ -427,7 +447,7 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                 go_via_base = True
                 for water_tank in self.water_tanks:
                     temp_arr_time = water_bomber.enough_fuel(
-                        [water_tank, ignition, bases[base_index]]
+                        [water_tank, ignition, bases[base_index]], self.prioritisation_function
                     )
                     if water_bomber.check_water_tank(water_tank) and temp_arr_time is not None:
                         suppression_time = (
@@ -455,7 +475,8 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                                     base,
                                     ignition,
                                     bases[base_index],
-                                ]
+                                ],
+                                self.prioritisation_function,
                             )
                             if (
                                 water_bomber.check_water_tank(water_tank)
@@ -487,7 +508,8 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                                     water_tank,
                                     ignition,
                                     bases[base_index],
-                                ]
+                                ],
+                                self.prioritisation_function,
                             )
                             if (
                                 water_bomber.check_water_tank(water_tank)

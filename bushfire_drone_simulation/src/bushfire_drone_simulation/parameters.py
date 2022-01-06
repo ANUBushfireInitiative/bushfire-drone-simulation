@@ -336,6 +336,22 @@ class JSONParameters:
             )
         return attribute_dict, targets, polygon, self.output_folder
 
+    def get_prioritisation_function(
+        self, aircraft: str, scenario_idx: int
+    ) -> Callable[[float, float], float]:
+        """Return prioritisation function combining inspection/supression time and risk rating."""
+        aircraft_data = self.get_attribute(aircraft, scenario_idx)
+        if "prioritisation_function" not in aircraft_data:
+            return lambda time, risk_rating: time
+        function_name = aircraft_data["prioritisation_function"]
+        if function_name == "product":
+            return lambda time, risk_rating: time * risk_rating
+        raise Exception(
+            f"Error: Do not recognise value '{function_name}' "
+            f"from attribute {aircraft}/prioritisation_function in '{self.filepath}'.\n"
+            f"Please refer to the documentation for possible prioritisation functions."
+        )
+
     def get_attribute(self, attribute: str, scenario_idx: int) -> Any:
         """Return attribute of JSON file."""
         if attribute not in self.scenarios[scenario_idx]:
@@ -346,7 +362,7 @@ class JSONParameters:
             )
         return self.scenarios[scenario_idx][attribute]
 
-    def get_raw_attribute(self, attribute: str) -> Any:
+    def __get_raw_attribute(self, attribute: str) -> Any:
         """Return attribute of JSON file."""
         if attribute not in self.parameters:
             raise Exception(
@@ -663,7 +679,7 @@ class JSONParameters:
             gui_params["scenario_parameters_filename"] = (
                 input_folder.name
                 + "/"
-                + Path(self.get_raw_attribute("scenario_parameters_filename")).name
+                + Path(self.__get_raw_attribute("scenario_parameters_filename")).name
             )
         shutil.copy2(
             os.path.join(self.folder, self.scenarios[scenario_idx]["uavs"]["spawn_loc_file"]),

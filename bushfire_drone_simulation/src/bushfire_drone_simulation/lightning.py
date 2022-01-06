@@ -15,18 +15,18 @@ class Lightning(Location):
         longitude: float,
         spawn_time: float,
         ignition_probability: float,
+        risk_rating: float,
         id_no: int,
-        phoney: bool = False,
     ):  # pylint: disable=too-many-arguments
         """Initialize lightning."""
         self.spawn_time = spawn_time
         self.ignition = random.random() < ignition_probability
+        self.risk_rating = risk_rating
         super().__init__(latitude, longitude)
         self.id_no = id_no
         self.inspected_time: Union[float, None] = None
         self.suppressed_time: Union[float, None] = None
         self.nearest_base: Union[int, None] = None
-        self.phoney = phoney
 
     def inspected(self, time: float) -> None:
         """Lightning strike is updated when inspected.

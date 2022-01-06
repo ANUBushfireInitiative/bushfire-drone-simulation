@@ -43,7 +43,7 @@ def test_coordinator_properties(
     for simulators, params in simulations_list:
         reprocess_max_time_simulation: Optional[Simulator] = None
         minimise_mean_time_simulation: Optional[Simulator] = None
-        matlab_simulation: Optional[Simulator] = None
+        simple_simulation: Optional[Simulator] = None
         insertion_simulation: Optional[Simulator] = None
         for scenario_idx in range(len(params.scenarios)):
             if (
@@ -56,8 +56,8 @@ def test_coordinator_properties(
                 == "MinimiseMeanTimeCoordinator"
             ):
                 minimise_mean_time_simulation = simulators[scenario_idx]
-            if str(params.get_attribute("scenario_name", scenario_idx)) == "MatlabCoordinator":
-                matlab_simulation = simulators[scenario_idx]
+            if str(params.get_attribute("scenario_name", scenario_idx)) == "SimpleCoordinator":
+                simple_simulation = simulators[scenario_idx]
             if str(params.get_attribute("scenario_name", scenario_idx)) == "InsertionCoordinator":
                 insertion_simulation = simulators[scenario_idx]
         assert (
@@ -66,7 +66,7 @@ def test_coordinator_properties(
         assert (
             minimise_mean_time_simulation is not None
         ), "Not testing Minimise Mean Time coordinator"
-        assert matlab_simulation is not None, "Not testing Matlab Time coordinator"
+        assert simple_simulation is not None, "Not testing Simple Time coordinator"
         assert insertion_simulation is not None, "Not testing Insertion Time coordinator"
         assert mean(get_inspection_times(minimise_mean_time_simulation)) >= mean(
             get_inspection_times(reprocess_max_time_simulation)
@@ -75,8 +75,8 @@ def test_coordinator_properties(
             get_inspection_times(insertion_simulation)
         ), "Minimise mean time returned a higher mean inspection time than Insertion"
         assert mean(get_inspection_times(minimise_mean_time_simulation)) >= mean(
-            get_inspection_times(matlab_simulation)
-        ), "Minimise mean time returned a higher mean inspection time than Matlab"
+            get_inspection_times(simple_simulation)
+        ), "Minimise mean time returned a higher mean inspection time than Simple"
         assert max(get_inspection_times(minimise_mean_time_simulation)) <= max(
             get_inspection_times(reprocess_max_time_simulation)
         ), "Reprocess max time returned a higher maximum inspection time than Minimise mean time"
@@ -87,8 +87,8 @@ def test_coordinator_properties(
             get_supression_times(insertion_simulation)
         ), "Minimise mean time returned a higher mean supression time than Insertion"
         assert mean(get_supression_times(minimise_mean_time_simulation)) >= mean(
-            get_supression_times(matlab_simulation)
-        ), "Minimise mean time returned a higher mean supression time than Matlab"
+            get_supression_times(simple_simulation)
+        ), "Minimise mean time returned a higher mean supression time than Simple"
         assert max(get_supression_times(minimise_mean_time_simulation)) <= max(
             get_supression_times(reprocess_max_time_simulation)
         ), "Reprocess max time returned a higher max supression time than Minimise mean time"

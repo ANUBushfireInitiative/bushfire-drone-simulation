@@ -1,0 +1,3 @@
+scenario_name,uavs/attributes/flight_speed,ignition_probability
+1,235,0.072
+2,250,0.5

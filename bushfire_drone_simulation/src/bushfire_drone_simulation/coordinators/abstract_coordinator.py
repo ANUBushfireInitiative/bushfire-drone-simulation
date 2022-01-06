@@ -3,7 +3,7 @@
 from abc import abstractmethod
 from math import inf
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from matplotlib import path
 
@@ -17,8 +17,13 @@ from bushfire_drone_simulation.precomupted import PreComputedDistances
 class UAVCoordinator:
     """Class for centrally coordinating UAVs."""
 
-    def __init__(
-        self, uavs: List[UAV], uav_bases: List[Base], parameters: JSONParameters, scenario_idx: int
+    def __init__(  # pylint: disable=too-many-arguments
+        self,
+        uavs: List[UAV],
+        uav_bases: List[Base],
+        parameters: JSONParameters,
+        scenario_idx: int,
+        prioritisation_function: Callable[[float, float], float],
     ):
         """Initialize coordinator."""
         self.uavs: List[UAV] = uavs
@@ -27,6 +32,7 @@ class UAVCoordinator:
         self.precomputed: Optional[PreComputedDistances] = None
         self.parameters = parameters
         self.scenario_idx = scenario_idx
+        self.prioritisation_function = prioritisation_function
 
     def accept_precomputed_distances(self, precomputed: PreComputedDistances) -> None:
         """Accept precomputed distance class with distances already evaluated."""
@@ -172,6 +178,7 @@ class WBCoordinator:
         water_tanks: List[WaterTank],
         parameters: JSONParameters,
         scenario_idx: int,
+        prioritisation_function: Callable[[float, float], float],
     ):
         """Initialize coordinator."""
         self.water_bombers: List[WaterBomber] = water_bombers
@@ -182,6 +189,7 @@ class WBCoordinator:
         self.precomputed: Optional[PreComputedDistances] = None
         self.parameters = parameters
         self.scenario_idx = scenario_idx
+        self.prioritisation_function = prioritisation_function
 
     def accept_precomputed_distances(self, precomputed: PreComputedDistances) -> None:
         """Accept precomputed distance class with distances already evaluated."""

@@ -4,7 +4,7 @@ import math
 from abc import abstractmethod
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -619,19 +619,24 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             self.required_departure_time = None
 
     def enough_fuel(  # pylint: disable=too-many-branches, too-many-arguments
-        self, positions: List[Location], state: Optional[Union[Event, str]] = None
+        self,
+        positions: List[Location],
+        prioritisation_function: Optional[Callable[[float, float], float]] = None,
+        state: Optional[Union[Event, str]] = None,
     ) -> Optional[float]:
         """Return whether an Aircraft has enough fuel to traverse a given array of positions.
 
         The fuel is tested when the positions are added to the targets queue with the given
         departure time.
-
         If the aircraft does not have enough fuel, the function returns None.
         Otherwise the arrival time of the aircraft is returned.
 
         Args:
             positions (List[Location]): array of locations for the aircraft to traverse
-            state (Optional[Union[Event, str]]): the departure state of the aircraft
+            prioritisation_function: Optional[Callable[[float, float], float]]:
+                combines the inspection time for a strike with the strikes risk rating.
+            state (Optional[Union[Event, str]]): the departure state of the aircraft.
+                The input "self" indicates the aircraft should depart from its current position.
 
         Returns:
             Optional[Time]: The arrival time of the aircraft after traversing the array of positions
@@ -640,9 +645,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         if state is None:
             current_time, current_fuel, current_pos = self._get_future_state()
         elif isinstance(state, str):
-            current_time = self.time
-            current_fuel = self.current_fuel_capacity
-            current_pos = self
+            current_time, current_fuel, current_pos = self.time, self.current_fuel_capacity, self
         else:
             current_time = state.completion_time
             current_fuel = state.completion_fuel
@@ -691,7 +694,8 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                     dist = departure_pos.distance(position)
             current_fuel -= dist / self.get_range()
             current_time += dist / self.flight_speed
-
+            if isinstance(position, Lightning) and prioritisation_function is not None:
+                current_time = prioritisation_function(current_time, position.risk_rating)
             if isinstance(position, Lightning):
                 current_fuel -= self._get_time_at_strike() * self.flight_speed / self.get_range()
                 current_time += self._get_time_at_strike()
@@ -702,7 +706,6 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                 current_fuel = 1.0
             elif isinstance(position, WaterTank):
                 current_time += self._get_water_refill_time()
-
         return current_time
 
     def arrival_time(  # pylint: disable=too-many-branches, too-many-arguments

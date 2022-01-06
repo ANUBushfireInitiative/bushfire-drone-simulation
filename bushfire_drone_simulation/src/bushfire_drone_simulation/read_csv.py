@@ -159,6 +159,20 @@ def read_lightning(filename: Path, ignition_probability: float) -> List[Lightnin
         ]
     else:
         ignition_probabilities = [ignition_probability for _ in enumerate(lats)]
+    if "risk_rating" in lightning_data.get_column_headings():
+        str_risk_ratings = lightning_data["risk_rating"]
+        risk_ratings: List[float] = [
+            assert_number(
+                risk,
+                (
+                    f"Error: The risk_rating on row {i+1} of '{filename}' "
+                    f"('{risk}') is not a number."
+                ),
+            )
+            for i, risk in enumerate(str_risk_ratings)
+        ]
+    else:
+        risk_ratings = [1 for _ in enumerate(lats)]
 
     for i, lat in enumerate(lats):
         lat = assert_number(
@@ -174,6 +188,7 @@ def read_lightning(filename: Path, ignition_probability: float) -> List[Lightnin
                 lon,
                 Time(str(times[i])).get(DEFAULT_DURATION_UNITS),
                 ignition_probabilities[i],
+                risk_ratings[i],
                 i,
             ),
         )
