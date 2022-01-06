@@ -183,10 +183,11 @@ class GUI:
             )
             sys.exit()
         draw = ImageDraw.Draw(image)
-        font = ImageFont.truetype(
-            str(Path(__file__).parent.parent / "fonts" / "OpenSans-Regular.ttf"),
-            size=10,
-        )
+        with open(Path(__file__).parent.parent / "fonts" / "OpenSans-Regular.ttf", "rb") as font_fl:
+            font = ImageFont.truetype(
+                font_fl,
+                size=10,
+            )
         draw.text(
             (self.width - 310, self.height - 12),
             "Maps © www.thunderforest.com, Data © www.osm.org/copyright",
