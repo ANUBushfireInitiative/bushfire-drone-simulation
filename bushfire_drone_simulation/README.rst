@@ -200,20 +200,20 @@ is just sample input.
 
 *  water_bomber_bases_filename
 
-    This file should specify the location of each water bomber base as well as the fuel capacity of each and
-    what types of water bombers can refill there. This information should be formatted as follows:
+    This file should specify the location of each water bomber base as well as what types of water
+    bombers can refill there. It is assumed all water bomber bases have an infinite capacity.
+    This information should be formatted as follows:
 
 
     .. csv-table::
-        :header: "latitude", "longitude", "capacity", "all", "water_bomber_type_1", "water_bomber_type_2"
+        :header: "latitude", "longitude", "all", "water_bomber_type_1", "water_bomber_type_2"
         :widths: 7, 7, 7, 10, 10, 10
 
-        -37.81,144.97,10000, 1, "", ""
-        -38.068,147.06,20000, "", 1, ""
+        -37.81,144.97, 1, "", ""
+        -38.068,147.06, "", 1, ""
 
 
-    The location and fuel capacity of the water bomber base should be indicated in the first three columns.
-    To denote an infinite capacity please enter "inf" rather than a number.
+    The location of the water bomber base should be indicated in the first two columns.
     To indicate which types of water bombers the base can refill, the following columns should be
     labelled 'all' followed by the names of the water bombers (defined in the water bomber dictionary above).
     If the base can be accessed by any water bomber, a '1' should be placed in the 'all' column. To specify
@@ -225,20 +225,26 @@ is just sample input.
 
 *  uav_bases_filename
 
-    This file should specify the location and capacity of each UAV base. It is assumed that all UAVs
-    can access all UAV bases. This should be formatted as follows:
+    This file should specify the location of each UAV base. It is assumed that all UAVs
+    can access all UAV bases and all bases have an infinite capacity. This should be formatted as follows:
+
+    .. csv-table::
+        :header: "latitude", "longitude"
+
+        -37.81,144.97
+
+
+*  water_tanks_filename
+
+This file should specify the location and capacity of each water tank. It is assumed that all water bombers can access all water tanks. This should be formatted as follows:
 
     .. csv-table::
         :header: "latitude", "longitude", "capacity"
 
         -37.81,144.97,10000
 
-    With the location of the base indicated in the first two columns and the capacity (in litres) indicated in the
-    third, again using "inf" to indicate an infinite capacity.
-
-*  water_tanks_filename
-
-    This should be formatted exactly the same as uav_bases_filename  however the capacity is now the capacity of the water tank in litres.
+With the location of the water tank indicated in the first two columns and the capacity (in litres) indicated in the third.
+Alternatively inf" can be used to indicate an infinite capacity.
 
 * lightning_filename
 
@@ -480,7 +486,7 @@ UAV Event Updates
 
 The UAV event updates csv file contains all movements of the UAVs throughout the entire simulation.
 These updates are listed in chronological order so if a particular drones movements would like to
-be analysed it is recommened that a filter function is used to filter out the desired data.
+be analysed it is recommended that a filter function is used to filter out the desired data.
 Each movement update of the UAV contains the following information:
 
 * **UAV ID** - the UAV in question
