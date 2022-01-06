@@ -4,7 +4,7 @@ This is a python application that allows the simulation of drones for
 fast lightning strike investigation and potential suppression by a fleet
 of water bombers.
 
-|pre-commit| |test|
+|pre-commit| |test| |coverage|
 
 Installation
 ============
@@ -233,3 +233,5 @@ documentation.
    :target: https://github.com/ryanstocks00/anu-bushfire-initiative-simulation/actions/workflows/python-3.8-pre-commit.yml
 .. |test| image:: https://github.com/ryanstocks00/anu-bushfire-initiative-simulation/actions/workflows/python-3.8-test.yml/badge.svg
    :target: https://github.com/ryanstocks00/anu-bushfire-initiative-simulation/actions/workflows/python-3.8-test.yml
+.. |coverage| image:: https://codecov.io/gh/ryanstocks00/anu-bushfire-initiative-simulation/branch/main/graph/badge.svg?token=QURRC5T44H
+   :target: https://codecov.io/gh/ryanstocks00/anu-bushfire-initiative-simulation
