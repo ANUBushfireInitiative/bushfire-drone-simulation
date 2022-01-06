@@ -24,4 +24,10 @@ jobs:
         source tools/install-dev-env
     - name: Run pytest
       run: |
-          pytest
+          python -m coverage run --source=. -m pytest
+          python -m coverage xml
+    - name: Upload coverage
+          export CODECOV_TOKEN=ac54371c-aacc-460f-bcb6-c545418d7ae6
+          curl -Os https://uploader.codecov.io/latest/linux/codecov
+          chmod +x codecov
+          ./codecov -t ${CODECOV_TOKEN}

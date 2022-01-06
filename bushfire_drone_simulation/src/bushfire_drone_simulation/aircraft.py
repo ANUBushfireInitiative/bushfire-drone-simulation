@@ -42,21 +42,6 @@ class Status(Enum):
     UNASSIGNED = "Unassigned"
 
 
-class StatusWithId:  # pylint: disable=too-few-public-methods
-    """Class for storing status and id number of the location in that status."""
-
-    def __init__(self, status: Status, id_no: Optional[int] = None):
-        """Initialize StatusID."""
-        self.status = status
-        self.id_no = id_no
-
-    def __str__(self) -> str:
-        """To strike method for StatusId."""
-        if self.id_no is None:
-            return str(self.status)
-        return f"{self.status} {self.id_no}"
-
-
 class UpdateEvent(Location):  # pylint: disable=too-few-public-methods
     """Class keeping track of all updates to an Aircrafts position."""
 
