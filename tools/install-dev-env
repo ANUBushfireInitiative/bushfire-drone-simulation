@@ -14,7 +14,7 @@ pylint --generate-rcfile > ~/.pylintrc
 
 # Install sphinx for documentation
 python -m pip install sphinx sphinx-rtd-theme sphinx-autobuild sphinx-autodoc-typehints
-mkdir docs/source/_static
+mkdir -p docs/source/_static
 
 # Install bushfire_drone_simulation
 python -m pip install -e bushfire_drone_simulation
