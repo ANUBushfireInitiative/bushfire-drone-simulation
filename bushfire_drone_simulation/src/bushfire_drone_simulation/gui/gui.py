@@ -12,6 +12,7 @@ from tkinter import Canvas, DoubleVar, Event, Frame, Menu, Scale, Text, ttk
 from tkinter.constants import BOTH, DISABLED, HORIZONTAL, INSERT, X
 from typing import Dict, Optional
 
+import _tkinter
 from PIL import Image as img
 from PIL import ImageDraw, ImageFont, ImageTk
 
@@ -109,11 +110,11 @@ class GUI:
         self.menu_bar.add_cascade(label="Scenario", menu=self.scenario_menu)
         self.plot_menu = Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="Plots", menu=self.plot_menu)
-        tools_menu = Menu(self.menu_bar, tearoff=0)
-        tools_menu.add_command(label="Clear Cache", command=self.clear_cache)
-        tools_menu.add_command(label="Change map dimensions", command=self._size_dialog)
-        tools_menu.add_command(label="Screenshot", command=self._screenshot_dialog)
-        self.menu_bar.add_cascade(label="Tools", menu=tools_menu)
+        self.tools_menu = Menu(self.menu_bar, tearoff=0)
+        self.tools_menu.add_command(label="Clear Cache", command=self.clear_cache)
+        self.tools_menu.add_command(label="Change map dimensions", command=self._size_dialog)
+        self.tools_menu.add_command(label="Screenshot", command=self._screenshot_dialog)
+        self.menu_bar.add_cascade(label="Tools", menu=self.tools_menu)
         self.window.config(menu=self.menu_bar)
 
     def _screenshot_dialog(self) -> None:
@@ -137,7 +138,7 @@ class GUI:
             length=self.width,
             sliderlength=20,
             tickinterval=1,
-            command=self.start_slider_update,
+            command=self._start_slider_update,
         )
         self.end_scale = Scale(
             self.window,
@@ -150,7 +151,7 @@ class GUI:
             length=self.width,
             sliderlength=20,
             tickinterval=1,
-            command=self.end_slider_update,
+            command=self._end_slider_update,
         )
         self.end_scale.set(int(self.gui_data.max_time / 3600 + 1.0))  # type: ignore
         self.start_scale.pack(fill=X)
@@ -458,19 +459,19 @@ class GUI:
             self.window.after(1, self.reload)
             self.map_image.set_size(self.width, self.height)
 
-    def start_slider_update(self, _: str) -> None:
+    def _start_slider_update(self, _: str) -> None:
         """Update times given slider update."""
         if self.start_time.get() > self.end_time.get():
             self.end_time.set(self.start_time.get())
         self.update_objects()
 
-    def end_slider_update(self, _: str) -> None:
+    def _end_slider_update(self, _: str) -> None:
         """Update times given slider update."""
         if self.start_time.get() > self.end_time.get():
             self.start_time.set(self.end_time.get())
         self.update_objects()
 
-
-def start_gui_from_file(path: Optional[Path]) -> None:
-    """Start GUI of simulation output."""
-    GUI(path)
+    def run_events(self) -> None:
+        """Run all current events."""
+        while self.window.dooneevent(_tkinter.ALL_EVENTS | _tkinter.DONT_WAIT):
+            pass

@@ -7,7 +7,7 @@ from typing import List, Optional
 
 import typer
 
-from bushfire_drone_simulation.gui.gui import start_gui_from_file
+from bushfire_drone_simulation.gui.gui import GUI
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.simulator import Simulator, run_simulations
 
@@ -26,13 +26,13 @@ def gui(
 ) -> None:
     """Start a GUI version of the drone simulation."""
     if parameters_filename is None:
-        start_gui_from_file(None)
+        GUI(None)
     else:
         params = JSONParameters(parameters_filename)
         params.create_output_folder()
         simulator = run_simulations(params)[0]
         if simulator is not None:
-            start_gui_from_file(parameters_filename)
+            GUI(parameters_filename)
 
 
 @app.command()
@@ -40,7 +40,7 @@ def gui_from_file(
     path: Path = typer.Argument(..., help="Path to gui json."),
 ) -> None:
     """Start a GUI version of the drone simulation."""
-    start_gui_from_file(path)
+    GUI(path)
 
 
 @app.command()
