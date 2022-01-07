@@ -34,6 +34,14 @@ class CSVFile:
         self.filename = filename
         self.csv_dataframe: pd.DataFrame = pd.DataFrame(pd.read_csv(filename))  # type: ignore
 
+    def save(self, path: Path) -> None:
+        """Save to new csv file.
+
+        Args:
+            path (Path): path
+        """
+        self.csv_dataframe.to_csv(path)
+
     def get_column(self, column: Union[str, int]) -> pd.Series:  # type: ignore[no-any-unimported]
         """get_column.
 

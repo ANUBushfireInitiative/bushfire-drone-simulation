@@ -4,7 +4,6 @@ import copy
 import csv
 import json
 import logging
-import os
 import shutil
 import sys
 from functools import reduce
@@ -34,6 +33,7 @@ from bushfire_drone_simulation.fire_utils import (
     assert_number,
 )
 from bushfire_drone_simulation.lightning import Lightning
+from bushfire_drone_simulation.plots import inspection_time_histogram, suppression_time_histogram
 from bushfire_drone_simulation.read_csv import (
     CSVFile,
     read_bases,
@@ -381,7 +381,7 @@ class JSONParameters:
         if function_name == "product":
             return lambda time, risk_rating: time * risk_rating
         raise Exception(
-            f"Error: Do not recognise value '{function_name}' "
+            f"Error: Do not recognize value '{function_name}' "
             f"from attribute {aircraft}/prioritisation_function in '{self.filepath}'.\n"
             f"Please refer to the documentation for possible prioritisation functions."
         )
@@ -395,16 +395,6 @@ class JSONParameters:
                 f"and run the simulation again"
             )
         return self.scenarios[scenario_idx][attribute]
-
-    def __get_raw_attribute(self, attribute: str) -> Any:
-        """Return attribute of JSON file."""
-        if attribute not in self.parameters:
-            raise Exception(
-                f"Error: Parameter '{attribute}' is missing in '{self.filepath}'.\n"
-                f"Please add '{attribute}' to '{self.filepath}' "
-                f"and run the simulation again"
-            )
-        return self.parameters[attribute]
 
     def get_relative_filepath(self, key: str, scenario_idx: int) -> Path:
         """Return relative file path to given key."""
@@ -443,17 +433,8 @@ class JSONParameters:
 
         fig.suptitle(title)
 
-        axs[0, 0].hist(inspection_times, bins=20)
-        axs[0, 0].set_title("Histogram of UAV inspection times")
-        axs[0, 0].set(xlabel="Inspection time (Hours)", ylabel="Frequency")
-        axs[0, 0].set_xlim(left=0)
-        axs[0, 0].set_ylim(bottom=0)
-
-        axs[0, 1].hist(suppression_times, bins=20)
-        axs[0, 1].set_title("Histogram of suppression times")
-        axs[0, 1].set(xlabel="Suppression time (Hours)", ylabel="Frequency")
-        axs[0, 1].set_xlim(left=0)
-        axs[0, 1].set_ylim(bottom=0)
+        inspection_time_histogram(axs[0, 0], inspection_times)
+        suppression_time_histogram(axs[0, 1], suppression_times)
 
         water_bomber_names = [wb.name for wb in water_bombers]
         num_suppressed = [len(wb.strikes_visited) for wb in water_bombers]
@@ -483,12 +464,7 @@ class JSONParameters:
         axs[1, 1].set(ylabel="kL")
 
         fig.tight_layout()
-        plt.savefig(
-            os.path.join(
-                self.output_folder,
-                prefix + "inspection_times_plot.png",
-            )
-        )
+        plt.savefig(self.output_folder / (prefix + "inspection_times_plot.png"))
         return summary_results
 
     def write_to_simulation_output_file(
@@ -621,10 +597,7 @@ class JSONParameters:
         """Write water bomber event update data to output file."""
         # water_bombers: List[WaterBomber] = coordinator.water_bombers
         with open(
-            os.path.join(
-                self.output_folder,
-                prefix + "water_bomber_event_updates.csv",
-            ),
+            self.output_folder / (prefix + "water_bomber_event_updates.csv"),
             "w",
             newline="",
             encoding="utf8",
@@ -681,61 +654,72 @@ class JSONParameters:
         gui_params["output_folder_name"] = "."
 
         shutil.copy2(self.filepath, input_folder)
-        shutil.copy2(
+        path = shutil.copy2(
             self.get_relative_filepath("water_bomber_bases_filename", scenario_idx),
             input_folder,
         )
-        shutil.copy2(self.get_relative_filepath("uav_bases_filename", scenario_idx), input_folder)
+        if gui_params["water_bomber_bases_filename"] != "?":
+            gui_params["water_bomber_bases_filename"] = str(
+                Path(path).relative_to(self.output_folder)
+            )
+        path = shutil.copy2(
+            self.get_relative_filepath("uav_bases_filename", scenario_idx), input_folder
+        )
+        if gui_params["uav_bases_filename"] != "?":
+            gui_params["uav_bases_filename"] = str(Path(path).relative_to(self.output_folder))
         shutil.copy2(self.get_relative_filepath("water_tanks_filename", scenario_idx), input_folder)
         shutil.copy2(self.get_relative_filepath("lightning_filename", scenario_idx), input_folder)
         if "scenario_parameters_filename" in self.parameters:
             shutil.copy2(
-                str(self.get_relative_filepath("scenario_parameters_filename", scenario_idx)),
-                str(input_folder),
+                self.get_relative_filepath("scenario_parameters_filename", scenario_idx),
+                input_folder,
             )
-            gui_params["scenario_parameters_filename"] = (
-                input_folder.name
-                + "/"
-                + Path(self.__get_raw_attribute("scenario_parameters_filename")).name
+            path = shutil.copy2(
+                self.get_relative_filepath("scenario_parameters_filename", scenario_idx),
+                input_folder / "scenario_parameters_for_gui.csv",
             )
+            gui_params["scenario_parameters_filename"] = str(
+                Path(path).relative_to(self.output_folder)
+            )
+            scenario_parameters_csv = CSVFile(path)
+            for heading in ["uav_bases_filename", "water_bomber_bases_filename"]:
+                if heading in scenario_parameters_csv.get_column_headings():
+                    for cell in scenario_parameters_csv.get_column(heading):
+                        path = shutil.copy2(
+                            cell.value,
+                            input_folder,
+                        )
+                        cell.value = Path(path).relative_to(self.output_folder)
+            scenario_parameters_csv.save(path)
+
         shutil.copy2(
-            os.path.join(self.folder, self.scenarios[scenario_idx]["uavs"]["spawn_loc_file"]),
+            self.folder / self.scenarios[scenario_idx]["uavs"]["spawn_loc_file"],
             input_folder,
         )
         for water_bomber_type in self.get_attribute("water_bombers", scenario_idx):
-            shutil.copy2(
-                str(
-                    os.path.join(
-                        self.folder,
-                        self.scenarios[scenario_idx]["water_bombers"][water_bomber_type][
-                            "spawn_loc_file"
-                        ],
-                    )
-                ),
-                str(input_folder),
+            path = shutil.copy2(
+                self.folder
+                / self.scenarios[scenario_idx]["water_bombers"][water_bomber_type][
+                    "spawn_loc_file"
+                ],
+                input_folder,
             )
+            if gui_params["water_bombers"][water_bomber_type]["spawn_loc_file"] != "?":
+                gui_params["water_bombers"][water_bomber_type]["spawn_loc_file"] = str(
+                    Path(path).relative_to(self.output_folder)
+                )
         if "unassigned_drones" in self.parameters:
             unassigned_dict = self.scenarios[scenario_idx]["unassigned_drones"]
             if "targets_filename" in unassigned_dict:
                 shutil.copy2(
-                    str(
-                        os.path.join(
-                            self.folder,
-                            self.scenarios[scenario_idx]["unassigned_drones"]["targets_filename"],
-                        )
-                    ),
-                    str(input_folder),
+                    self.folder
+                    / self.scenarios[scenario_idx]["unassigned_drones"]["targets_filename"],
+                    input_folder,
                 )
             shutil.copy2(
-                str(
-                    os.path.join(
-                        self.folder,
-                        self.scenarios[scenario_idx]["unassigned_drones"][
-                            "boundary_polygon_filename"
-                        ],
-                    )
-                ),
-                str(input_folder),
+                self.folder
+                / self.scenarios[scenario_idx]["unassigned_drones"]["boundary_polygon_filename"],
+                input_folder,
             )
         with open(self.gui_filename, "w", encoding="utf8") as gui_file:
             json.dump(gui_params, gui_file)

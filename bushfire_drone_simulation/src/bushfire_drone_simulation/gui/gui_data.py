@@ -7,6 +7,7 @@ from typing import Dict, List, Sequence
 from bushfire_drone_simulation.aircraft import Aircraft, Status, UpdateEvent
 from bushfire_drone_simulation.fire_utils import Location, Time
 from bushfire_drone_simulation.gui.gui_objects import GUIAircraft, GUILightning, GUIObject, GUIPoint
+from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.read_csv import CSVFile
 from bushfire_drone_simulation.simulator import Simulator
 
@@ -99,20 +100,26 @@ class GUIData:
         return cls(lightning, ignitions, uavs, water_bombers, uav_bases, wb_bases, watertanks)
 
     @classmethod
-    def from_output(cls, path: Path, scenario_name: str) -> "GUIData":
+    def from_output(cls, parameters: JSONParameters, scenario: int) -> "GUIData":
         """Generate GUI data from output of a prior simulation scenario.
 
         Args:
-            path (Path): path
+            parameters_file (Path): path
             scenario_name (str): scenario_name
         """
-        lightning = extract_lightning_from_output(path, scenario_name, ignited=False)
-        ignitions = extract_lightning_from_output(path, scenario_name, ignited=True)
-        uavs = extract_aircraft_from_output(path, scenario_name, "uav")
-        water_bombers = extract_aircraft_from_output(path, scenario_name, "water_bomber")
-        uav_bases: List[GUIPoint] = extract_bases_from_output(path, scenario_name, "uav")
-        wb_bases: List[GUIPoint] = extract_bases_from_output(path, scenario_name, "water_bomber")
-        watertanks: List[GUIPoint] = extract_water_tanks_from_output(path, scenario_name)
+        scenario_name = parameters.scenarios[scenario]["scenario_name"]
+        output_folder = parameters.filepath.parent / parameters.get_attribute(
+            "output_folder_name", scenario
+        )
+        lightning = extract_lightning_from_output(output_folder, scenario_name, ignited=False)
+        ignitions = extract_lightning_from_output(output_folder, scenario_name, ignited=True)
+        uavs = extract_aircraft_from_output(output_folder, scenario_name, "uav")
+        water_bombers = extract_aircraft_from_output(output_folder, scenario_name, "water_bomber")
+        uav_bases: List[GUIPoint] = extract_bases_from_parameters(parameters, scenario, "uav")
+        wb_bases: List[GUIPoint] = extract_bases_from_parameters(
+            parameters, scenario, "water_bomber"
+        )
+        watertanks: List[GUIPoint] = extract_water_tanks_from_output(output_folder, scenario_name)
         return cls(lightning, ignitions, uavs, water_bombers, uav_bases, wb_bases, watertanks)
 
     def save_to(self, folder: Path) -> None:
@@ -261,24 +268,26 @@ def extract_water_tanks_from_output(path: Path, scenario_name: str) -> List[GUIP
     return to_return
 
 
-def extract_bases_from_output(path: Path, scenario_name: str, aircraft_type: str) -> List[GUIPoint]:
-    """Extract bases from output of previous simulation.
+def extract_bases_from_parameters(
+    parameters: JSONParameters, scenario: int, aircraft_type: str
+) -> List[GUIPoint]:
+    """Extract bases from parameters of previous simulation.
 
     Args:
-        path (Path): path
-        scenario_name (str): scenario_name
+        parameters (JSONParameters): parameters
+        scenario (int): scenario_idx
 
     Returns:
         List[GUIPoint]:
     """
     to_return: List[GUIPoint] = []
     base_csv = CSVFile(
-        path / f"{scenario_name}{'_' if scenario_name else ''}{aircraft_type}_bases.csv"
+        parameters.get_relative_filepath(aircraft_type + "_bases_filename", scenario)
     )
     for row in base_csv:
         to_return.append(
             GUIPoint(
-                Location(row[2], row[3]),
+                Location(getattr(row, "latitude"), getattr(row, "longitude")),
                 radius=2 if aircraft_type == "uav" else 3,
                 colour="grey" if aircraft_type == "uav" else "black",
             )

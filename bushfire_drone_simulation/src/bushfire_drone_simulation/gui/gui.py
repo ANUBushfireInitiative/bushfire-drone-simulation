@@ -259,21 +259,15 @@ class GUI:
             scenario (int): Index of scenario
         """
         assert self.params is not None
-        folder = self.params.filepath.parent / self.params.get_attribute(
-            "output_folder_name", scenario
-        )
         try:
-            temp_gui_data = GUIData.from_output(
-                folder,
-                self.params.scenarios[scenario]["scenario_name"],
-            )
+            temp_gui_data = GUIData.from_output(self.params, scenario)
             self.destroy_display()
             self.gui_data = temp_gui_data
             self.initialise_display()
-        except FileNotFoundError:
-            print(f"File not found {folder}")
-        except TypeError:
-            print(f"Type error (not a file): {folder}")
+        except FileNotFoundError as err:
+            print(err)
+        except TypeError as err:
+            print(err)
 
     def new_simulation(self) -> None:
         """Create new simulation dialog."""
