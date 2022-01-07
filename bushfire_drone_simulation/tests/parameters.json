@@ -13,43 +13,41 @@
     "target_maximum_suppression_time": 1,
     "ignition_probability": 1,
 
-    "uavs": {"spawn_loc_file": "input_data/uav_spawn_locations.csv",
-        "attributes": {
-            "flight_speed": 235,
-            "fuel_refill_time": 30,
-            "range": 650,
-            "inspection_time": 1
-        }
+    "uavs": {
+        "spawn_loc_file": "input_data/uav_spawn_locations.csv",
+        "flight_speed": 235,
+        "fuel_refill_time": 30,
+        "range": 650,
+        "inspection_time": 1,
+        "pct_fuel_cutoff": 0.7
     },
 
     "water_bombers": {
 
 	    "helicopter": {
             "spawn_loc_file": "input_data/helicopter_spawn_locations.csv",
-            "attributes": {
-                "flight_speed": 235,
-                "bombing_time": 1,
-                "water_refill_time": 30,
-                "fuel_refill_time": 30,
-                "water_per_delivery": 2875,
-                "range_empty": 650,
-                "range_under_load": 650,
-                "water_capacity": 11500
-            }
+            "flight_speed": 235,
+            "bombing_time": 1,
+            "water_refill_time": 30,
+            "fuel_refill_time": 30,
+            "water_per_delivery": 2875,
+            "range_empty": 650,
+            "range_under_load": 650,
+            "water_capacity": 11500,
+            "pct_fuel_cutoff": 0.7
         },
 
         "c130": {
             "spawn_loc_file": "input_data/helicopter_spawn_locations.csv",
-            "attributes": {
-                "flight_speed": 235,
-                "bombing_time": 1,
-                "water_refill_time": 30,
-                "fuel_refill_time": 30,
-                "water_per_delivery": 2875,
-                "range_empty": 650,
-                "range_under_load": 650,
-                "water_capacity": 11500
-            }
+            "flight_speed": 235,
+            "bombing_time": 1,
+            "water_refill_time": 30,
+            "fuel_refill_time": 30,
+            "water_per_delivery": 2875,
+            "range_empty": 650,
+            "range_under_load": 650,
+            "water_capacity": 11500,
+            "pct_fuel_cutoff": 0.7
         }
     }
 }
