@@ -17,7 +17,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 
-from bushfire_drone_simulation.aircraft import UAV, UpdateEvent, WaterBomber
+from bushfire_drone_simulation.aircraft import (
+    UAV,
+    UAVAttributes,
+    UpdateEvent,
+    WaterBomber,
+    WBAttributes,
+)
 from bushfire_drone_simulation.fire_utils import (
     Base,
     Location,
@@ -30,10 +36,11 @@ from bushfire_drone_simulation.fire_utils import (
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.read_csv import (
     CSVFile,
+    read_bases,
     read_lightning,
     read_locations,
-    read_locations_with_capacity,
     read_targets,
+    read_water_tanks,
 )
 from bushfire_drone_simulation.units import Distance, Volume
 
@@ -141,21 +148,15 @@ class JSONParameters:
 
     def get_uav_bases(self, scenario_idx: int) -> List[Base]:
         """Return list of UAV bases."""
-        return read_locations_with_capacity(
-            self.get_relative_filepath("uav_bases_filename", scenario_idx), Base
-        )
+        return read_bases(self.get_relative_filepath("uav_bases_filename", scenario_idx))
 
     def get_water_bomber_bases_all(self, scenario_idx: int) -> List[Base]:
         """Return list of all water bomber bases (regardless of which bombers can visit)."""
-        return read_locations_with_capacity(
-            self.get_relative_filepath("water_bomber_bases_filename", scenario_idx), Base
-        )
+        return read_bases(self.get_relative_filepath("water_bomber_bases_filename", scenario_idx))
 
     def get_water_tanks(self, scenario_idx: int) -> List[WaterTank]:
         """Return list of water tanks."""
-        return read_locations_with_capacity(
-            self.get_relative_filepath("water_tanks_filename", scenario_idx), WaterTank
-        )
+        return read_water_tanks(self.get_relative_filepath("water_tanks_filename", scenario_idx))
 
     def get_lightning(self, scenario_idx: int) -> List[Lightning]:
         """Return list of lightning."""
@@ -178,7 +179,6 @@ class JSONParameters:
             lons = water_bomber_spawn_locs["longitude"]
             start_locs = water_bomber_spawn_locs["starting at base"]
             fuel = water_bomber_spawn_locs["initial fuel"]
-            attributes = water_bomber["attributes"]
             for attribute in [
                 "flight_speed",
                 "fuel_refill_time",
@@ -188,13 +188,18 @@ class JSONParameters:
                 "bombing_time",
                 "water_per_delivery",
                 "water_capacity",
+                "pct_fuel_cutoff",
             ]:
-                if attribute not in attributes:
+                if attribute not in water_bomber:
                     raise Exception(
                         f"Error: Parameter '{attribute}' is missing in '{self.filepath}'.\n"
                         f"Please add '{attribute}' to 'water_bombers/attributes' in "
                         f"'{self.filepath}' and run the simulation again"
                     )
+            assert (
+                water_bomber["pct_fuel_cutoff"] <= 1 and water_bomber["pct_fuel_cutoff"] > 0
+            ), "The percentage of remaining fuel required to return to base should be >0 and <=1"
+
             for i, lat in enumerate(lats):
                 lat = assert_number(
                     lat,
@@ -216,13 +221,24 @@ class JSONParameters:
                     fuel[i],
                     f"Error: The fuel on row {i+1} of '{filename}' ('{lons[i]}') isn't a number.",
                 )
+                wb_attributes = WBAttributes(
+                    id_no=i,
+                    latitude=lat,
+                    longitude=lon,
+                    flight_speed=water_bomber["flight_speed"],
+                    fuel_refill_time=water_bomber["fuel_refill_time"],
+                    bombing_time=water_bomber["bombing_time"],
+                    water_refill_time=water_bomber["water_refill_time"],
+                    water_per_delivery=water_bomber["water_per_delivery"],
+                    range_empty=water_bomber["range_empty"],
+                    range_under_load=water_bomber["range_under_load"],
+                    water_capacity=water_bomber["water_capacity"],
+                    pct_fuel_cutoff=water_bomber["pct_fuel_cutoff"],
+                    bomber_type=water_bomber_type,
+                )
                 water_bombers.append(
                     WaterBomber(
-                        id_no=i,
-                        latitude=lat,
-                        longitude=lon,
-                        attributes=attributes,
-                        bomber_type=water_bomber_type,
+                        attributes=wb_attributes,
                         starting_at_base=starting_at_base,
                         initial_fuel=initial_fuel,
                     ),
@@ -279,14 +295,24 @@ class JSONParameters:
         start_locs = uav_spawn_locs["starting at base"]
         fuel = uav_spawn_locs["initial fuel"]
         uavs: List[UAV] = []
-        attributes = uav_data["attributes"]
-        for attribute in ["flight_speed", "fuel_refill_time", "range", "inspection_time"]:
-            if attribute not in attributes:
+
+        for attribute in [
+            "flight_speed",
+            "fuel_refill_time",
+            "range",
+            "inspection_time",
+            "pct_fuel_cutoff",
+        ]:
+            if attribute not in uav_data:
                 raise Exception(
                     f"Error: Parameter '{attribute}' is missing in '{self.filepath}'.\n"
-                    f"Please add '{attribute}' to 'uavs/attributes' in '{self.filepath}' "
+                    f"Please add '{attribute}' to 'uavs' in '{self.filepath}' "
                     f"and run the simulation again"
                 )
+        assert (
+            uav_data["pct_fuel_cutoff"] <= 1 and uav_data["pct_fuel_cutoff"] > 0
+        ), "The percentage of remaining fuel required to return to base should be >0 and <=1"
+
         for i, lat in enumerate(lats):
             lat = assert_number(
                 lat,
@@ -305,12 +331,19 @@ class JSONParameters:
                 fuel[i],
                 f"Error: The fuel on row {i+1} of '{filename}' ('{lons[i]}') isn't a number.",
             )
+            uav_attributes = UAVAttributes(
+                id_no=i,
+                latitude=lat,
+                longitude=lon,
+                flight_speed=uav_data["flight_speed"],
+                fuel_refill_time=uav_data["fuel_refill_time"],
+                range=uav_data["range"],
+                inspection_time=uav_data["inspection_time"],
+                pct_fuel_cutoff=uav_data["pct_fuel_cutoff"],
+            )
             uavs.append(
                 UAV(
-                    id_no=i,
-                    latitude=lat,
-                    longitude=lon,
-                    attributes=attributes,
+                    attributes=uav_attributes,
                     starting_at_base=starting_at_base,
                     initial_fuel=initial_fuel,
                 ),
@@ -538,23 +571,6 @@ class JSONParameters:
                         water_tank.initial_capacity,
                         water_tank.capacity,
                     ]
-                )
-
-    def write_to_bases_file(self, bases: List[Base], prefix: str) -> None:
-        """Write bases to output file."""
-        with open(
-            self.output_folder / (prefix + "bases.csv"),
-            "w",
-            newline="",
-            encoding="utf8",
-        ) as outputfile:
-            filewriter = csv.writer(outputfile)
-            filewriter.writerow(
-                ["Base ID", "Latitude", "Longitude", "Initial Capacity", "Remaining Capacity"]
-            )
-            for base in bases:
-                filewriter.writerow(
-                    [base.id_no, base.lat, base.lon, base.initial_capacity, base.capacity]
                 )
 
     def write_to_uav_updates_file(self, uavs: List[UAV], prefix: str) -> None:

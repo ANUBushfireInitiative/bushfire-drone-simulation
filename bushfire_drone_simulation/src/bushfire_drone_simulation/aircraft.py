@@ -4,9 +4,10 @@ import math
 from abc import abstractmethod
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
+from pydantic import BaseModel
 
 from bushfire_drone_simulation.fire_utils import Base, Location, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
@@ -127,6 +128,37 @@ class Event:  # pylint: disable=too-few-public-methods
         return self.departure_time < other.departure_time
 
 
+class UAVAttributes(BaseModel):
+    """UAV attributes."""
+
+    id_no: int
+    latitude: float
+    longitude: float
+    flight_speed: float
+    fuel_refill_time: float
+    range: float
+    inspection_time: float
+    pct_fuel_cutoff: float
+
+
+class WBAttributes(BaseModel):
+    """Water Bomber attributes."""
+
+    id_no: int
+    latitude: float
+    longitude: float
+    flight_speed: float
+    fuel_refill_time: float
+    bombing_time: float
+    water_refill_time: float
+    water_per_delivery: float
+    range_empty: float
+    range_under_load: float
+    water_capacity: float
+    pct_fuel_cutoff: float
+    bomber_type: str
+
+
 class Aircraft(Location):  # pylint: disable=too-many-public-methods
     """Generic aircraft class for flying vehicles."""
 
@@ -139,6 +171,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         id_no: int,
         starting_at_base: bool,
         initial_fuel: float,
+        pct_fuel_cutoff: float,
     ):  # pylint: disable=too-many-arguments
         """Initialize aircraft."""
         self.flight_speed = flight_speed
@@ -160,6 +193,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         self.precomputed: Optional[PreComputedDistances] = None
         self.fuel_tank_capacity: float = 1  # TODO(read from input) pylint: disable=fixme
         self.unassigned_target: Optional[Location] = None
+        self.pct_fuel_cutoff = pct_fuel_cutoff
 
     def accept_precomputed_distances(self, precomputed: PreComputedDistances) -> None:
         """Accept precomputed distance class with distances already evaluated."""
@@ -294,8 +328,6 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                 event.position.suppressed(self.time)
                 self.strikes_visited.append((event.position, self.time))
                 suppression = event.position
-        elif isinstance(event.position, Base):
-            event.position.remove_fuel(self.fuel_tank_capacity * (1 - self.current_fuel_capacity))
         if isinstance(self, WaterBomber):
             self._set_water_on_board(event.water)
         self.status = event.completion_status
@@ -459,9 +491,6 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
 
         elif isinstance(position, Base):
             event_completion_time = event_arrival_time + self.fuel_refill_time
-            position.remove_unallocated_fuel(
-                self.fuel_tank_capacity * (1 - self._get_future_fuel())
-            )
             completion_fuel = 1.0
             self.event_queue.put(
                 Event(
@@ -523,7 +552,6 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         self._update_location(base)
         self.status = Status.REFUELING_AT_BASE
         self._add_update(base.id_no)
-        base.remove_fuel(self.fuel_tank_capacity * (1 - self.current_fuel_capacity))
         self.current_fuel_capacity = 1.0
         self.time += self.fuel_refill_time
         # event queue is always empty
@@ -547,7 +575,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         """
         if self._get_future_status() == Status.HOVERING:
             current_fuel = self._get_future_fuel()
-            # Update fuel loss from hovering [necessary incase we're given a funcy departure time
+            # Update fuel loss from hovering [necessary in case we're given a funky departure time
             # but doesn't affect current implementation]
             if self._get_future_time() < departure_time:
                 current_fuel -= (
@@ -574,21 +602,21 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         self,
         bases: List[Base],
         departure_time: float,
-        percentage: float = 0.3,
     ) -> None:
         """Aircraft will return to the nearest base when necessary.
 
-        Necessary is defined to be when it takes more than percentage of its fuel tank to return.
+        Necessary is defined to be when it takes more than the given percentage of its remaining
+        fuel to return to the nearest base.
 
         Args:
             bases (List[Base]): list of avaliable bases
             departure_time (Time): time of triggering event of consider going to base
-            percentage (float, optional): fraction of fuel tank. Defaults to 0.3, must be <= 1.
+            percentage (float, optional): fraction of remaining fuel. Defaults to 0.3, must be <= 1.
         """
         if self._get_future_status() in [Status.HOVERING, Status.UNASSIGNED]:
             base_index = int(np.argmin(list(map(self._get_future_position().distance, bases))))
             dist_to_base = self._get_future_position().distance(bases[base_index])
-            percentage_range = self._get_future_fuel() * self.get_range() * percentage
+            percentage_range = self._get_future_fuel() * self.get_range() * self.pct_fuel_cutoff
             time_to_base = (percentage_range - dist_to_base) / self.flight_speed
             # time to base could be negative because current range is a percentage of actual range
             # we want departure time to be the current time if this is the case or the current time
@@ -763,22 +791,13 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             )
         )
 
-    def check_base(self, base: Base) -> bool:
-        """Return whether a given base has enough fuel to refuel the aircraft."""
-        return base.get_fuel_capacity(not self.use_current_status) >= self.fuel_tank_capacity * (
-            1 - self._get_future_fuel()
-        )
-
 
 class UAV(Aircraft):
     """UAV class for unmanned aircraft searching lightning strikes."""
 
     def __init__(
         self,
-        id_no: int,
-        latitude: float,
-        longitude: float,
-        attributes: Dict[str, Any],
+        attributes: UAVAttributes,
         starting_at_base: bool,
         initial_fuel: float,
     ):  # pylint: disable=too-many-arguments
@@ -788,23 +807,22 @@ class UAV(Aircraft):
             id_no (int): id number of UAV
             latitude (float): latitude of UAV
             longitude (float): longitude of UAV
-            attributes (Dict[Any]): dictionary of attributes of UAV
+            attributes (UAVAttributes): attributes of UAV
         """
         super().__init__(
-            latitude,
-            longitude,
-            Speed(int(attributes["flight_speed"]), "km", "hr").get(
+            attributes.latitude,
+            attributes.longitude,
+            Speed(int(attributes.flight_speed), "km", "hr").get(
                 DEFAULT_DISTANCE_UNITS, DEFAULT_DURATION_UNITS
             ),
-            Duration(int(attributes["fuel_refill_time"]), "min").get(DEFAULT_DURATION_UNITS),
-            id_no,
+            Duration(int(attributes.fuel_refill_time), "min").get(DEFAULT_DURATION_UNITS),
+            attributes.id_no,
             starting_at_base,
             initial_fuel,
+            attributes.pct_fuel_cutoff,
         )
-        self.total_range: float = Distance(int(attributes["range"]), "km").get(
-            DEFAULT_DISTANCE_UNITS
-        )
-        self.inspection_time: float = Duration(attributes["inspection_time"], "min").get(
+        self.total_range: float = Distance(int(attributes.range), "km").get(DEFAULT_DISTANCE_UNITS)
+        self.inspection_time: float = Duration(attributes.inspection_time, "min").get(
             DEFAULT_DURATION_UNITS
         )
         self.past_locations = [
@@ -841,11 +859,7 @@ class WaterBomber(Aircraft):
 
     def __init__(
         self,
-        id_no: int,
-        latitude: float,
-        longitude: float,
-        attributes: Dict[str, str],
-        bomber_type: str,
+        attributes: WBAttributes,
         starting_at_base: bool,
         initial_fuel: float,
     ):  # pylint: disable=too-many-arguments
@@ -859,39 +873,40 @@ class WaterBomber(Aircraft):
             bomber_type (str): type of water bomber
         """
         super().__init__(
-            latitude,
-            longitude,
-            Speed(int(attributes["flight_speed"]), "km", "hr").get(
+            attributes.latitude,
+            attributes.longitude,
+            Speed(int(attributes.flight_speed), "km", "hr").get(
                 DEFAULT_DISTANCE_UNITS, DEFAULT_DURATION_UNITS
             ),
-            Duration(int(attributes["fuel_refill_time"]), "min").get(DEFAULT_DURATION_UNITS),
-            id_no,
+            Duration(int(attributes.fuel_refill_time), "min").get(DEFAULT_DURATION_UNITS),
+            attributes.id_no,
             starting_at_base,
             initial_fuel,
+            attributes.pct_fuel_cutoff,
         )
-        self.range_empty: float = Distance(int(attributes["range_empty"]), "km").get(
+        self.range_empty: float = Distance(int(attributes.range_empty), "km").get(
             DEFAULT_DISTANCE_UNITS
         )
-        self.range_under_load: float = Distance(int(attributes["range_under_load"]), "km").get(
+        self.range_under_load: float = Distance(int(attributes.range_under_load), "km").get(
             DEFAULT_DISTANCE_UNITS
         )
-        self.water_refill_time: float = Duration(int(attributes["water_refill_time"]), "min").get(
+        self.water_refill_time: float = Duration(int(attributes.water_refill_time), "min").get(
             DEFAULT_DURATION_UNITS
         )
-        self.bombing_time: float = Duration(int(attributes["bombing_time"]), "min").get(
+        self.bombing_time: float = Duration(int(attributes.bombing_time), "min").get(
             DEFAULT_DURATION_UNITS
         )
-        self.water_per_delivery: float = Volume(int(attributes["water_per_delivery"]), "L").get(
+        self.water_per_delivery: float = Volume(int(attributes.water_per_delivery), "L").get(
             DEFAULT_VOLUME_UNITS
         )
-        self.water_capacity: float = Volume(int(attributes["water_capacity"]), "L").get(
+        self.water_capacity: float = Volume(int(attributes.water_capacity), "L").get(
             DEFAULT_VOLUME_UNITS
         )
-        self.water_on_board: float = Volume(int(attributes["water_capacity"]), "L").get(
+        self.water_on_board: float = Volume(int(attributes.water_capacity), "L").get(
             DEFAULT_VOLUME_UNITS
         )
-        self.type: str = bomber_type
-        self.name: str = f"{bomber_type} {id_no+1}"
+        self.type: str = attributes.bomber_type
+        self.name: str = f"{attributes.bomber_type} {attributes.id_no+1}"
         self.past_locations = [
             UpdateEvent(
                 self.name,

@@ -76,7 +76,7 @@ The JSON parameters file should contain the following information formatted as i
 
     The currently implemented coordinators are described below:
 
-    - **SimpleUAVCoordinator**: Equivalent of the original matlab implementation. This simply assigns each lightning strike as it occurs to the UAV which will get to it the fastest when appended to it's queue of tasks.
+    - **SimpleUAVCoordinator**: Equivalent of the original Matlab implementation. This simply assigns each lightning strike as it occurs to the UAV which will get to it the fastest when appended to it's queue of tasks.
     - **SimpleWBCoordinator**: Water bomber equivalent of SimpleUAVCoordinator.
     - **InsertionUAVCoordinator**: This is an improvement on the SimpleUAVCoordinator that allows the lightning strike to be inserted anywhere into the queue of tasks of each aircraft.
     - **InsertionWBCoordinator**: Water bomber equivalent of InsertionUAVCoordinator.
@@ -158,7 +158,7 @@ The JSON parameters file should contain the following information formatted as i
     the unassigned aircraft will move according to the following instructions:
     they will be attracted to any targets provided in the target file (details specified below),
     and repelled from all other unassigned aircraft and the closest point on the boundary (given in the boundary
-    polygon file, details below). These attractions and repulsions are definied by the following formula
+    polygon file, details below). These attractions and repulsions are defined by the following formula
 
     .. math::
 
@@ -168,7 +168,7 @@ The JSON parameters file should contain the following information formatted as i
 
 
     If these instructions tell a drone to leave the boundary, it will
-    ignore these instrctions and remain stationary (hovering). If an aircraft is found outside the boundary
+    ignore these instructions and remain stationary (hovering). If an aircraft is found outside the boundary
     it will fly towards the provided centre coordinates.
 
 .. code-block :: json
@@ -244,7 +244,7 @@ This file should specify the location and capacity of each water tank. It is ass
         -37.81,144.97,10000
 
 With the location of the water tank indicated in the first two columns and the capacity (in litres) indicated in the third.
-Alternatively inf" can be used to indicate an infinite capacity.
+Alternatively "inf" can be used to indicate an infinite capacity.
 
 * lightning_filename
 
@@ -280,15 +280,15 @@ Alternatively inf" can be used to indicate an infinite capacity.
 *  spawn_loc_file
 
     The spawn locations file, required for each type of aircraft, designates the initial location of each
-    aircraft as well as it's inital conditions. This should be formatted as follows
+    aircraft as well as it's initial conditions. This should be formatted as follows
 
     .. csv-table::
-        :header: "latitude", "longitude", "starting at base", "inital fuel"
+        :header: "latitude", "longitude", "starting at base", "initial fuel"
 
         -37.81,144.97,True,0.9
 
     Where starting at base indicates whether the aircraft should start hovering at time 0 or not (indicated
-    by a boolean, see above for accepted boolean input) and inital fuel a decimal between 0 and 1
+    by a boolean, see above for accepted boolean input) and initial fuel a decimal between 0 and 1
     indicating the percentage capacity of the fuel tank the aircraft begins with.
 
 *  target_file
@@ -307,7 +307,7 @@ Alternatively inf" can be used to indicate an infinite capacity.
 * boundary_polygon_file
 
     The optional boundary polygon file, required if the unassigned_drones dictionary is included,
-    designates the verticies of a boundary polygon for the simulation area.
+    designates the vertices of a boundary polygon for the simulation area.
 
     .. csv-table::
         :header: "latitude", "longitude"
@@ -357,7 +357,7 @@ would require the file scenario_parameters.csv to be formatted as follows
 .. csv-table::
     :header: "scenario_name","ignition_probability","uavs/attributes/fuel_refill_time"
 
-    "Senario 1", "0.07", "30"
+    "Scenario 1", "0.07", "30"
     "Scenario 2", "0.2", "25"
     "Scenario 3", "0.5", "20"
 
@@ -367,7 +367,7 @@ Note that all aircraft have a fuel_refill_time attribute so to distinguish betwe
 Example Input
 ~~~~~~~~~~~~~
 
-The following is a full example of the contents for the paramaters JSON file.
+The following is a full example of the contents for the parameters JSON file.
 To also view the csv files required and examples for how to run multiple simulations,
 please see bushfire_drone_simulation/example_input.
 
@@ -438,8 +438,8 @@ the output they contain. The contents of the 4 files and simulation input folder
 Simulation Input Folder
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The simulation input folder contins the JSON parameters file used to run the simulation as well as all
-relavent csv files. Relavent csv files include all those referred to in JSON parameters as well as any
+The simulation input folder contains the JSON parameters file used to run the simulation as well as all
+relevant csv files. Relevant csv files include all those referred to in JSON parameters as well as any
 additional files referred to in the scenario parameters csv file (for example if different scenarios
 used different UAV spawn locations).
 
@@ -457,7 +457,7 @@ This png file contains 4 plots which are as follows:
 * Histogram of UAV inspection times
     This plot as the name describes simply presents a histogram of the inspection times for each strike
     in the specified csv file. Note that if a strike was not inspected it is not included in this plot
-    (rather an error message is presented on the terminal alterting the user to this fact).
+    (rather an error message is presented on the terminal alerting the user to this fact).
 
 * Histogram of suppression times
     Similarly to the inspection times plot, this plot presents a histogram of the suppression times for each
@@ -468,7 +468,7 @@ This png file contains 4 plots which are as follows:
     Another histogram indicating how many strikes each water bomber inspected.
 
 * Water tank levels after suppression
-    This histogram depicts both the intial capacity and the final capacity after the simulation is complete
+    This histogram depicts both the initial capacity and the final capacity after the simulation is complete
     of all water tanks specified in the input data. Note that if the water tanks have an infinite
     capacity these are not displayed on the histogram.
 
@@ -476,7 +476,7 @@ This png file contains 4 plots which are as follows:
 Simulation Output
 ~~~~~~~~~~~~~~~~~
 
-This csv file contains the ID number, position, spawn time, inspection time and supression time
+This csv file contains the ID number, position, spawn time, inspection time and suppression time
 of every strike from the scenario. If a strike was not inspected or suppressed (either because it
 did not ignite or there were no water bombers available), the inspected or suppression time will be
 denoted 'N/A'.

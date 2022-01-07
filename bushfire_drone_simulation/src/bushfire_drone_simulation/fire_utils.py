@@ -103,6 +103,15 @@ class Target(Location):
         return self.start_time <= time <= self.end_time
 
 
+class Base(Location):
+    """Base's location and id_no."""
+
+    def __init__(self, latitude: float, longitude: float, id_no: int):
+        """Initialise aircraft base from location and id_no."""
+        super().__init__(latitude, longitude)
+        self.id_no: int = id_no
+
+
 class WaterTank(Location):
     """Water tank's location and capacity."""
 
@@ -137,47 +146,6 @@ class WaterTank(Location):
         Args:
             future_capacity (bool): Select whether to return current or future capacity.
             Default: False
-
-        Returns:
-            Volume: Water capacity
-        """
-        if future_capacity:
-            return self.unallocated_capacity
-        return self.capacity
-
-
-class Base(Location):
-    """Base's location and fuel capacity."""
-
-    def __init__(self, latitude: float, longitude: float, capacity: float, id_no: int):
-        """Initialise aircraft base from location and fuel capacity."""
-        super().__init__(latitude, longitude)
-        self.initial_capacity = capacity
-        self.capacity: float = capacity
-        self.unallocated_capacity: float = capacity
-        self.id_no: int = id_no
-
-    def remove_fuel(self, volume: float) -> None:
-        """Remove a given volume of fuel from the base."""
-        self.capacity -= volume
-
-    def remove_unallocated_fuel(self, volume: float) -> None:
-        """Remove a given volume from unallocated water in the water tank."""
-        self.unallocated_capacity -= volume
-
-    def return_allocated_fuel(self, volume: float) -> None:
-        """Return a given volume to the unallocated water tank in the water tank."""
-        self.unallocated_capacity += volume
-
-    def get_fuel_capacity(self, future_capacity: bool = False) -> float:
-        """Return water capacity of tank.
-
-        The actual capacity (self.capacity) by or the unallocated capacity if future_capacity
-        is True
-
-        Args:
-            future_capacity (bool): Select whether to return current or future capacity.
-            Defaults to False
 
         Returns:
             Volume: Water capacity

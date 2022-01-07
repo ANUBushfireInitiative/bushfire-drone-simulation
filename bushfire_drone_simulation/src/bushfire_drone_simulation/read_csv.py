@@ -1,12 +1,19 @@
 """Functions for reading and writing data to a csv."""
 
-from abc import abstractmethod
 from pathlib import Path
-from typing import Any, Iterator, List, NamedTuple, Protocol, Type, TypeVar, Union
+from typing import Any, Iterator, List, NamedTuple, Union
 
 import pandas as pd
 
-from bushfire_drone_simulation.fire_utils import Location, Target, Time, assert_bool, assert_number
+from bushfire_drone_simulation.fire_utils import (
+    Base,
+    Location,
+    Target,
+    Time,
+    WaterTank,
+    assert_bool,
+    assert_number,
+)
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Volume
 
@@ -82,21 +89,27 @@ class CSVFile:
             yield row
 
 
-class LocWithCapacityInit(Protocol):
-    """Protocol class for location with capacity constructor."""
+def read_bases(filename: Path) -> List[Base]:
+    """Return a list of Bases from first two columns of the given csv file."""
+    location_data = CSVFile(filename)
+    to_return = []
+    lats = location_data["latitude"]
+    lons = location_data["longitude"]
+    for i, lat in enumerate(lats):
+        lat = assert_number(
+            lat,
+            f"Error: The latitude on row {i+1} of '{filename}' ('{lat}') is not a number",
+        )
+        lon = assert_number(
+            lons[i],
+            f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number",
+        )
+        to_return.append(Base(lat, lon, i))
+    return to_return
 
-    @abstractmethod
-    def __init__(self, latitude: float, longitude: float, capacity: float, id_no: int):
-        """__init__."""
 
-
-LocationConstructor = TypeVar("LocationConstructor", bound=LocWithCapacityInit)
-
-
-def read_locations_with_capacity(
-    filename: Path, constructor: Type[LocationConstructor], capacity_units: str = "L"
-) -> List[LocationConstructor]:
-    """Return a list of Locations contained in the first two columns of a given a csv file."""
+def read_water_tanks(filename: Path, capacity_units: str = "L") -> List[WaterTank]:
+    """Return a list of Water Tanks from first three columns of the given csv file."""
     location_data = CSVFile(filename)
     to_return = []
     lats = location_data["latitude"]
@@ -113,7 +126,7 @@ def read_locations_with_capacity(
             lons[i],
             f"Error: The longitude on row {i+1} of '{filename}' ('{lons[i]}') is not a number",
         )
-        to_return.append(constructor(lat, lon, Volume(cap, capacity_units).get(), i))
+        to_return.append(WaterTank(lat, lon, Volume(cap, capacity_units).get(), i))
     return to_return
 
 
@@ -230,5 +243,4 @@ def read_targets(filename: Path) -> List[Target]:
                 finish_time,
             ),
         )
-
     return targets
