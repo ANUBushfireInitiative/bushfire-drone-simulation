@@ -1,3 +1,6 @@
+.git/
+docker/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -157,4 +160,3 @@ swarm_test
 tightswarm2
 simulation_input
 outputvarfuel2
-bin

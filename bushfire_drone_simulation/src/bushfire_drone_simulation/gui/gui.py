@@ -188,9 +188,11 @@ class GUI:
                 font_fl,
                 size=10,
             )
+        copyright_text = "Maps © www.thunderforest.com, Data © www.osm.org/copyright"
+        width, height = font.getsize(copyright_text)
         draw.text(
-            (self.width - 310, self.height - 12),
-            "Maps © www.thunderforest.com, Data © www.osm.org/copyright",
+            (self.width - width - 5, self.height - height - 2),
+            copyright_text,
             (0, 0, 0),
             font=font,
         )
