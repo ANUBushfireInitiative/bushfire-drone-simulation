@@ -149,9 +149,9 @@ class WBAttributes(BaseModel):
     longitude: float
     flight_speed: float
     fuel_refill_time: float
-    bombing_time: float
+    suppression_time: float
     water_refill_time: float
-    water_per_delivery: float
+    water_per_suppression: float
     range_empty: float
     range_under_load: float
     water_capacity: float
@@ -254,7 +254,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             return self.status
         return self.event_queue.peak_last().completion_status
 
-    def _get_water_per_delivery(self) -> float:
+    def _get_water_per_suppression(self) -> float:
         """Return water per delivery time of Aircraft."""
         assert isinstance(
             self, WaterBomber
@@ -513,7 +513,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                 arrival_fuel - self._get_time_at_strike() * self.flight_speed / self.get_range()
             )
             if isinstance(self, WaterBomber):
-                water -= self._get_water_per_delivery()
+                water -= self._get_water_per_suppression()
                 if water < 0:
                     _LOG.error("%s ran out of water.", self.get_name())
             self.event_queue.put(
@@ -893,10 +893,10 @@ class WaterBomber(Aircraft):
         self.water_refill_time: float = Duration(int(attributes.water_refill_time), "min").get(
             DEFAULT_DURATION_UNITS
         )
-        self.bombing_time: float = Duration(int(attributes.bombing_time), "min").get(
+        self.suppression_time: float = Duration(int(attributes.suppression_time), "min").get(
             DEFAULT_DURATION_UNITS
         )
-        self.water_per_delivery: float = Volume(int(attributes.water_per_delivery), "L").get(
+        self.water_per_suppression: float = Volume(int(attributes.water_per_suppression), "L").get(
             DEFAULT_VOLUME_UNITS
         )
         self.water_capacity: float = Volume(int(attributes.water_capacity), "L").get(
@@ -930,8 +930,8 @@ class WaterBomber(Aircraft):
         ) + self.range_empty
 
     def _get_time_at_strike(self) -> float:
-        """Return bombing time of water bomber."""
-        return self.bombing_time
+        """Return suppression time of water bomber."""
+        return self.suppression_time
 
     def get_name(self) -> str:
         """Return name of Water Bomber."""
@@ -968,7 +968,7 @@ class WaterBomber(Aircraft):
             water = state.water
         for position in positions:
             if isinstance(position, Lightning):
-                water -= self.water_per_delivery
+                water -= self.water_per_suppression
             if water < 0:
                 return False
             if isinstance(position, WaterTank):
@@ -983,9 +983,9 @@ class WaterBomber(Aircraft):
         """Return water refill time of Aircraft. Should be 0 if does not exist."""
         return self.water_on_board
 
-    def _get_water_per_delivery(self) -> float:
+    def _get_water_per_suppression(self) -> float:
         """Return water per delivery time of Aircraft."""
-        return self.water_per_delivery
+        return self.water_per_suppression
 
     def _get_water_capacity(self) -> float:
         """Return water capcaity of Aircraft."""

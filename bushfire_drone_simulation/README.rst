@@ -113,15 +113,19 @@ The JSON parameters file should contain the following information formatted as i
         {
             "uavs": {
                 "spawn_loc_file": "path_to_file",
-                "attributes": {
-                    "flight_speed": "flight speed of uav in km/hr",
-                    "fuel_refill_time": "fuel refill time of uav in min",
-                    "range": "total range of uav traveling at 'flight_speed' with a full tank in km"
-                    "inspection_time": "time spent inspecting strike in min"
-                }
+                "flight_speed": "flight speed of uav in km/hr",
+                "fuel_refill_time": "fuel refill time of uav in min",
+                "range": "total range of uav traveling at 'flight_speed' with a full tank in km",
+                "inspection_time": "time spent inspecting strike in min",
+                "pct_fuel_cutoff": "detailed below",
                 "prioritisation_function": "how uavs should prioritise lightning strikes, see below."
             }
         }
+
+    `pct_fuel_cutoff` is used to determine when an aircraft should return to a base to refuel whilst it is
+    hovering. This is done by the following formula: If the fuel required to return to the nearest base
+    is greater than `pct_fuel_cutoff` multiplied by the aircraft's remaining fuel then the aircraft will
+    return to this base. Note that this return may be interrupted with the knowledge of future lightning strikes.
 
 *  A dictionary containing the following information about water bombers
 
@@ -131,24 +135,20 @@ The JSON parameters file should contain the following information formatted as i
         "water_bombers": {
             "water_bomber_type_1": {
                 "spawn_loc_file": "path_to_file",
-                "attributes": {
-                    "flight_speed": "flight speed of water bomber in km/hr",
-                    "bombing_time": "bombing time of water bomber in min",
-                    "water_refill_time": "water refill time of water bomber in min",
-                    "fuel_refill_time": "fuel refill time of water bomber in min",
-                    "water_per_delivery": "water required for each suppression in L",
-                    "range_empty": "range of empty water bomber in km",
-                    "range_under_load": "range of loaded water bomber in km",
-                    "water_capacity": "water capacity of water bomber in L"
-                }
+                "flight_speed": "flight speed of water bomber in km/hr",
+                "suppression_time": "suppression time of water bomber in min",
+                "water_refill_time": "water refill time of water bomber in min",
+                "fuel_refill_time": "fuel refill time of water bomber in min",
+                "water_per_delivery": "water required for each suppression in L",
+                "range_empty": "range of empty water bomber in km",
+                "range_under_load": "range of loaded water bomber in km",
+                "pct_fuel_cutoff": "detailed above",
+                "water_capacity": "water capacity of water bomber in L"
             },
             "water_bomber_type_2": {
-                "spawn_loc_file": "path_to_file",
-                "attributes": {
-                    "Same attribute structure as above"
-                }
+                "Same dictionary structure as above"
             },
-            "Additional water bombers can be added using the same structure shown above"
+            "Additional water bombers can be added using the same structure"
         }
     }
 
@@ -387,41 +387,43 @@ please see bushfire_drone_simulation/example_input.
         "target_maximum_inspection_time": 0.5,
         "target_maximum_suppression_time": 1,
         "ignition_probability": 0.072,
+
         "uavs": {
             "spawn_loc_file": "uav_spawn_locations.csv",
-            "attributes": {
-                "flight_speed": "?",
-                "fuel_refill_time": 30,
-                "range": 650,
-                "inspection_time": 1
-            }
+            "flight_speed": "?",
+            "fuel_refill_time": 30,
+            "range": 650,
+            "inspection_time": 1,
+            "pct_fuel_cutoff": 0.7,
+            "prioritisation_function": "product"
         },
+
         "water_bombers": {
+
             "helicopter": {
-                "spawn_loc_file": "helicopter_spawn_locations.csv",
-                "attributes": {
-                    "flight_speed": 235,
-                    "bombing_time": 1,
-                    "water_refill_time": 30,
-                    "fuel_refill_time": 30,
-                    "water_per_delivery": 2875,
-                    "range_empty": 650,
-                    "range_under_load": 650,
-                    "water_capacity": 11500
-                }
+                "spawn_loc_file": "input_data/helicopter_spawn_locations.csv",
+                "flight_speed": 235,
+                "suppression_time": 1,
+                "water_refill_time": 30,
+                "fuel_refill_time": 30,
+                "water_per_suppression": 2875,
+                "range_empty": 650,
+                "range_under_load": 650,
+                "water_capacity": 11500,
+                "pct_fuel_cutoff": 0.7
             },
+
             "c130": {
-                "spawn_loc_file": "helicopter_spawn_locations.csv",
-                "attributes": {
-                    "flight_speed": 235,
-                    "bombing_time": 1,
-                    "water_refill_time": 30,
-                    "fuel_refill_time": 30,
-                    "water_per_delivery": 2875,
-                    "range_empty": 650,
-                    "range_under_load": 650,
-                    "water_capacity": 11500
-                }
+                "spawn_loc_file": "input_data/helicopter_spawn_locations.csv",
+                "flight_speed": 235,
+                "suppression_time": 1,
+                "water_refill_time": 30,
+                "fuel_refill_time": 30,
+                "water_per_suppression": 2875,
+                "range_empty": 650,
+                "range_under_load": 650,
+                "water_capacity": 11500,
+                "pct_fuel_cutoff": 0.7
             }
         }
     }
