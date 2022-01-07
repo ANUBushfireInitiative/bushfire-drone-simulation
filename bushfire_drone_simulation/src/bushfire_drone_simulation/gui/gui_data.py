@@ -122,9 +122,6 @@ class GUIData:
         watertanks: List[GUIPoint] = extract_water_tanks_from_output(output_folder, scenario_name)
         return cls(lightning, ignitions, uavs, water_bombers, uav_bases, wb_bases, watertanks)
 
-    def save_to(self, folder: Path) -> None:
-        """Save gui data to a folder."""
-
 
 def extract_simulation_lightning(simulation: Simulator, ignited: bool) -> List[GUILightning]:
     """extract_simulation_lightning.
@@ -237,14 +234,18 @@ def extract_lightning_from_output(
         path / f"{scenario_name}{'_' if scenario_name else ''}simulation_output.csv"
     )
     for row in lightning_csv:
-        if math.isnan(row[6]) != ignited:
+        if math.isnan(getattr(row, "Suppression time (hr)")) != ignited:
             to_return.append(
                 GUILightning(
-                    Location(row[2], row[3]),
-                    row[1],
-                    row[4] * HOURS_TO_SECONDS,
-                    (row[4] + row[5]) * HOURS_TO_SECONDS,
-                    (row[4] + row[6]) * HOURS_TO_SECONDS if ignited else None,
+                    Location(getattr(row, "Latitude"), getattr(row, "Longitude")),
+                    getattr(row, "Strike ID"),
+                    getattr(row, "Spawn time (hr)") * HOURS_TO_SECONDS,
+                    (getattr(row, "Spawn time (hr)") + getattr(row, "Inspection time (hr)"))
+                    * HOURS_TO_SECONDS,
+                    (getattr(row, "Spawn time (hr)") + getattr(row, "Suppression time (hr)"))
+                    * HOURS_TO_SECONDS
+                    if ignited
+                    else None,
                     ignited,
                 )
             )
@@ -264,7 +265,13 @@ def extract_water_tanks_from_output(path: Path, scenario_name: str) -> List[GUIP
     to_return: List[GUIPoint] = []
     water_tank_csv = CSVFile(path / f"{scenario_name}{'_' if scenario_name else ''}water_tanks.csv")
     for row in water_tank_csv:
-        to_return.append(GUIPoint(Location(row[2], row[3]), radius=2, colour="blue"))
+        to_return.append(
+            GUIPoint(
+                Location(getattr(row, "Latitude"), getattr(row, "Longitude")),
+                radius=2,
+                colour="blue",
+            )
+        )
     return to_return
 
 
@@ -323,15 +330,15 @@ def extract_aircraft_from_output(
             status = Status(status_str)
         update_event = UpdateEvent(
             aircraft_id,
-            row[2],
-            row[3],
-            Time.from_float(row[4] * MINUTES_TO_SECONDS).get(),
+            getattr(row, "Latitude"),
+            getattr(row, "Longitude"),
+            Time.from_float(getattr(row, "Time (min)") * MINUTES_TO_SECONDS).get(),
             status,
-            row[5],
-            row[7],
-            row[8],
-            row[6],
-            0 if aircraft_type == "uav" else row[9],
+            getattr(row, "Distance travelled (km)"),
+            getattr(row, "Fuel capacity (%)"),
+            getattr(row, "Current range (km)"),
+            getattr(row, "Distance hovered (km)"),
+            0 if aircraft_type == "uav" else getattr(row, "Water capacity (L)"),
             [],
             None,
         )
