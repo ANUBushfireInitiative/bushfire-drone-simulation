@@ -233,5 +233,5 @@ documentation.
    :target: https://github.com/ANUBushfireInitiative/bushfire-drone-simulation/actions/workflows/python-3.8-pre-commit.yml
 .. |test| image:: https://github.com/ANUBushfireInitiative/bushfire-drone-simulation/actions/workflows/python-3.8-test.yml/badge.svg
    :target: https://github.com/ANUBushfireInitiative/bushfire-drone-simulation/actions/workflows/python-3.8-test.yml
-.. |coverage| image:: https://codecov.io/gh/ANUBushfireInitiative/bushfire-drone-simulation/branch/main/graph/badge.svg?token=QURRC5T44H
+.. |coverage| image:: https://codecov.io/gh/ANUBushfireInitiative/bushfire-drone-simulation/branch/main/graph/badge.svg?token=EKT4XB3HFL
    :target: https://codecov.io/gh/ANUBushfireInitiative/bushfire-drone-simulation
