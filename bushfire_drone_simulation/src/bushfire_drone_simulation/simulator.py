@@ -177,9 +177,6 @@ class Simulator:
         params.write_to_uav_updates_file(self.uavs, prefix)
         params.write_to_water_tanks_file(self.water_tanks, prefix)
         params.write_to_wb_updates_file(self.water_bombers, prefix)
-        # params.write_to_bases_file(self.uav_bases, prefix + "uav_")
-        # params.write_to_bases_file(self.water_bomber_bases_list, prefix + "water_bomber_")
-        params.write_to_input_parameters_folder(scenario_idx)
         self.summary_results = params.create_plots(
             inspection_times,
             suppression_times,
@@ -192,6 +189,7 @@ class Simulator:
 def run_simulations(params: JSONParameters) -> List[Simulator]:
     """Run bushfire drone simulation."""
     to_return = []
+    params.write_to_input_parameters_folder()
     for scenario_idx in tqdm(range(0, len(params.scenarios)), unit="scenario"):
         simulator = Simulator(params, scenario_idx)
         uav_coordinator = UAV_COORDINATORS[params.get_attribute("uav_coordinator", scenario_idx)](

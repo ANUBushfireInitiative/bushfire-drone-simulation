@@ -9,7 +9,7 @@ import sys
 from functools import reduce
 from math import isinf
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -48,19 +48,26 @@ _LOG = logging.getLogger(__name__)
 matplotlib.use("Agg")
 
 
-def _get_from_dict(
-    data_dict: Dict[str, Any], key_list: List[str]
-) -> Union[Dict[str, Any], str, int, float]:
+def _get_from_dict(data_dict: Dict[str, Any], key_list: Union[str, Sequence[str]]) -> Optional[Any]:
     """Get value corresponding to a list of keys in nested dictionaries."""
-    to_return = reduce(dict.__getitem__, key_list, data_dict)
+    if isinstance(key_list, str):
+        return data_dict[key_list]
+    to_return = reduce(
+        lambda d, key: d.get(key) if key in d else None, key_list, data_dict  # type: ignore
+    )
     return to_return
 
 
 def _set_in_dict(
-    data_dict: Dict[str, Any], key_list: List[str], value: Union[Dict[str, Any], str]
+    data_dict: Dict[str, Any],
+    key_list: Union[str, Sequence[str]],
+    value: Union[Dict[str, Any], str],
 ) -> None:
     """Set value corresponding to a list of keys in nested dictionaries."""
-    _get_from_dict(data_dict, key_list[:-1])[key_list[-1]] = value  # type: ignore
+    if isinstance(key_list, str):
+        data_dict[key_list] = value
+    else:
+        _get_from_dict(data_dict, key_list[:-1])[key_list[-1]] = value  # type: ignore
 
 
 def commandline_confirm(message: str) -> bool:
@@ -386,17 +393,18 @@ class JSONParameters:
             f"Please refer to the documentation for possible prioritisation functions."
         )
 
-    def get_attribute(self, attribute: str, scenario_idx: int) -> Any:
+    def get_attribute(self, attribute: Union[str, Sequence[str]], scenario_idx: int) -> Any:
         """Return attribute of JSON file."""
-        if attribute not in self.scenarios[scenario_idx]:
+        to_return = _get_from_dict(self.scenarios[scenario_idx], attribute)
+        if to_return is None:
             raise Exception(
                 f"Error: Parameter '{attribute}' is missing in '{self.filepath}'.\n"
                 f"Please add '{attribute}' to '{self.filepath}' "
                 f"and run the simulation again"
             )
-        return self.scenarios[scenario_idx][attribute]
+        return to_return
 
-    def get_relative_filepath(self, key: str, scenario_idx: int) -> Path:
+    def get_relative_filepath(self, key: Union[str, Sequence[str]], scenario_idx: int) -> Path:
         """Return relative file path to given key."""
         filename = self.get_attribute(key, scenario_idx)
         assert isinstance(filename, str)
@@ -645,7 +653,7 @@ class JSONParameters:
         """Filename for gui parameters."""
         return self.output_folder / "gui.json"
 
-    def write_to_input_parameters_folder(self, scenario_idx: int) -> None:
+    def write_to_input_parameters_folder(self) -> None:
         """Copy input parameters to input parameters folder to be output."""
         input_folder = self.output_folder / "simulation_input"
         if not input_folder.exists():
@@ -653,73 +661,81 @@ class JSONParameters:
         gui_params = copy.deepcopy(self.parameters)
         gui_params["output_folder_name"] = "."
 
-        shutil.copy2(self.filepath, input_folder)
-        path = shutil.copy2(
-            self.get_relative_filepath("water_bomber_bases_filename", scenario_idx),
-            input_folder,
-        )
-        if gui_params["water_bomber_bases_filename"] != "?":
-            gui_params["water_bomber_bases_filename"] = str(
-                Path(path).relative_to(self.output_folder)
-            )
-        path = shutil.copy2(
-            self.get_relative_filepath("uav_bases_filename", scenario_idx), input_folder
-        )
-        if gui_params["uav_bases_filename"] != "?":
-            gui_params["uav_bases_filename"] = str(Path(path).relative_to(self.output_folder))
-        shutil.copy2(self.get_relative_filepath("water_tanks_filename", scenario_idx), input_folder)
-        shutil.copy2(self.get_relative_filepath("lightning_filename", scenario_idx), input_folder)
-        if "scenario_parameters_filename" in self.parameters:
-            shutil.copy2(
-                self.get_relative_filepath("scenario_parameters_filename", scenario_idx),
-                input_folder,
-            )
-            path = shutil.copy2(
-                self.get_relative_filepath("scenario_parameters_filename", scenario_idx),
-                input_folder / "scenario_parameters_for_gui.csv",
-            )
-            gui_params["scenario_parameters_filename"] = str(
-                Path(path).relative_to(self.output_folder)
-            )
-            scenario_parameters_csv = CSVFile(path)
-            for heading in ["uav_bases_filename", "water_bomber_bases_filename"]:
-                if heading in scenario_parameters_csv.get_column_headings():
-                    for cell in scenario_parameters_csv.get_column(heading):
-                        path = shutil.copy2(
-                            cell.value,
-                            input_folder,
-                        )
-                        cell.value = Path(path).relative_to(self.output_folder)
-            scenario_parameters_csv.save(path)
+        copy_to_input(self.filepath, input_folder)
 
-        shutil.copy2(
-            self.folder / self.scenarios[scenario_idx]["uavs"]["spawn_loc_file"],
-            input_folder,
-        )
-        for water_bomber_type in self.get_attribute("water_bombers", scenario_idx):
-            path = shutil.copy2(
-                self.folder
-                / self.scenarios[scenario_idx]["water_bombers"][water_bomber_type][
-                    "spawn_loc_file"
-                ],
+        scenario_parameters_csv = None
+        if "scenario_parameters_filename" in self.parameters:
+            copy_to_input(
+                self.get_relative_filepath("scenario_parameters_filename", 0),
                 input_folder,
             )
-            if gui_params["water_bombers"][water_bomber_type]["spawn_loc_file"] != "?":
-                gui_params["water_bombers"][water_bomber_type]["spawn_loc_file"] = str(
-                    Path(path).relative_to(self.output_folder)
-                )
-        if "unassigned_drones" in self.parameters:
-            unassigned_dict = self.scenarios[scenario_idx]["unassigned_drones"]
-            if "targets_filename" in unassigned_dict:
-                shutil.copy2(
-                    self.folder
-                    / self.scenarios[scenario_idx]["unassigned_drones"]["targets_filename"],
-                    input_folder,
-                )
-            shutil.copy2(
-                self.folder
-                / self.scenarios[scenario_idx]["unassigned_drones"]["boundary_polygon_filename"],
+            path = copy_to_input(
+                self.get_relative_filepath("scenario_parameters_filename", 0),
                 input_folder,
+                name="scenario_parameters_for_gui",
             )
+            gui_params["scenario_parameters_filename"] = str(path.relative_to(self.output_folder))
+            scenario_parameters_csv = CSVFile(path)
+
+        file_parameters = [
+            "water_bomber_bases_filename",
+            "uav_bases_filename",
+            "water_tanks_filename",
+            "lightning_filename",
+            ["uavs", "spawn_loc_file"],
+        ] + [
+            ["water_bombers", water_bomber_type, "spawn_loc_file"]
+            for water_bomber_type in self.get_attribute("water_bombers", 0)
+        ]
+        if "unassigned_drones" in gui_params:
+            file_parameters.append(["unassigned_drones", "boundary_polygon_filename"])
+            if _get_from_dict(gui_params, ["unassigned_drones", "targets_filename"]) is not None:
+                file_parameters.append(["unassigned_drones", "targets_filename"])
+
+        for file_parameter in file_parameters:
+            if _get_from_dict(gui_params, file_parameter) != "?":
+                path = copy_to_input(self.get_relative_filepath(file_parameter, 0), input_folder)
+                _set_in_dict(gui_params, file_parameter, str(path.relative_to(self.output_folder)))
+            else:
+                if scenario_parameters_csv is None:
+                    print("ERROR")
+                else:
+                    heading = "/".join(file_parameter)
+                    assert heading in scenario_parameters_csv.get_column_headings()
+                    for i, cell in enumerate(scenario_parameters_csv.get_column(heading)):
+                        path = copy_to_input(
+                            self.get_relative_filepath(file_parameter, i), input_folder
+                        )
+                        cell.value = path.relative_to(self.output_folder)
+
+        # if "unassigned_drones" in self.parameters:
+        # unassigned_dict = self.scenarios[scenario_idx]["unassigned_drones"]
+        # if "targets_filename" in unassigned_dict:
+
         with open(self.gui_filename, "w", encoding="utf8") as gui_file:
             json.dump(gui_params, gui_file)
+        if scenario_parameters_csv is not None:
+            scenario_parameters_csv.save(scenario_parameters_csv.filename)
+
+
+def copy_to_input(file: Path, input_folder: Path, name: Optional[str] = None) -> Path:
+    """Copy a file to the input folder ensuring unique naming.
+
+    Args:
+        file (Path): file
+        input_folder (Path): input_folder
+
+    Returns:
+        Path: Destination
+    """
+    destination = input_folder / file.name
+    if name is not None:
+        destination = destination.with_stem(name)
+    i = 1
+    while destination.exists():
+        destination = destination.with_stem((name or file.stem) + "_" + str(i))
+    shutil.copy2(
+        file,
+        destination,
+    )
+    return destination
