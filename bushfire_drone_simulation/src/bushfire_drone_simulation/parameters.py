@@ -672,7 +672,7 @@ class JSONParameters:
             path = copy_to_input(
                 self.get_relative_filepath("scenario_parameters_filename", 0),
                 input_folder,
-                name="scenario_parameters_for_gui",
+                name="scenario_parameters_for_gui.csv",
             )
             gui_params["scenario_parameters_filename"] = str(path.relative_to(self.output_folder))
             scenario_parameters_csv = CSVFile(path)
@@ -708,10 +708,6 @@ class JSONParameters:
                         )
                         cell.value = path.relative_to(self.output_folder)
 
-        # if "unassigned_drones" in self.parameters:
-        # unassigned_dict = self.scenarios[scenario_idx]["unassigned_drones"]
-        # if "targets_filename" in unassigned_dict:
-
         with open(self.gui_filename, "w", encoding="utf8") as gui_file:
             json.dump(gui_params, gui_file)
         if scenario_parameters_csv is not None:
@@ -728,12 +724,12 @@ def copy_to_input(file: Path, input_folder: Path, name: Optional[str] = None) ->
     Returns:
         Path: Destination
     """
-    destination = input_folder / file.name
-    if name is not None:
-        destination = destination.with_stem(name)
+    destination = input_folder / (name or file.name)
     i = 1
     while destination.exists():
-        destination = destination.with_stem((name or file.stem) + "_" + str(i))
+        destination = destination.with_name(
+            (name or file.name).split(".")[0] + "_" + str(i) + "." + destination.suffix
+        )
     shutil.copy2(
         file,
         destination,
