@@ -13,6 +13,8 @@ from tkinter.constants import BOTH, DISABLED, HORIZONTAL, INSERT, X
 from typing import Dict, Optional
 
 import _tkinter
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.figure import Figure
 from PIL import Image as img
 from PIL import ImageDraw, ImageFont, ImageTk
 
@@ -22,6 +24,7 @@ from bushfire_drone_simulation.gui.map_image import MapImage
 from bushfire_drone_simulation.gui.popup import GuiPopup
 from bushfire_drone_simulation.gui.tk_hyperlink_manager import HyperlinkManager
 from bushfire_drone_simulation.parameters import JSONParameters
+from bushfire_drone_simulation.plots import inspection_time_histogram, suppression_time_histogram
 from bushfire_drone_simulation.simulator import run_simulations
 
 WIDTH = 400
@@ -109,6 +112,12 @@ class GUI:
         self.scenario_menu = Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="Scenario", menu=self.scenario_menu)
         self.plot_menu = Menu(self.menu_bar, tearoff=0)
+        self.plot_menu.add_command(
+            label="Inspection times", command=lambda: self.show_plot("inspection_time_histogram")
+        )
+        self.plot_menu.add_command(
+            label="Suppression times", command=lambda: self.show_plot("suppression_time_histogram")
+        )
         self.menu_bar.add_cascade(label="Plots", menu=self.plot_menu)
         self.tools_menu = Menu(self.menu_bar, tearoff=0)
         self.tools_menu.add_command(label="Clear Cache", command=self.clear_cache)
@@ -211,6 +220,35 @@ class GUI:
             os.remove(cache_img)
             progress_var.set(progress_var.get() + 1)
         popup.close()
+
+    def show_plot(self, plot_type: str) -> None:
+        """Show plot."""
+        popup = GuiPopup(self.window, 600, 400)
+        popup.title("Dashboard")
+        fig = Figure(figsize=(1, 1), dpi=100, tight_layout=True)
+        axs = fig.add_subplot(111)
+
+        if plot_type == "inspection_time_histogram":
+            inspection_times = [
+                lightning.inspection_time - lightning.spawn_time
+                for lightning in self.gui_data.lightning
+                if lightning.inspection_time is not None
+            ]
+            inspection_time_histogram(axs, inspection_times)
+        if plot_type == "suppression_time_histogram":
+            suppression_times = [
+                lightning.suppressed_time - lightning.inspection_time
+                for lightning in self.gui_data.lightning
+                if lightning.suppressed_time is not None and lightning.inspection_time is not None
+            ]
+            suppression_time_histogram(axs, suppression_times)
+
+        canvas = FigureCanvasTkAgg(fig, popup)
+        canvas.draw()
+        toolbar = NavigationToolbar2Tk(canvas, popup)
+        toolbar.pack()
+        canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
+        toolbar.update()
 
     def _size_dialog(self) -> None:
         """Change size of map."""
