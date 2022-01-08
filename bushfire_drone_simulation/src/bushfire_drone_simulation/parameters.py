@@ -7,7 +7,6 @@ import logging
 import shutil
 import sys
 from functools import reduce
-from math import isinf
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
@@ -33,7 +32,12 @@ from bushfire_drone_simulation.fire_utils import (
     assert_number,
 )
 from bushfire_drone_simulation.lightning import Lightning
-from bushfire_drone_simulation.plots import inspection_time_histogram, suppression_time_histogram
+from bushfire_drone_simulation.plots import (
+    inspection_time_histogram,
+    suppression_time_histogram,
+    supressions_per_bomber_plot,
+    water_tank_plot,
+)
 from bushfire_drone_simulation.read_csv import (
     CSVFile,
     read_bases,
@@ -443,33 +447,8 @@ class JSONParameters:
 
         inspection_time_histogram(axs[0, 0], inspection_times)
         suppression_time_histogram(axs[0, 1], suppression_times)
-
-        water_bomber_names = [wb.name for wb in water_bombers]
-        num_suppressed = [len(wb.strikes_visited) for wb in water_bombers]
-        axs[1, 0].set_title("Lightning strikes suppressed per water bomber")
-        axs[1, 0].bar(water_bomber_names, num_suppressed)
-        axs[1, 0].tick_params(labelrotation=90)
-
-        water_tank_ids = [i for i, _ in enumerate(water_tanks)]
-        axs[1, 1].set_title("Water tank levels after suppression")
-        axs[1, 1].bar(
-            water_tank_ids,
-            [
-                Volume(wt.initial_capacity).get(units="kL")
-                for wt in water_tanks
-                if not isinf(wt.initial_capacity)
-            ],
-            label="Full Capacity",
-            color="orange",
-        )
-        axs[1, 1].bar(
-            water_tank_ids,
-            [Volume(wt.capacity).get(units="kL") for wt in water_tanks],
-            label="Final Level",
-            color="blue",
-        )
-        axs[1, 1].legend()
-        axs[1, 1].set(ylabel="kL")
+        supressions_per_bomber_plot(axs[1, 0], water_bombers)
+        water_tank_plot(axs[1, 1], water_tanks)
 
         fig.tight_layout()
         plt.savefig(self.output_folder / (prefix + "inspection_times_plot.png"))
