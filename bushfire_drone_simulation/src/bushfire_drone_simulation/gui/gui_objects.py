@@ -5,6 +5,7 @@ from typing import Callable, List, Optional, Tuple
 
 from bushfire_drone_simulation.aircraft import UpdateEvent
 from bushfire_drone_simulation.fire_utils import Location
+from bushfire_drone_simulation.units import DURATION_FACTORS
 
 EPSILON: float = 0.0000001
 
@@ -221,6 +222,18 @@ class GUILightning(GUIPoint):
         self.suppressed_time = suppressed_time
         self.tags += ("lightning",)
         self.tags += (f"lightning {self.idx}",)
+
+    def inspection_time_hr(self) -> Optional[float]:
+        """Get the inspection time in hours."""
+        if self.inspection_time is None:
+            return None
+        return (self.inspection_time - self.spawn_time) / DURATION_FACTORS["hr"]
+
+    def suppression_time_hr(self) -> Optional[float]:
+        """Get the suppression time in hours."""
+        if self.suppressed_time is None:
+            return None
+        return (self.suppressed_time - self.spawn_time) / DURATION_FACTORS["hr"]
 
     def place_on_canvas(
         self, canvas: Canvas, to_coordinates: Callable[[Location], Tuple[float, float]]

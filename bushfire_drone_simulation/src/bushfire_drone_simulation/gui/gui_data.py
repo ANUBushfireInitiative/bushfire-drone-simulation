@@ -234,18 +234,14 @@ def extract_lightning_from_output(
         path / f"{scenario_name}{'_' if scenario_name else ''}simulation_output.csv"
     )
     for row in lightning_csv:
-        if math.isnan(getattr(row, "Suppression time (hr)")) != ignited:
+        if math.isnan(row[6]) != ignited:
             to_return.append(
                 GUILightning(
                     Location(getattr(row, "Latitude"), getattr(row, "Longitude")),
-                    getattr(row, "Strike ID"),
-                    getattr(row, "Spawn time (hr)") * HOURS_TO_SECONDS,
-                    (getattr(row, "Spawn time (hr)") + getattr(row, "Inspection time (hr)"))
-                    * HOURS_TO_SECONDS,
-                    (getattr(row, "Spawn time (hr)") + getattr(row, "Suppression time (hr)"))
-                    * HOURS_TO_SECONDS
-                    if ignited
-                    else None,
+                    row[1],
+                    row[4] * HOURS_TO_SECONDS,
+                    (row[4] + row[5]) * HOURS_TO_SECONDS,
+                    (row[4] + row[6]) * HOURS_TO_SECONDS if ignited else None,
                     ignited,
                 )
             )
@@ -332,13 +328,13 @@ def extract_aircraft_from_output(
             aircraft_id,
             getattr(row, "Latitude"),
             getattr(row, "Longitude"),
-            Time.from_float(getattr(row, "Time (min)") * MINUTES_TO_SECONDS).get(),
+            Time.from_float(row[4] * MINUTES_TO_SECONDS).get(),
             status,
-            getattr(row, "Distance travelled (km)"),
-            getattr(row, "Fuel capacity (%)"),
-            getattr(row, "Current range (km)"),
-            getattr(row, "Distance hovered (km)"),
-            0 if aircraft_type == "uav" else getattr(row, "Water capacity (L)"),
+            row[5],
+            row[7],
+            row[8],
+            row[6],
+            0 if aircraft_type == "uav" else row[9],
             [],
             None,
         )

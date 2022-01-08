@@ -229,18 +229,18 @@ class GUI:
         axs = fig.add_subplot(111)
 
         if plot_type == "inspection_time_histogram":
-            inspection_times = [
-                lightning.inspection_time - lightning.spawn_time
-                for lightning in self.gui_data.lightning
-                if lightning.inspection_time is not None
-            ]
+            inspection_times = list(
+                filter(
+                    None, [lightning.inspection_time_hr() for lightning in self.gui_data.lightning]
+                )
+            )
             inspection_time_histogram(axs, inspection_times)
         if plot_type == "suppression_time_histogram":
-            suppression_times = [
-                lightning.suppressed_time - lightning.inspection_time
-                for lightning in self.gui_data.lightning
-                if lightning.suppressed_time is not None and lightning.inspection_time is not None
-            ]
+            suppression_times = list(
+                filter(
+                    None, [lightning.suppression_time_hr() for lightning in self.gui_data.lightning]
+                )
+            )
             suppression_time_histogram(axs, suppression_times)
 
         canvas = FigureCanvasTkAgg(fig, popup)
