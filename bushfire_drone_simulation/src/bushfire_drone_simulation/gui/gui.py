@@ -231,14 +231,16 @@ class GUI:
         if plot_type == "inspection_time_histogram":
             inspection_times = list(
                 filter(
-                    None, [lightning.inspection_time_hr() for lightning in self.gui_data.lightning]
+                    None,
+                    [lightning.inspection_time_hr() for lightning in self.gui_data.all_lightning],
                 )
             )
             inspection_time_histogram(axs, inspection_times)
         if plot_type == "suppression_time_histogram":
             suppression_times = list(
                 filter(
-                    None, [lightning.suppression_time_hr() for lightning in self.gui_data.lightning]
+                    None,
+                    [lightning.suppression_time_hr() for lightning in self.gui_data.all_lightning],
                 )
             )
             suppression_time_histogram(axs, suppression_times)

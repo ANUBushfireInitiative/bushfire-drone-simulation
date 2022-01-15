@@ -59,6 +59,15 @@ class GUIData:
             )
 
     @property
+    def all_lightning(self) -> Sequence[GUILightning]:
+        """Get all lightning GUI objects.
+
+        Returns:
+            Sequence[GUILightning]:
+        """
+        return self.lightning + self.ignitions
+
+    @property
     def dict(self) -> Dict[str, Sequence[GUIObject]]:
         """Get dictionary of contained GUIObjects by type.
 
