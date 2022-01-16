@@ -3,7 +3,7 @@ from abc import abstractmethod
 from tkinter import Canvas
 from typing import Callable, List, Optional, Tuple
 
-from bushfire_drone_simulation.aircraft import UpdateEvent
+from bushfire_drone_simulation.aircraft import UAV, UpdateEvent, WaterBomber
 from bushfire_drone_simulation.fire_utils import Location
 from bushfire_drone_simulation.units import DURATION_FACTORS
 
@@ -389,3 +389,25 @@ class GUIAircraft(GUIObject):
             canvas (Canvas): canvas
         """
         self.aircraft_point.update(canvas)
+
+
+class GUIWaterBomber(GUIAircraft, WaterBomber):
+    """GUI Water bomber class."""
+
+    def __init__(
+        self,
+        events: List[UpdateEvent],
+    ) -> None:
+        """Initialise GUI water bomber."""
+        super().__init__(events, "orange", "black")
+
+
+class GUIUav(GUIAircraft, UAV):
+    """GUI UAV class."""
+
+    def __init__(
+        self,
+        events: List[UpdateEvent],
+    ) -> None:
+        """Initialise GUI UAV."""
+        super().__init__(events, "green", "black")

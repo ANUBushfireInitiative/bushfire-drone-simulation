@@ -24,7 +24,11 @@ from bushfire_drone_simulation.gui.map_image import MapImage
 from bushfire_drone_simulation.gui.popup import GuiPopup
 from bushfire_drone_simulation.gui.tk_hyperlink_manager import HyperlinkManager
 from bushfire_drone_simulation.parameters import JSONParameters
-from bushfire_drone_simulation.plots import inspection_time_histogram, suppression_time_histogram
+from bushfire_drone_simulation.plots import (
+    inspection_time_histogram,
+    suppression_time_histogram,
+    suppressions_per_bomber_plot,
+)
 from bushfire_drone_simulation.simulator import run_simulations
 
 WIDTH = 400
@@ -117,6 +121,13 @@ class GUI:
         )
         self.plot_menu.add_command(
             label="Suppression times", command=lambda: self.show_plot("suppression_time_histogram")
+        )
+        self.plot_menu.add_command(
+            label="Suppressions per water bomber",
+            command=lambda: self.show_plot("suppressions_per_water_bomber"),
+        )
+        self.plot_menu.add_command(
+            label="Water tank capacities", command=lambda: self.show_plot("water_tank_capacities")
         )
         self.menu_bar.add_cascade(label="Plots", menu=self.plot_menu)
         self.tools_menu = Menu(self.menu_bar, tearoff=0)
@@ -236,7 +247,7 @@ class GUI:
                 )
             )
             inspection_time_histogram(axs, inspection_times)
-        if plot_type == "suppression_time_histogram":
+        elif plot_type == "suppression_time_histogram":
             suppression_times = list(
                 filter(
                     None,
@@ -244,6 +255,12 @@ class GUI:
                 )
             )
             suppression_time_histogram(axs, suppression_times)
+        elif plot_type == "suppressions_per_water_bomber":
+            water_bombers = self.gui_data.water_bombers
+            suppressions_per_bomber_plot(axs, water_bombers)
+        # elif plot_type == "water_tank_capacities":
+        # water_tanks = []
+        # water_tank_plot(axs, water_tanks)
 
         canvas = FigureCanvasTkAgg(fig, popup)
         canvas.draw()

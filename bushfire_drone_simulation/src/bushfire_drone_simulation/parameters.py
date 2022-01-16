@@ -35,7 +35,7 @@ from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.plots import (
     inspection_time_histogram,
     suppression_time_histogram,
-    supressions_per_bomber_plot,
+    suppressions_per_bomber_plot,
     water_tank_plot,
 )
 from bushfire_drone_simulation.read_csv import (
@@ -447,7 +447,7 @@ class JSONParameters:
 
         inspection_time_histogram(axs[0, 0], inspection_times)
         suppression_time_histogram(axs[0, 1], suppression_times)
-        supressions_per_bomber_plot(axs[1, 0], water_bombers)
+        suppressions_per_bomber_plot(axs[1, 0], water_bombers)
         water_tank_plot(axs[1, 1], water_tanks)
 
         fig.tight_layout()

@@ -1,7 +1,7 @@
 """Module for generating various maplotlib plots of simulation data."""
 
 from math import isinf
-from typing import Any, List
+from typing import Any, List, Sequence
 
 from bushfire_drone_simulation.aircraft import WaterBomber
 from bushfire_drone_simulation.fire_utils import WaterTank
@@ -44,7 +44,7 @@ def inspection_time_histogram(axs: Any, inspection_times: List[float]) -> None:
 
 
 def suppression_time_histogram(axs: Any, suppression_times: List[float]) -> None:
-    """Genenrate a suppression time histogram.
+    """Generate a suppression time histogram.
 
     Args:
         axs (Any): axs
@@ -55,8 +55,8 @@ def suppression_time_histogram(axs: Any, suppression_times: List[float]) -> None
     )
 
 
-def supressions_per_bomber_plot(axs: Any, water_bombers: List[WaterBomber]) -> None:
-    """Genenrate a bar chart displaying the number of supressions per water bomber.
+def suppressions_per_bomber_plot(axs: Any, water_bombers: Sequence[WaterBomber]) -> None:
+    """Generate a bar chart displaying the number of suppressions per water bomber.
 
     Args:
         axs (Any): axs
@@ -69,7 +69,7 @@ def supressions_per_bomber_plot(axs: Any, water_bombers: List[WaterBomber]) -> N
     axs.tick_params(labelrotation=90)
 
 
-def water_tank_plot(axs: Any, water_tanks: List[WaterTank]) -> None:
+def water_tank_plot(axs: Any, water_tanks: Sequence[WaterTank]) -> None:
     """Generate a bar chart of water tank levels before and after supression.
 
     Args:
