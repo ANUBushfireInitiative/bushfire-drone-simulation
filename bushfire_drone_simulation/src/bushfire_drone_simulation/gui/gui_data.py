@@ -2,7 +2,7 @@
 
 import math
 from pathlib import Path
-from typing import Dict, List, Sequence, Type, TypeVar, Union
+from typing import Dict, List, Sequence, Type, TypeVar
 
 from bushfire_drone_simulation.aircraft import Aircraft, Status, UpdateEvent
 from bushfire_drone_simulation.fire_utils import Location, Time
@@ -166,7 +166,7 @@ def extract_simulation_lightning(simulation: Simulator, ignited: bool) -> List[G
     return to_return
 
 
-TAircraft = TypeVar("TAircraft", bound=Union[GUIUav, GUIWaterBomber])
+TAircraft = TypeVar("TAircraft", GUIUav, GUIWaterBomber)
 
 
 def extract_simulation_aircraft(
@@ -181,13 +181,13 @@ def extract_simulation_aircraft(
         List[GUIAircraft]:
     """
     to_return: List[TAircraft] = []
-    aircraft_list: Sequence[Aircraft] = (
-        simulation.water_bombers  # type: ignore
-        if aircraft_type == GUIWaterBomber
-        else simulation.uavs
-    )
+    aircraft_list: Sequence[Aircraft] = []
+    if aircraft_type == GUIWaterBomber:
+        aircraft_list = simulation.water_bombers
+    else:
+        aircraft_list = simulation.uavs
     for aircraft in aircraft_list:
-        to_return.append(aircraft_type(aircraft.past_locations))  # type: ignore
+        to_return.append(aircraft_type(aircraft.past_locations))
     return to_return
 
 
@@ -328,14 +328,18 @@ def extract_aircraft_from_output(
     Args:
         path (Path): path
         scenario_name (str): scenario_name
-        aircraft_type (str): aircraft_type
+        aircraft_type (TAircraft): aircraft_type
 
     Returns:
         List[GUIAircraft]:
     """
     to_return: List[TAircraft] = []
     aircraft_csv = CSVFile(
-        path / f"{scenario_name}{'_' if scenario_name else ''}{aircraft_type}_event_updates.csv"
+        path
+        / (
+            f"{scenario_name}{'_' if scenario_name else ''}"
+            + f"{aircraft_type.aircraft_type().value}_event_updates.csv"
+        )
     )
     aircraft_updates: Dict[str, List[UpdateEvent]] = {}
     for row in aircraft_csv:
@@ -366,5 +370,5 @@ def extract_aircraft_from_output(
             aircraft_updates[aircraft_id] = [update_event]
 
     for _, aircraft in aircraft_updates.items():
-        to_return.append(aircraft_type(aircraft))  # type: ignore
+        to_return.append(aircraft_type(aircraft))
     return to_return

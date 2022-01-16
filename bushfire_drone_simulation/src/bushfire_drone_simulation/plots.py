@@ -3,9 +3,9 @@
 from math import isinf
 from typing import Any, List, Sequence
 
-from bushfire_drone_simulation.aircraft import WaterBomber
 from bushfire_drone_simulation.fire_utils import WaterTank
 from bushfire_drone_simulation.units import Volume
+from bushfire_drone_simulation.water_bomber import WaterBomber
 
 
 def frequency_histogram(

@@ -7,11 +7,12 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from matplotlib import path
 
-from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.fire_utils import Base, Location, Target, WaterTank, assert_bool
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.precomupted import PreComputedDistances
+from bushfire_drone_simulation.uav import UAV
+from bushfire_drone_simulation.water_bomber import WaterBomber
 
 
 class UAVCoordinator:

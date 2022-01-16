@@ -7,21 +7,11 @@ from enum import Enum
 from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
-from pydantic import BaseModel
 
 from bushfire_drone_simulation.fire_utils import Base, Location, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.linked_list import LinkedList
 from bushfire_drone_simulation.precomupted import PreComputedDistances
-from bushfire_drone_simulation.units import (
-    DEFAULT_DISTANCE_UNITS,
-    DEFAULT_DURATION_UNITS,
-    DEFAULT_VOLUME_UNITS,
-    Distance,
-    Duration,
-    Speed,
-    Volume,
-)
 
 _LOG = logging.getLogger(__name__)
 
@@ -128,35 +118,11 @@ class Event:  # pylint: disable=too-few-public-methods
         return self.departure_time < other.departure_time
 
 
-class UAVAttributes(BaseModel):
-    """UAV attributes."""
+class AircraftType(Enum):
+    """Aircraft type enum."""
 
-    id_no: int
-    latitude: float
-    longitude: float
-    flight_speed: float
-    fuel_refill_time: float
-    range: float
-    inspection_time: float
-    pct_fuel_cutoff: float
-
-
-class WBAttributes(BaseModel):
-    """Water Bomber attributes."""
-
-    id_no: int
-    latitude: float
-    longitude: float
-    flight_speed: float
-    fuel_refill_time: float
-    suppression_time: float
-    water_refill_time: float
-    water_per_suppression: float
-    range_empty: float
-    range_under_load: float
-    water_capacity: float
-    pct_fuel_cutoff: float
-    bomber_type: str
+    UAV = "UAV"
+    WB = "WB"
 
 
 class Aircraft(Location):  # pylint: disable=too-many-public-methods
@@ -256,21 +222,23 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
 
     def _get_water_per_suppression(self) -> float:
         """Return water per delivery time of Aircraft."""
-        assert isinstance(
-            self, WaterBomber
+        assert (
+            self.aircraft_type() == AircraftType.WB
         ), f"{self.get_name()} is trying to measure water per delivery"
         return 0
 
     def _get_water_capacity(self) -> float:
-        """Return water capcaity of Aircraft."""
-        assert isinstance(
-            self, WaterBomber
+        """Return water capacity of Aircraft."""
+        assert (
+            self.aircraft_type() == AircraftType.WB
         ), f"{self.get_name()} is trying to measure it's water capacity"
         return 0
 
     def _get_water_refill_time(self) -> float:
         """Return water refill time of Aircraft."""
-        assert isinstance(self, WaterBomber), f"{self.get_name()} is trying to visit a water tank"
+        assert (
+            self.aircraft_type() == AircraftType.WB
+        ), f"{self.get_name()} is trying to visit a water tank"
         return 0
 
     # pylint: disable=R0201
@@ -280,11 +248,15 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
 
     def _set_water_on_board(self, water: float) -> None:  # pylint: disable=unused-argument
         """Set water on board of Aircraft."""
-        assert isinstance(self, WaterBomber), f"{self.get_name()} is trying to set water on board"
+        assert (
+            self.aircraft_type() == AircraftType.WB
+        ), f"{self.get_name()} is trying to set water on board"
 
     def get_type(self) -> str:
         """Return type of Aircraft."""
-        assert isinstance(self, WaterBomber), f"{self.get_name()} is trying to access type"
+        assert (
+            self.aircraft_type() == AircraftType.WB
+        ), f"{self.get_name()} is trying to access type"
         return ""
 
     @abstractmethod
@@ -294,6 +266,11 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
     @abstractmethod
     def get_name(self) -> str:
         """Return name of aircraft."""
+
+    @classmethod
+    @abstractmethod
+    def aircraft_type(cls) -> AircraftType:
+        """Return type of aircraft."""
 
     def _complete_event(self) -> Tuple[Optional[Lightning], Optional[Lightning]]:
         """Completes next event in queue and returns list of strikes inspected and suppressed."""
@@ -317,10 +294,12 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         self.current_fuel_capacity = event.completion_fuel
         self.time = event.completion_time
         if isinstance(event.position, WaterTank):
-            assert isinstance(self, WaterBomber), f"{self.get_name()} was sent to a water tank"
+            assert (
+                self.aircraft_type() == AircraftType.WB
+            ), f"{self.get_name()} was sent to a water tank"
             event.position.remove_water(self._get_water_capacity() - self._get_water_on_board())
         elif isinstance(event.position, Lightning):
-            if isinstance(self, UAV):
+            if self.aircraft_type() == AircraftType.UAV:
                 event.position.inspected(self.time)
                 self.strikes_visited.append((event.position, self.time))
                 inspection = event.position
@@ -328,7 +307,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                 event.position.suppressed(self.time)
                 self.strikes_visited.append((event.position, self.time))
                 suppression = event.position
-        if isinstance(self, WaterBomber):
+        if self.aircraft_type() == AircraftType.WB:
             self._set_water_on_board(event.water)
         self.status = event.completion_status
         self._add_update(id_no)
@@ -447,7 +426,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         """
         if self.use_current_status:
             # TODO(Add allocated water back to water tank!!) pylint: disable=fixme
-            # if isinstance(self, WaterBomber):
+            # if self.aircraft_type() == AircraftType.WB:
             #     for event, prev_event in self.event_queue:
             #         if isinstance(event.position, WaterTank):
             #             if prev_event is None:
@@ -470,7 +449,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         water = deepcopy(self._get_future_water())
 
         if isinstance(position, WaterTank):
-            assert isinstance(self, WaterBomber), "A UAV was sent to a water tank"
+            assert self.aircraft_type() == AircraftType.WB, "A UAV was sent to a water tank"
             event_completion_time = event_arrival_time + self._get_water_refill_time()
             position.remove_unallocated_water(self._get_water_capacity() - self._get_future_water())
             water = self._get_water_capacity()
@@ -512,7 +491,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             completion_fuel = (
                 arrival_fuel - self._get_time_at_strike() * self.flight_speed / self.get_range()
             )
-            if isinstance(self, WaterBomber):
+            if self.aircraft_type() == AircraftType.WB:
                 water -= self._get_water_per_suppression()
                 if water < 0:
                     _LOG.error("%s ran out of water.", self.get_name())
@@ -669,7 +648,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             else:
                 departure_pos = positions[idx - 1]
                 if self.precomputed is not None:
-                    if isinstance(self, WaterBomber):
+                    if self.aircraft_type() == AircraftType.WB:
                         if isinstance(position, Base) and isinstance(departure_pos, Lightning):
                             dist = self.precomputed.ignition_to_base(
                                 departure_pos, position, self.get_type()
@@ -790,207 +769,3 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                 loc_id_no=loc_id_no,
             )
         )
-
-
-class UAV(Aircraft):
-    """UAV class for unmanned aircraft searching lightning strikes."""
-
-    def __init__(
-        self,
-        attributes: UAVAttributes,
-        starting_at_base: bool,
-        initial_fuel: float,
-    ):  # pylint: disable=too-many-arguments
-        """Initialize UAV.
-
-        Args:
-            id_no (int): id number of UAV
-            latitude (float): latitude of UAV
-            longitude (float): longitude of UAV
-            attributes (UAVAttributes): attributes of UAV
-        """
-        super().__init__(
-            attributes.latitude,
-            attributes.longitude,
-            Speed(int(attributes.flight_speed), "km", "hr").get(
-                DEFAULT_DISTANCE_UNITS, DEFAULT_DURATION_UNITS
-            ),
-            Duration(int(attributes.fuel_refill_time), "min").get(DEFAULT_DURATION_UNITS),
-            attributes.id_no,
-            starting_at_base,
-            initial_fuel,
-            attributes.pct_fuel_cutoff,
-        )
-        self.total_range: float = Distance(int(attributes.range), "km").get(DEFAULT_DISTANCE_UNITS)
-        self.inspection_time: float = Duration(attributes.inspection_time, "min").get(
-            DEFAULT_DURATION_UNITS
-        )
-        self.past_locations = [
-            UpdateEvent(
-                self.get_name(),
-                self.lat,
-                self.lon,
-                self.time,
-                self.status,
-                0,
-                self.current_fuel_capacity,
-                self.get_range(),
-                0,
-                0,
-                [],
-            )
-        ]
-
-    def get_range(self) -> float:
-        """Return total range of UAV."""
-        return self.total_range
-
-    def get_name(self) -> str:
-        """Return name of UAV."""
-        return f"uav {self.id_no}"
-
-    def _get_time_at_strike(self) -> float:
-        """Return inspection time of UAV."""
-        return self.inspection_time
-
-
-class WaterBomber(Aircraft):
-    """Class for aircraft that contain water for dropping on potential fires."""
-
-    def __init__(
-        self,
-        attributes: WBAttributes,
-        starting_at_base: bool,
-        initial_fuel: float,
-    ):  # pylint: disable=too-many-arguments
-        """Initialize water bombing aircraft.
-
-        Args:
-            id_no (int): id number of water bomber
-            latitude (float): latitude of water bomber
-            longitude (float): longitude of water bomber
-            attributes (): dictionary of attributes of water bomber
-            bomber_type (str): type of water bomber
-        """
-        super().__init__(
-            attributes.latitude,
-            attributes.longitude,
-            Speed(int(attributes.flight_speed), "km", "hr").get(
-                DEFAULT_DISTANCE_UNITS, DEFAULT_DURATION_UNITS
-            ),
-            Duration(int(attributes.fuel_refill_time), "min").get(DEFAULT_DURATION_UNITS),
-            attributes.id_no,
-            starting_at_base,
-            initial_fuel,
-            attributes.pct_fuel_cutoff,
-        )
-        self.range_empty: float = Distance(int(attributes.range_empty), "km").get(
-            DEFAULT_DISTANCE_UNITS
-        )
-        self.range_under_load: float = Distance(int(attributes.range_under_load), "km").get(
-            DEFAULT_DISTANCE_UNITS
-        )
-        self.water_refill_time: float = Duration(int(attributes.water_refill_time), "min").get(
-            DEFAULT_DURATION_UNITS
-        )
-        self.suppression_time: float = Duration(int(attributes.suppression_time), "min").get(
-            DEFAULT_DURATION_UNITS
-        )
-        self.water_per_suppression: float = Volume(int(attributes.water_per_suppression), "L").get(
-            DEFAULT_VOLUME_UNITS
-        )
-        self.water_capacity: float = Volume(int(attributes.water_capacity), "L").get(
-            DEFAULT_VOLUME_UNITS
-        )
-        self.water_on_board: float = Volume(int(attributes.water_capacity), "L").get(
-            DEFAULT_VOLUME_UNITS
-        )
-        self.type: str = attributes.bomber_type
-        self.name: str = f"{attributes.bomber_type} {attributes.id_no+1}"
-        self.past_locations = [
-            UpdateEvent(
-                self.name,
-                self.lat,
-                self.lon,
-                self.time,
-                self.status,
-                0,
-                self.current_fuel_capacity,
-                self.get_range(),
-                0,
-                self.water_on_board,
-                [],
-            )
-        ]
-
-    def get_range(self) -> float:
-        """Return range of Water bomber."""
-        return (self.range_under_load - self.range_empty) * (
-            self.water_on_board / self.water_capacity
-        ) + self.range_empty
-
-    def _get_time_at_strike(self) -> float:
-        """Return suppression time of water bomber."""
-        return self.suppression_time
-
-    def get_name(self) -> str:
-        """Return name of Water Bomber."""
-        return str(self.name)
-
-    def get_type(self) -> str:
-        """Return type of Water Bomber."""
-        return self.type
-
-    def check_water_tank(self, water_tank: WaterTank) -> bool:
-        """Return whether a given water tank has enough capacity to refill the water bomber.
-
-        Returns:
-            bool: Returns false if water tank has enough to extinguish a single fire
-            but not completely refill
-        """
-        return (
-            water_tank.get_water_capacity(not self.use_current_status)
-            >= self.water_capacity - self._get_future_water()
-        )
-
-    def enough_water(
-        self, positions: List[Location], state: Optional[Union[Event, str]] = None
-    ) -> bool:
-        """Return whether the water bomber has enough water.
-
-        To travese given list of positions from a given state.
-        """
-        if state is None:
-            water = self._get_future_water()
-        elif isinstance(state, str):
-            water = self.water_on_board
-        else:
-            water = state.water
-        for position in positions:
-            if isinstance(position, Lightning):
-                water -= self.water_per_suppression
-            if water < 0:
-                return False
-            if isinstance(position, WaterTank):
-                water = self.water_capacity
-        return True
-
-    def _get_water_refill_time(self) -> float:
-        """Return water refill time of Aircraft. Should be 0 if does not exist."""
-        return self.water_refill_time
-
-    def _get_water_on_board(self) -> float:
-        """Return water refill time of Aircraft. Should be 0 if does not exist."""
-        return self.water_on_board
-
-    def _get_water_per_suppression(self) -> float:
-        """Return water per delivery time of Aircraft."""
-        return self.water_per_suppression
-
-    def _get_water_capacity(self) -> float:
-        """Return water capcaity of Aircraft."""
-        return self.water_capacity
-
-    def _set_water_on_board(self, water: float) -> None:
-        """Set water on board of Aircraft."""
-        self.water_on_board = water

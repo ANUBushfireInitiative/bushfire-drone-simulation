@@ -3,9 +3,11 @@ from abc import abstractmethod
 from tkinter import Canvas
 from typing import Callable, List, Optional, Tuple
 
-from bushfire_drone_simulation.aircraft import UAV, UpdateEvent, WaterBomber
+from bushfire_drone_simulation.aircraft import UpdateEvent
 from bushfire_drone_simulation.fire_utils import Location
+from bushfire_drone_simulation.uav import UAV
 from bushfire_drone_simulation.units import DURATION_FACTORS
+from bushfire_drone_simulation.water_bomber import WaterBomber
 
 EPSILON: float = 0.0000001
 

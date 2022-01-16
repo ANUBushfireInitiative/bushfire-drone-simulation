@@ -15,13 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 
-from bushfire_drone_simulation.aircraft import (
-    UAV,
-    UAVAttributes,
-    UpdateEvent,
-    WaterBomber,
-    WBAttributes,
-)
+from bushfire_drone_simulation.aircraft import AircraftType, UpdateEvent
 from bushfire_drone_simulation.fire_utils import (
     Base,
     Location,
@@ -46,7 +40,9 @@ from bushfire_drone_simulation.read_csv import (
     read_targets,
     read_water_tanks,
 )
+from bushfire_drone_simulation.uav import UAV, UAVAttributes
 from bushfire_drone_simulation.units import Distance, Volume
+from bushfire_drone_simulation.water_bomber import WaterBomber, WBAttributes
 
 _LOG = logging.getLogger(__name__)
 matplotlib.use("Agg")
@@ -539,7 +535,7 @@ class JSONParameters:
     def write_to_uav_updates_file(self, uavs: List[UAV], prefix: str) -> None:
         """Write UAV event update data to output file."""
         with open(
-            self.output_folder / (prefix + "uav_event_updates.csv"),
+            self.output_folder / (f"{prefix}{AircraftType.UAV.value}_event_updates.csv"),
             "w",
             newline="",
             encoding="utf8",
@@ -584,7 +580,7 @@ class JSONParameters:
         """Write water bomber event update data to output file."""
         # water_bombers: List[WaterBomber] = coordinator.water_bombers
         with open(
-            self.output_folder / (prefix + "water_bomber_event_updates.csv"),
+            self.output_folder / (f"{prefix}{AircraftType.WB.value}_event_updates.csv"),
             "w",
             newline="",
             encoding="utf8",

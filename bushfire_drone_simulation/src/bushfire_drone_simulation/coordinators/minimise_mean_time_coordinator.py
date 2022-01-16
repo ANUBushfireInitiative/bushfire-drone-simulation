@@ -14,7 +14,7 @@ from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 
-from bushfire_drone_simulation.aircraft import UAV, Event, WaterBomber
+from bushfire_drone_simulation.aircraft import Event
 from bushfire_drone_simulation.coordinators.abstract_coordinator import (
     UAVCoordinator,
     WBCoordinator,
@@ -23,7 +23,9 @@ from bushfire_drone_simulation.fire_utils import Base, Location, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.linked_list import Node
 from bushfire_drone_simulation.parameters import JSONParameters
+from bushfire_drone_simulation.uav import UAV
 from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Duration
+from bushfire_drone_simulation.water_bomber import WaterBomber
 
 _LOG = logging.getLogger(__name__)
 
@@ -69,8 +71,8 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
             index_of_closest_base = self.precomputed.closest_uav_base(lightning)
         min_arrival_time: float = inf
         min_arr_time_above_target: float = inf
-        best_uav: Union[UAV, None] = None
-        best_uav_above_target: Union[UAV, None] = None
+        best_uav: Optional[UAV] = None
+        best_uav_above_target: Optional[UAV] = None
         assigned_locations: List[Location] = []
         assigned_locations_above_target: List[Location] = []
         start_from: Optional[Union[Node[Event], str]] = None
