@@ -349,7 +349,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                     self._reduce_current_fuel(
                         (self.flight_speed * (update_time - self.time)) / self.get_range()
                     )
-                    self.time += self.distance(destination) / self.flight_speed
+                self.time += self.distance(destination) / self.flight_speed
                 self._update_location(destination)
             self.status = Status.UNASSIGNED
             self._add_update()
