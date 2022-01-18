@@ -1,12 +1,12 @@
 """Aircraft testing."""
 
 from pathlib import Path
-from typing import List, Sequence
+from typing import List
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
-from bushfire_drone_simulation.aircraft import EPSILON, Aircraft, Status, WaterBomber
+from bushfire_drone_simulation.aircraft import EPSILON, Status, WaterBomber
 from bushfire_drone_simulation.main import run_simulation
 from bushfire_drone_simulation.simulator import Simulator
 
@@ -82,7 +82,7 @@ def test_aircraft_status(
 
 @pytest.mark.slow
 def test_aircraft_speed(simulations: List[Simulator]) -> None:
-    """Does the Aircraft refill often enough."""
+    """Does the Aircraft ever exceed it's flight speed."""
     for simulator in simulations:
         for aircraft in [*simulator.uavs, *simulator.water_bombers]:
             for idx, update in enumerate(aircraft.past_locations[1:]):
