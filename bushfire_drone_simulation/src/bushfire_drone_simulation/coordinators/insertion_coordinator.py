@@ -13,7 +13,7 @@ from typing import List, Optional, Union
 
 import numpy as np
 
-from bushfire_drone_simulation.aircraft import UAV, Event, WaterBomber
+from bushfire_drone_simulation.aircraft import Event
 from bushfire_drone_simulation.coordinators.abstract_coordinator import (
     UAVCoordinator,
     WBCoordinator,
@@ -21,6 +21,8 @@ from bushfire_drone_simulation.coordinators.abstract_coordinator import (
 from bushfire_drone_simulation.fire_utils import Base, Location
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.linked_list import Node
+from bushfire_drone_simulation.uav import UAV
+from bushfire_drone_simulation.water_bomber import WaterBomber
 
 _LOG = logging.getLogger(__name__)
 
@@ -41,7 +43,7 @@ class InsertionUAVCoordinator(UAVCoordinator):
         else:
             base_index = self.precomputed.closest_uav_base(lightning)
         min_arrival_time: float = inf
-        best_uav: Union[UAV, None] = None
+        best_uav: Optional[UAV] = None
         assigned_locations: List[Location] = []
         start_from: Optional[Union[Node[Event], str]] = None
         # The event from which to start going to assigned locations, str if delete all elements
@@ -151,7 +153,7 @@ class InsertionWBCoordinator(WBCoordinator):
         """Decide on water bombers movement with new ignition."""
         assert ignition.inspected_time is not None, "Error: Ignition was not inspected."
         min_arrival_time: float = inf
-        best_water_bomber: Union[WaterBomber, None] = None
+        best_water_bomber: Optional[WaterBomber] = None
         assigned_locations: List[Location] = []
         start_from: Optional[Union[Node[Event], str]] = None
         for water_bomber in self.water_bombers:  # pylint: disable=too-many-nested-blocks

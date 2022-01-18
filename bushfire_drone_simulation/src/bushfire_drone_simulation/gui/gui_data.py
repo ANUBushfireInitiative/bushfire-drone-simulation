@@ -2,11 +2,18 @@
 
 import math
 from pathlib import Path
-from typing import Dict, List, Sequence
+from typing import Dict, List, Sequence, Type, TypeVar
 
 from bushfire_drone_simulation.aircraft import Aircraft, Status, UpdateEvent
 from bushfire_drone_simulation.fire_utils import Location, Time
-from bushfire_drone_simulation.gui.gui_objects import GUIAircraft, GUILightning, GUIObject, GUIPoint
+from bushfire_drone_simulation.gui.gui_objects import (
+    GUIAircraft,
+    GUILightning,
+    GUIObject,
+    GUIPoint,
+    GUIUav,
+    GUIWaterBomber,
+)
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.read_csv import CSVFile
 from bushfire_drone_simulation.simulator import Simulator
@@ -20,13 +27,13 @@ class GUIData:
 
     def __init__(  # pylint: disable=too-many-arguments
         self,
-        lightning: List[GUILightning],
-        ignitions: List[GUILightning],
-        uavs: List[GUIAircraft],
-        water_bombers: List[GUIAircraft],
-        uav_bases: List[GUIPoint],
-        wb_bases: List[GUIPoint],
-        watertanks: List[GUIPoint],
+        lightning: Sequence[GUILightning],
+        ignitions: Sequence[GUILightning],
+        uavs: Sequence[GUIUav],
+        water_bombers: Sequence[GUIWaterBomber],
+        uav_bases: Sequence[GUIPoint],
+        wb_bases: Sequence[GUIPoint],
+        watertanks: Sequence[GUIPoint],
     ):
         """Initialize a GUI data object.
 
@@ -51,12 +58,23 @@ class GUIData:
         if len(water_bombers) + len(uavs) == 0:
             self.max_time = 0.0
         else:
+            aircraft: List[GUIAircraft] = list(water_bombers)
+            aircraft += list(uavs)
             self.max_time = max(
                 event.time
-                for a in water_bombers + uavs
+                for a in aircraft
                 for event in a.events
                 if event.status != Status.WAITING_AT_BASE
             )
+
+    @property
+    def all_lightning(self) -> Sequence[GUILightning]:
+        """Get all lightning GUI objects.
+
+        Returns:
+            Sequence[GUILightning]:
+        """
+        return list(self.lightning) + list(self.ignitions)
 
     @property
     def dict(self) -> Dict[str, Sequence[GUIObject]]:
@@ -92,8 +110,8 @@ class GUIData:
         """
         lightning = extract_simulation_lightning(simulation, ignited=False)
         ignitions = extract_simulation_lightning(simulation, ignited=True)
-        uavs = extract_simulation_aircraft(simulation, "uav")
-        water_bombers = extract_simulation_aircraft(simulation, "wb")
+        uavs = extract_simulation_aircraft(simulation, GUIUav)
+        water_bombers = extract_simulation_aircraft(simulation, GUIWaterBomber)
         uav_bases = extract_simulation_uav_bases(simulation)
         wb_bases = extract_simulation_wb_bases(simulation)
         watertanks = extract_simulation_water_tanks(simulation)
@@ -113,8 +131,8 @@ class GUIData:
         )
         lightning = extract_lightning_from_output(output_folder, scenario_name, ignited=False)
         ignitions = extract_lightning_from_output(output_folder, scenario_name, ignited=True)
-        uavs = extract_aircraft_from_output(output_folder, scenario_name, "uav")
-        water_bombers = extract_aircraft_from_output(output_folder, scenario_name, "water_bomber")
+        uavs = extract_aircraft_from_output(output_folder, scenario_name, GUIUav)
+        water_bombers = extract_aircraft_from_output(output_folder, scenario_name, GUIWaterBomber)
         uav_bases: List[GUIPoint] = extract_bases_from_parameters(parameters, scenario, "uav")
         wb_bases: List[GUIPoint] = extract_bases_from_parameters(
             parameters, scenario, "water_bomber"
@@ -148,7 +166,12 @@ def extract_simulation_lightning(simulation: Simulator, ignited: bool) -> List[G
     return to_return
 
 
-def extract_simulation_aircraft(simulation: Simulator, aircraft_type: str) -> List[GUIAircraft]:
+TAircraft = TypeVar("TAircraft", GUIUav, GUIWaterBomber)
+
+
+def extract_simulation_aircraft(
+    simulation: Simulator, aircraft_type: Type[TAircraft]
+) -> List[TAircraft]:
     """Extract uavs from simulator.
 
     Args:
@@ -157,15 +180,14 @@ def extract_simulation_aircraft(simulation: Simulator, aircraft_type: str) -> Li
     Returns:
         List[GUIAircraft]:
     """
-    to_return: List[GUIAircraft] = []
-    assert aircraft_type in ["uav", "wb"]
-    aircraft_list: Sequence[Aircraft] = (
-        simulation.water_bombers if aircraft_type == "wb" else simulation.uavs  # type: ignore
-    )
+    to_return: List[TAircraft] = []
+    aircraft_list: Sequence[Aircraft] = []
+    if aircraft_type == GUIWaterBomber:
+        aircraft_list = simulation.water_bombers
+    else:
+        aircraft_list = simulation.uavs
     for aircraft in aircraft_list:
-        to_return.append(
-            GUIAircraft(aircraft.past_locations, "orange" if aircraft_type == "wb" else "green")
-        )
+        to_return.append(aircraft_type(aircraft.past_locations))
     return to_return
 
 
@@ -234,18 +256,14 @@ def extract_lightning_from_output(
         path / f"{scenario_name}{'_' if scenario_name else ''}simulation_output.csv"
     )
     for row in lightning_csv:
-        if math.isnan(getattr(row, "Suppression time (hr)")) != ignited:
+        if math.isnan(row[6]) != ignited:
             to_return.append(
                 GUILightning(
                     Location(getattr(row, "Latitude"), getattr(row, "Longitude")),
-                    getattr(row, "Strike ID"),
-                    getattr(row, "Spawn time (hr)") * HOURS_TO_SECONDS,
-                    (getattr(row, "Spawn time (hr)") + getattr(row, "Inspection time (hr)"))
-                    * HOURS_TO_SECONDS,
-                    (getattr(row, "Spawn time (hr)") + getattr(row, "Suppression time (hr)"))
-                    * HOURS_TO_SECONDS
-                    if ignited
-                    else None,
+                    row[1],
+                    row[4] * HOURS_TO_SECONDS,
+                    (row[4] + row[5]) * HOURS_TO_SECONDS,
+                    (row[4] + row[6]) * HOURS_TO_SECONDS if ignited else None,
                     ignited,
                 )
             )
@@ -303,21 +321,25 @@ def extract_bases_from_parameters(
 
 
 def extract_aircraft_from_output(
-    path: Path, scenario_name: str, aircraft_type: str
-) -> List[GUIAircraft]:
+    path: Path, scenario_name: str, aircraft_type: Type[TAircraft]
+) -> List[TAircraft]:
     """extract_aircraft_from_output.
 
     Args:
         path (Path): path
         scenario_name (str): scenario_name
-        aircraft_type (str): aircraft_type
+        aircraft_type (TAircraft): aircraft_type
 
     Returns:
         List[GUIAircraft]:
     """
-    to_return: List[GUIAircraft] = []
+    to_return: List[TAircraft] = []
     aircraft_csv = CSVFile(
-        path / f"{scenario_name}{'_' if scenario_name else ''}{aircraft_type}_event_updates.csv"
+        path
+        / (
+            f"{scenario_name}{'_' if scenario_name else ''}"
+            + f"{aircraft_type.aircraft_type().value}_event_updates.csv"
+        )
     )
     aircraft_updates: Dict[str, List[UpdateEvent]] = {}
     for row in aircraft_csv:
@@ -332,13 +354,13 @@ def extract_aircraft_from_output(
             aircraft_id,
             getattr(row, "Latitude"),
             getattr(row, "Longitude"),
-            Time.from_float(getattr(row, "Time (min)") * MINUTES_TO_SECONDS).get(),
+            Time.from_float(row[4] * MINUTES_TO_SECONDS).get(),
             status,
-            getattr(row, "Distance travelled (km)"),
-            getattr(row, "Fuel capacity (%)"),
-            getattr(row, "Current range (km)"),
-            getattr(row, "Distance hovered (km)"),
-            0 if aircraft_type == "uav" else getattr(row, "Water capacity (L)"),
+            row[5],
+            row[7],
+            row[8],
+            row[6],
+            0 if aircraft_type == GUIUav else row[9],
             [],
             None,
         )
@@ -348,5 +370,5 @@ def extract_aircraft_from_output(
             aircraft_updates[aircraft_id] = [update_event]
 
     for _, aircraft in aircraft_updates.items():
-        to_return.append(GUIAircraft(aircraft, "green" if aircraft_type == "uav" else "orange"))
+        to_return.append(aircraft_type(aircraft))
     return to_return

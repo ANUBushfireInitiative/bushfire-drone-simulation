@@ -11,13 +11,14 @@ strike and rather discounts the option if it does not possess enough fuel or wat
 import logging
 from typing import Callable, Dict, List
 
-from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.coordinators.minimise_mean_time_coordinator import (
     MinimiseMeanTimeUAVCoordinator,
     MinimiseMeanTimeWBCoordinator,
 )
 from bushfire_drone_simulation.fire_utils import Base, WaterTank
 from bushfire_drone_simulation.parameters import JSONParameters
+from bushfire_drone_simulation.uav import UAV
+from bushfire_drone_simulation.water_bomber import WaterBomber
 
 _LOG = logging.getLogger(__name__)
 

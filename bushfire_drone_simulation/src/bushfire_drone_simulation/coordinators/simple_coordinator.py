@@ -6,17 +6,18 @@ Never reevaluates routes for aircraft.
 
 import logging
 from math import inf
-from typing import List, Union
+from typing import List, Optional
 
 import numpy as np
 
-from bushfire_drone_simulation.aircraft import UAV, WaterBomber
 from bushfire_drone_simulation.coordinators.abstract_coordinator import (
     UAVCoordinator,
     WBCoordinator,
 )
 from bushfire_drone_simulation.fire_utils import Location
 from bushfire_drone_simulation.lightning import Lightning
+from bushfire_drone_simulation.uav import UAV
+from bushfire_drone_simulation.water_bomber import WaterBomber
 
 _LOG = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ class SimpleUAVCoordinator(UAVCoordinator):
         else:
             base_index = self.precomputed.closest_uav_base(lightning)
         min_arrival_time: float = inf
-        best_uav: Union[UAV, None] = None
+        best_uav: Optional[UAV] = None
         assigned_locations: List[Location] = []
         for uav in self.uavs:
             # Check whether the UAV has enough fuel to
@@ -83,7 +84,7 @@ class SimpleWBCoordinator(WBCoordinator):
         """Decide on water bombers movement with new ignition."""
         assert ignition.inspected_time is not None, "Error: Ignition was not inspected."
         min_arrival_time: float = inf
-        best_water_bomber: Union[WaterBomber, None] = None
+        best_water_bomber: Optional[WaterBomber] = None
         assigned_locations: List[Location] = []
         for water_bomber in self.water_bombers:  # pylint: disable=too-many-nested-blocks
             bases = self.water_bomber_bases_dict[water_bomber.type]

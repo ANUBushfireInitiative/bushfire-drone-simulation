@@ -10,9 +10,6 @@ DISTANCE_FACTORS = {"mm": 0.001, "cm": 0.01, "m": 1.0, "km": 1000}
 DEFAULT_DURATION_UNITS = "s"
 DURATION_FACTORS = {"ms": 0.001, "s": 1.0, "min": 60, "hr": 3600, "day": 86400, "year": 31536000}
 
-DEFAULT_SPEED_DISTANCE_UNITS = "km"
-DEFAULT_SPEED_TIME_UNITS = "hr"
-
 DEFAULT_VOLUME_UNITS = "L"
 VOLUME_FACTORS = {"mL": 0.001, "L": 1.0, "kL": 1000, "ML": 1000000}
 
@@ -102,7 +99,7 @@ class Distance(Units):
         Returns:
             "Speed": Speed
         """
-        return Speed(self.get(DEFAULT_SPEED_DISTANCE_UNITS) / time.get(DEFAULT_SPEED_TIME_UNITS))
+        return Speed(self.get(DEFAULT_DISTANCE_UNITS) / time.get(DEFAULT_DURATION_UNITS))
 
     def div_by_speed(self, speed: "Speed") -> "Duration":
         """Divide distance by speed to get time.
@@ -151,8 +148,8 @@ class Speed(Units):
     def __init__(
         self,
         speed: float,
-        distance_units: str = DEFAULT_SPEED_DISTANCE_UNITS,
-        time_units: str = DEFAULT_SPEED_TIME_UNITS,
+        distance_units: str = DEFAULT_DISTANCE_UNITS,
+        time_units: str = DEFAULT_DURATION_UNITS,
     ):
         """Initialize speed specifying both distance and time units.
 
@@ -163,8 +160,8 @@ class Speed(Units):
 
     def get(
         self,
-        distance_units: str = DEFAULT_SPEED_DISTANCE_UNITS,
-        time_units: str = DEFAULT_SPEED_TIME_UNITS,
+        distance_units: str = DEFAULT_DISTANCE_UNITS,
+        time_units: str = DEFAULT_DURATION_UNITS,
     ) -> float:
         """Get speed specifying both distance and time units.
 
