@@ -6,9 +6,10 @@ from typing import List
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
-from bushfire_drone_simulation.aircraft import EPSILON, Status, WaterBomber
+from bushfire_drone_simulation.aircraft import EPSILON, Status
 from bushfire_drone_simulation.main import run_simulation
 from bushfire_drone_simulation.simulator import Simulator
+from bushfire_drone_simulation.water_bomber import WaterBomber
 
 FILE_LOC = Path(__file__)
 PARAMS_LOC = FILE_LOC.parent / "parameters.json"
