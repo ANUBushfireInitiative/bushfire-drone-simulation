@@ -1,12 +1,12 @@
 """Aircraft testing."""
 
 from pathlib import Path
-from typing import List
+from typing import List, Sequence
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
-from bushfire_drone_simulation.aircraft import Status
+from bushfire_drone_simulation.aircraft import EPSILON, Aircraft, Status, WaterBomber
 from bushfire_drone_simulation.main import run_simulation
 from bushfire_drone_simulation.simulator import Simulator
 
@@ -27,45 +27,26 @@ def fixture_simulations(monkeypatch: MonkeyPatch) -> List[Simulator]:
 def test_times_chronological(simulations: List[Simulator]) -> None:
     """Are the Aircrafts movements chronological."""
     for simulator in simulations:
-        for uav in simulator.uavs:
-            for idx, update in enumerate(uav.past_locations[1:]):
+        for aircraft in [*simulator.uavs, *simulator.water_bombers]:
+            for idx, update in enumerate(aircraft.past_locations[1:]):
                 assert (
-                    update.time >= uav.past_locations[idx].time
-                ), f"The event updates of {uav.get_name()} were not in chronological order"
-        for water_bomber in simulator.water_bombers:
-            for idx, update in enumerate(water_bomber.past_locations[1:]):
-                assert (
-                    update.time >= water_bomber.past_locations[idx].time
-                ), f"The event updates of {water_bomber.name} were not in chronological order"
+                    update.time >= aircraft.past_locations[idx].time
+                ), f"The event updates of {aircraft.get_name()} were not in chronological order"
 
 
 @pytest.mark.slow
 def test_reasonable_fuel_refill(simulations: List[Simulator]) -> None:
     """Does the Aircraft refill often enough."""
     for simulator in simulations:
-        for uav in simulator.uavs:
-            time_full = uav.past_locations[0].time
-            for idx, update in enumerate(uav.past_locations[1:]):
-                if uav.past_locations[idx - 1].status == Status.WAITING_AT_BASE:
-                    time_full = update.time
+        for aircraft in [*simulator.uavs, *simulator.water_bombers]:
+            time_full = aircraft.past_locations[0].time
+            for update in aircraft.past_locations[1:]:
                 if update.status == Status.WAITING_AT_BASE:
                     assert (
                         update.time - time_full
-                    ) - 1 <= uav.get_range() / uav.flight_speed, (
-                        f"{uav.get_name()} should have run out of fuel"
+                    ) - 1 <= aircraft.get_range() / aircraft.flight_speed, (
+                        f"{aircraft.get_name()} should have run out of fuel"
                     )
-        for water_bomber in simulator.water_bombers:
-            time_full = water_bomber.past_locations[0].time
-            for idx, update in enumerate(water_bomber.past_locations[1:]):
-                if water_bomber.past_locations[idx - 1].status == Status.WAITING_AT_BASE:
-                    time_full = update.time
-                if update.status == Status.WAITING_AT_BASE:
-                    has_adequate_fuel = (
-                        update.time - time_full
-                    ) <= water_bomber.get_range() / water_bomber.flight_speed
-                    assert (
-                        has_adequate_fuel
-                    ), f"{water_bomber.get_name()} should have run out of fuel"
                     time_full = update.time
 
 
@@ -75,35 +56,39 @@ def test_aircraft_status(
 ) -> None:  # pylint: disable=too-many-branches
     """Does the aircraft status alter reasonably."""
     for simulator in simulations:  # pylint: disable=too-many-nested-blocks
-        for uav in simulator.uavs:
-            for idx, update in enumerate(uav.past_locations[1:]):
-                assert update.status not in [
-                    Status.GOING_TO_WATER,
-                    Status.WAITING_AT_WATER,
-                ], f"{uav.get_name()} should not be waiting at or going to water"
+        for aircraft in [*simulator.uavs, *simulator.water_bombers]:
+            for idx, update in enumerate(aircraft.past_locations[1:]):
                 if update.status == Status.WAITING_AT_BASE:
                     assert (
-                        uav.past_locations[idx - 1].status == Status.GOING_TO_BASE
+                        aircraft.past_locations[idx - 1].status == Status.GOING_TO_BASE
                         or Status.WAITING_AT_BASE
-                    ), f"{uav.get_name()} should have previously been going to base"
+                    ), f"{aircraft.get_name()} should have previously been going to base"
                 if update.status == Status.HOVERING:
                     assert (
-                        uav.past_locations[idx - 1].status != Status.WAITING_AT_BASE
-                    ), f"{uav.get_name()} should have previously been going to strike"
-        for water_bomber in simulator.water_bombers:
-            for idx, update in enumerate(water_bomber.past_locations[1:]):
-                if update.status == Status.WAITING_AT_BASE:
-                    assert (
-                        water_bomber.past_locations[idx - 1].status == Status.GOING_TO_BASE
-                        or Status.WAITING_AT_BASE
-                    ), f"{water_bomber.name} should have previously been going to base"
-                if update.status == Status.HOVERING:
-                    assert water_bomber.past_locations[idx - 1].status not in [
-                        Status.WAITING_AT_BASE,
-                        Status.WAITING_AT_WATER,
-                    ], f"{water_bomber.name} should have previously been going to strike"
+                        aircraft.past_locations[idx - 1].status != Status.WAITING_AT_BASE
+                    ), f"{aircraft.get_name()} should have previously been going to strike"
                 if update.status == Status.WAITING_AT_WATER:
-                    assert water_bomber.past_locations[idx - 1].status in [
+                    assert isinstance(
+                        aircraft, WaterBomber
+                    ), f"{aircraft.get_name()} should not be waiting at water"
+                    assert aircraft.past_locations[idx - 1].status in [
                         Status.GOING_TO_WATER,
                         Status.WAITING_AT_WATER,
-                    ], f"{water_bomber.name} should have previously been going to water"
+                    ], f"{aircraft.name} should have previously been going to water"
+                assert (
+                    isinstance(aircraft, WaterBomber) or update.status != Status.GOING_TO_WATER
+                ), f"{aircraft.get_name()} should not be waiting at or going to water"
+
+
+@pytest.mark.slow
+def test_aircraft_speed(simulations: List[Simulator]) -> None:
+    """Does the Aircraft refill often enough."""
+    for simulator in simulations:
+        for aircraft in [*simulator.uavs, *simulator.water_bombers]:
+            for idx, update in enumerate(aircraft.past_locations[1:]):
+                prev_update = aircraft.past_locations[idx - 1]
+                distance = update.distance(prev_update)
+                time = update.time - prev_update.time
+                assert (
+                    aircraft.flight_speed + EPSILON >= distance / time
+                ), f"{aircraft.get_name()} exceeded flight speed"
