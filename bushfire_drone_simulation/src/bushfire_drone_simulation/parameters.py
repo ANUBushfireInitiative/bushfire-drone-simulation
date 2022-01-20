@@ -28,6 +28,7 @@ from bushfire_drone_simulation.fire_utils import (
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.plots import (
     inspection_time_histogram,
+    risk_rating_plot,
     suppression_time_histogram,
     suppressions_per_bomber_plot,
     water_tank_plot,
@@ -200,7 +201,7 @@ class JSONParameters:
                 if attribute not in water_bomber:
                     raise Exception(
                         f"Error: Parameter '{attribute}' is missing in '{self.filepath}'.\n"
-                        f"Please add '{attribute}' to 'water_bombers/attributes' in "
+                        f"Please add '{attribute}' to 'water_bombers/{water_bomber_type}' in "
                         f"'{self.filepath}' and run the simulation again"
                     )
             assert (
@@ -369,6 +370,8 @@ class JSONParameters:
             targets = read_targets(self.folder / attribute_dict["targets_filename"])
         if "boundary_polygon_filename" in attribute_dict:
             polygon = read_locations(self.folder / attribute_dict["boundary_polygon_filename"])
+            if polygon[0] == polygon[-1]:
+                del polygon[-1]
         else:
             raise Exception(
                 f"Error: Parameter 'boundary_polygon_filename' is missing in '{self.filepath}'.\n"
@@ -380,7 +383,7 @@ class JSONParameters:
     def get_prioritisation_function(
         self, aircraft: str, scenario_idx: int
     ) -> Callable[[float, float], float]:
-        """Return prioritisation function combining inspection/supression time and risk rating."""
+        """Return prioritisation function combining inspection/suppression time and risk rating."""
         aircraft_data = self.get_attribute(aircraft, scenario_idx)
         if "prioritisation_function" not in aircraft_data:
             return lambda time, risk_rating: time
@@ -416,6 +419,7 @@ class JSONParameters:
         suppression_times: List[float],
         water_bombers: List[WaterBomber],
         water_tanks: List[WaterTank],
+        lightning: List[Lightning],
         prefix: str,
     ) -> Dict[str, List[Union[float, str]]]:
         """Create plots and write to output."""
@@ -448,6 +452,10 @@ class JSONParameters:
 
         fig.tight_layout()
         plt.savefig(self.output_folder / (prefix + "inspection_times_plot.png"))
+        plt.clf()
+        risk_rating_plot(lightning)
+        plt.savefig(self.output_folder / (prefix + "risk_rating_plot.png"))
+
         return summary_results
 
     def write_to_simulation_output_file(

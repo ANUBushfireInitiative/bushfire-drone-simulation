@@ -44,6 +44,12 @@ class Location:
         """To string method for location."""
         return f"{self.lat} {self.lon}"
 
+    def __eq__(self, other: Any) -> bool:
+        """Equality operator for Location."""
+        if not isinstance(other, Location):
+            return False
+        return self.lat == other.lat and self.lon == other.lon
+
     def intermediate_point(self, other: "Location", percentage: float) -> "Location":
         """Find intermediate point a proportion of the way between self and other."""
         angular_distance = self.distance(other) / 6371  # The radius of the earth is 6371 km

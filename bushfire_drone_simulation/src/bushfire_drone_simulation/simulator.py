@@ -182,6 +182,7 @@ class Simulator:
             suppression_times,
             self.water_bombers,
             self.water_tanks,
+            self.lightning_strikes,
             prefix,
         )
 

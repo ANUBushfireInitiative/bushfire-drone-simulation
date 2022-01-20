@@ -3,7 +3,10 @@
 from math import isinf
 from typing import Any, List, Sequence
 
-from bushfire_drone_simulation.fire_utils import WaterTank
+import matplotlib.pyplot as plt
+
+from bushfire_drone_simulation.fire_utils import Time, WaterTank
+from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.units import Volume
 from bushfire_drone_simulation.water_bomber import WaterBomber
 
@@ -96,3 +99,22 @@ def water_tank_plot(axs: Any, water_tanks: Sequence[WaterTank]) -> None:
     )
     axs.legend()
     axs.set(ylabel="kL")
+
+
+def risk_rating_plot(lightning: List[Lightning]) -> None:
+    """Generate inspection against strike time plot coloured by risk rating.
+
+    Args:
+        lightning (List[Lightning]): lightning
+    """
+    spawn_times = [strike.spawn_time for strike in lightning if strike.inspected_time is not None]
+    inspection_times = [
+        Time.from_float(strike.inspected_time - strike.spawn_time).get("hr")
+        for strike in lightning
+        if strike.inspected_time is not None
+    ]
+    risk_ratings = [strike.risk_rating for strike in lightning if strike.inspected_time is not None]
+    plt.scatter(spawn_times, inspection_times, c=risk_ratings, cmap="viridis")
+    plt.xlabel("Strike time")
+    plt.ylabel("Inspection time (Hours)")
+    plt.colorbar()
