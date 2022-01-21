@@ -14,6 +14,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
+from matplotlib.figure import Figure
 
 from bushfire_drone_simulation.aircraft import AircraftType, UpdateEvent
 from bushfire_drone_simulation.fire_utils import (
@@ -28,7 +29,7 @@ from bushfire_drone_simulation.fire_utils import (
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.plots import (
     inspection_time_histogram,
-    risk_rating_plot,
+    risk_rating_plot_over_time,
     suppression_time_histogram,
     suppressions_per_bomber_plot,
     water_tank_plot,
@@ -451,10 +452,11 @@ class JSONParameters:
         water_tank_plot(axs[1, 1], water_tanks)
 
         fig.tight_layout()
-        plt.savefig(self.output_folder / (prefix + "inspection_times_plot.png"))
-        plt.clf()
-        risk_rating_plot(lightning)
-        plt.savefig(self.output_folder / (prefix + "risk_rating_plot.png"))
+        fig.savefig(self.output_folder / (prefix + "inspection_times_plot.png"))
+        fig = Figure(figsize=(8, 6), dpi=300, tight_layout=True)
+        axs = fig.add_subplot(111)
+        risk_rating_plot_over_time(fig, axs, lightning)
+        fig.savefig(self.output_folder / (prefix + "risk_rating_plot.png"))
 
         return summary_results
 

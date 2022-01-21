@@ -29,6 +29,14 @@ class Lightning(Location):
         self.suppressed_time: Union[float, None] = None
         self.nearest_base: Union[int, None] = None
 
+    def copy_from_lightning(self, other: "Lightning") -> None:
+        """Copy parameters from another lightning strike.
+
+        Args:
+            other ("Lightning"): other
+        """
+        self.__dict__.update(other.__dict__)
+
     def inspected(self, time: float) -> None:
         """Lightning strike is updated when inspected.
 

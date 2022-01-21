@@ -5,6 +5,7 @@ from typing import Callable, List, Optional, Tuple
 
 from bushfire_drone_simulation.aircraft import UpdateEvent
 from bushfire_drone_simulation.fire_utils import Location, WaterTank
+from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.uav import UAV
 from bushfire_drone_simulation.units import DURATION_FACTORS
 from bushfire_drone_simulation.water_bomber import WaterBomber
@@ -196,17 +197,12 @@ class GUILine(GUIObject):
             self.show(canvas)
 
 
-class GUILightning(GUIPoint):
+class GUILightning(GUIPoint, Lightning):
     """Point lightning object for GUI."""
 
     def __init__(  # pylint: disable=too-many-arguments
         self,
-        location: Location,
-        idx: int,
-        spawn_time: float,
-        inspection_time: Optional[float],
-        suppressed_time: Optional[float],
-        ignited: bool,
+        lightning: Lightning,
     ):
         """__init__.
 
@@ -216,20 +212,16 @@ class GUILightning(GUIPoint):
             inspection_time (Optional[float]): inspection_time
             suppressed_time (Optional[float]): suppressed_time
         """
-        super().__init__(location, colour="red" if ignited else "yellow")
-        self.idx = idx
-        self.ignited = ignited
-        self.spawn_time = spawn_time
-        self.inspection_time = inspection_time
-        self.suppressed_time = suppressed_time
+        self.copy_from_lightning(lightning)
+        super().__init__(lightning, colour="red" if self.ignition else "yellow")
         self.tags += ("lightning",)
-        self.tags += (f"lightning {self.idx}",)
+        self.tags += (f"lightning {self.id_no}",)
 
     def inspection_time_hr(self) -> Optional[float]:
         """Get the inspection time in hours."""
-        if self.inspection_time is None:
+        if self.inspected_time is None:
             return None
-        return (self.inspection_time - self.spawn_time) / DURATION_FACTORS["hr"]
+        return (self.inspected_time - self.spawn_time) / DURATION_FACTORS["hr"]
 
     def suppression_time_hr(self) -> Optional[float]:
         """Get the suppression time in hours."""
@@ -247,7 +239,7 @@ class GUILightning(GUIPoint):
             to_coordinates (Callable[[Location], Tuple[float, float]]): to_coordinates
         """
         super().place_on_canvas(canvas, to_coordinates)
-        canvas.tag_bind(f"lightning {self.idx}", "<Button-1>", self.clicked_lightning)
+        canvas.tag_bind(f"lightning {self.id_no}", "<Button-1>", self.clicked_lightning)
 
     def clicked_lightning(self, *args):  # type: ignore # pylint: disable=unused-argument
         """clicked_lightning.
@@ -255,7 +247,7 @@ class GUILightning(GUIPoint):
         Args:
             args:
         """
-        print("You clicked lightning:", self.idx)
+        print("You clicked lightning:", self.id_no)
 
     def show_given_time(self, canvas: Canvas, start_time: float, end_time: float) -> None:
         """Show lightning state at given time.
@@ -265,22 +257,22 @@ class GUILightning(GUIPoint):
             start_time (float): start_time
             end_time (float): end_time
         """
-        if self.ignited:
+        if self.ignition:
             assert self.suppressed_time is not None
             if self.suppressed_time < start_time:
                 self.hide(canvas)
                 return
         else:
-            assert self.inspection_time is not None
-            if self.inspection_time < start_time:
+            assert self.inspected_time is not None
+            if self.inspected_time < start_time:
                 self.hide(canvas)
                 return
         if self.spawn_time > end_time:
             self.hide(canvas)
         else:
-            assert self.inspection_time is not None
-            if self.ignited and self.inspection_time < end_time:
-                if self.inspection_time < start_time:
+            assert self.inspected_time is not None
+            if self.ignition and self.inspected_time < end_time:
+                if self.inspected_time < start_time:
                     canvas.itemconfig(self.canvas_object, fill="#FFCCCB")
                 else:
                     canvas.itemconfig(self.canvas_object, fill="red")

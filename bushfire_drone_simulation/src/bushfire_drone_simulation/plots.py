@@ -3,8 +3,6 @@
 from math import isinf
 from typing import Any, List, Sequence
 
-import matplotlib.pyplot as plt
-
 from bushfire_drone_simulation.fire_utils import Time, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.units import Volume
@@ -101,7 +99,24 @@ def water_tank_plot(axs: Any, water_tanks: Sequence[WaterTank]) -> None:
     axs.set(ylabel="kL")
 
 
-def risk_rating_plot(lightning: List[Lightning]) -> None:
+def risk_rating_plot(axs: Any, lightning: Sequence[Lightning]) -> None:
+    """Generate inspection against risk rating plot.
+
+    Args:
+        lightning (List[Lightning]): lightning
+    """
+    inspection_times = [
+        Time.from_float(strike.inspected_time - strike.spawn_time).get("hr")
+        for strike in lightning
+        if strike.inspected_time is not None
+    ]
+    risk_ratings = [strike.risk_rating for strike in lightning if strike.inspected_time is not None]
+    axs.set_title("Inspection time against risk rating")
+    axs.scatter(risk_ratings, inspection_times)
+    axs.set(xlabel="Risk rating", ylabel=("Inspection time (Hours)"))
+
+
+def risk_rating_plot_over_time(fig: Any, axs: Any, lightning: Sequence[Lightning]) -> None:
     """Generate inspection against strike time plot coloured by risk rating.
 
     Args:
@@ -117,8 +132,8 @@ def risk_rating_plot(lightning: List[Lightning]) -> None:
         for strike in lightning
         if strike.inspected_time is not None
     ]
+    axs.set_title("Inspection time of lightning strikes coloured by risk rating")
     risk_ratings = [strike.risk_rating for strike in lightning if strike.inspected_time is not None]
-    plt.scatter(spawn_times, inspection_times, c=risk_ratings, cmap="viridis")
-    plt.xlabel("Strike time (Hours)")
-    plt.ylabel("Inspection time (Hours)")
-    plt.colorbar()
+    scatter = axs.scatter(spawn_times, inspection_times, c=risk_ratings, cmap="viridis")
+    axs.set(xlabel="Strike time (Hours)", ylabel=("Inspection time (Hours)"))
+    fig.colorbar(scatter, ax=axs)

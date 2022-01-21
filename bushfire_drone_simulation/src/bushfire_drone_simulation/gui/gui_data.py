@@ -129,12 +129,11 @@ class GUIData:
             parameters_file (Path): path
             scenario_name (str): scenario_name
         """
-        scenario_name = parameters.scenarios[scenario]["scenario_name"]
         output_folder = parameters.filepath.parent / parameters.get_attribute(
             "output_folder_name", scenario
         )
-        lightning = extract_lightning_from_output(output_folder, scenario_name, ignited=False)
-        ignitions = extract_lightning_from_output(output_folder, scenario_name, ignited=True)
+        lightning = extract_lightning_from_output(parameters, scenario, ignited=False)
+        ignitions = extract_lightning_from_output(parameters, scenario, ignited=True)
         uavs = extract_aircraft_from_output(parameters, output_folder, scenario, GUIUav)
         water_bombers = extract_aircraft_from_output(
             parameters, output_folder, scenario, GUIWaterBomber
@@ -159,16 +158,7 @@ def extract_simulation_lightning(simulation: Simulator, ignited: bool) -> List[G
     to_return: List[GUILightning] = []
     for strike in simulation.lightning_strikes:
         if strike.ignition == ignited:
-            to_return.append(
-                GUILightning(
-                    Location(strike.lat, strike.lon),
-                    strike.id_no,
-                    strike.spawn_time,
-                    strike.inspected_time,
-                    strike.suppressed_time,
-                    strike.ignition,
-                )
-            )
+            to_return.append(GUILightning(strike))
     return to_return
 
 
@@ -250,34 +240,31 @@ def extract_simulation_water_tanks(simulation: Simulator) -> List[GUIWaterTank]:
 
 
 def extract_lightning_from_output(
-    path: Path, scenario_name: str, ignited: bool
+    parameters: JSONParameters, scenario: int, ignited: bool
 ) -> List[GUILightning]:
     """extract_lightning_from_output.
 
     Args:
-        path (Path): path
-        scenario_name (str): scenario_name
-        ignited (bool): ignited
 
     Returns:
         List[GUILightning]:
     """
+    scenario_name = parameters.scenarios[scenario]["scenario_name"]
+    output_folder = parameters.filepath.parent / parameters.get_attribute(
+        "output_folder_name", scenario
+    )
+    input_lightning = parameters.get_lightning(scenario)
     to_return: List[GUILightning] = []
     lightning_csv = CSVFile(
-        path / f"{scenario_name}{'_' if scenario_name else ''}simulation_output.csv"
+        output_folder / f"{scenario_name}{'_' if scenario_name else ''}simulation_output.csv"
     )
     for row in lightning_csv:
         if math.isnan(row[6]) != ignited:
-            to_return.append(
-                GUILightning(
-                    Location(getattr(row, "Latitude"), getattr(row, "Longitude")),
-                    row[1],
-                    row[4] * HOURS_TO_SECONDS,
-                    (row[4] + row[5]) * HOURS_TO_SECONDS,
-                    (row[4] + row[6]) * HOURS_TO_SECONDS if ignited else None,
-                    ignited,
-                )
-            )
+            lightning = input_lightning[row[1]]
+            lightning.inspected_time = (row[4] + row[5]) * HOURS_TO_SECONDS
+            lightning.suppressed_time = (row[4] + row[6]) * HOURS_TO_SECONDS if ignited else None
+            lightning.ignition = ignited
+            to_return.append(GUILightning(lightning))
     return to_return
 
 

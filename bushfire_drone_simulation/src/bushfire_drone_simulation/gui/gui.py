@@ -26,6 +26,8 @@ from bushfire_drone_simulation.gui.tk_hyperlink_manager import HyperlinkManager
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.plots import (
     inspection_time_histogram,
+    risk_rating_plot,
+    risk_rating_plot_over_time,
     suppression_time_histogram,
     suppressions_per_bomber_plot,
     water_tank_plot,
@@ -129,6 +131,13 @@ class GUI:
         )
         self.plot_menu.add_command(
             label="Water tank capacities", command=lambda: self.show_plot("water_tank_capacities")
+        )
+        self.plot_menu.add_command(
+            label="Risk rating", command=lambda: self.show_plot("risk_rating")
+        )
+        self.plot_menu.add_command(
+            label="Risk rating over time",
+            command=lambda: self.show_plot("risk_rating_over_time"),
         )
         self.menu_bar.add_cascade(label="Plots", menu=self.plot_menu)
         self.tools_menu = Menu(self.menu_bar, tearoff=0)
@@ -260,6 +269,10 @@ class GUI:
             suppressions_per_bomber_plot(axs, self.gui_data.water_bombers)
         elif plot_type == "water_tank_capacities":
             water_tank_plot(axs, self.gui_data.watertanks)
+        elif plot_type == "risk_rating":
+            risk_rating_plot(axs, self.gui_data.all_lightning)
+        elif plot_type == "risk_rating_over_time":
+            risk_rating_plot_over_time(fig, axs, self.gui_data.all_lightning)
 
         canvas = FigureCanvasTkAgg(fig, popup)
         canvas.draw()
