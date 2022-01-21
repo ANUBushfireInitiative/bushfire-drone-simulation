@@ -107,7 +107,11 @@ def risk_rating_plot(lightning: List[Lightning]) -> None:
     Args:
         lightning (List[Lightning]): lightning
     """
-    spawn_times = [strike.spawn_time for strike in lightning if strike.inspected_time is not None]
+    spawn_times = [
+        Time.from_float(strike.spawn_time).get("hr")
+        for strike in lightning
+        if strike.inspected_time is not None
+    ]
     inspection_times = [
         Time.from_float(strike.inspected_time - strike.spawn_time).get("hr")
         for strike in lightning
@@ -115,6 +119,6 @@ def risk_rating_plot(lightning: List[Lightning]) -> None:
     ]
     risk_ratings = [strike.risk_rating for strike in lightning if strike.inspected_time is not None]
     plt.scatter(spawn_times, inspection_times, c=risk_ratings, cmap="viridis")
-    plt.xlabel("Strike time")
+    plt.xlabel("Strike time (Hours)")
     plt.ylabel("Inspection time (Hours)")
     plt.colorbar()
