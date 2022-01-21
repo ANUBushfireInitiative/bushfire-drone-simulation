@@ -370,7 +370,7 @@ class JSONParameters:
             targets = read_targets(self.folder / attribute_dict["targets_filename"])
         if "boundary_polygon_filename" in attribute_dict:
             polygon = read_locations(self.folder / attribute_dict["boundary_polygon_filename"])
-            if polygon[0] == polygon[-1]:
+            if polygon[0].equals(polygon[-1]):
                 del polygon[-1]
         else:
             raise Exception(
