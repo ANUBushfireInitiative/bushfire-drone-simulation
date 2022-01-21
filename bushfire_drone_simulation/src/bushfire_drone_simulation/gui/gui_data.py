@@ -13,10 +13,14 @@ from bushfire_drone_simulation.gui.gui_objects import (
     GUIPoint,
     GUIUav,
     GUIWaterBomber,
+    GUIWaterTank,
 )
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.read_csv import CSVFile
 from bushfire_drone_simulation.simulator import Simulator
+from bushfire_drone_simulation.uav import UAV
+from bushfire_drone_simulation.units import Volume
+from bushfire_drone_simulation.water_bomber import WaterBomber
 
 HOURS_TO_SECONDS = 3600
 MINUTES_TO_SECONDS = 60
@@ -33,7 +37,7 @@ class GUIData:
         water_bombers: Sequence[GUIWaterBomber],
         uav_bases: Sequence[GUIPoint],
         wb_bases: Sequence[GUIPoint],
-        watertanks: Sequence[GUIPoint],
+        watertanks: Sequence[GUIWaterTank],
     ):
         """Initialize a GUI data object.
 
@@ -139,7 +143,7 @@ class GUIData:
         wb_bases: List[GUIPoint] = extract_bases_from_parameters(
             parameters, scenario, "water_bomber"
         )
-        watertanks: List[GUIPoint] = extract_water_tanks_from_output(output_folder, scenario_name)
+        watertanks = extract_water_tanks_from_output(parameters, scenario)
         return cls(lightning, ignitions, uavs, water_bombers, uav_bases, wb_bases, watertanks)
 
 
@@ -190,6 +194,13 @@ def extract_simulation_aircraft(
         aircraft_list = simulation.uavs
     for aircraft in aircraft_list:
         to_return.append(aircraft_type(aircraft.past_locations))
+        new_aircraft = to_return[-1]
+        if isinstance(new_aircraft, GUIUav):
+            assert isinstance(aircraft, UAV)
+            new_aircraft.copy_from_uav(aircraft)
+        if isinstance(new_aircraft, GUIWaterBomber):
+            assert isinstance(aircraft, WaterBomber)
+            new_aircraft.copy_from_wb(aircraft)
     return to_return
 
 
@@ -223,20 +234,18 @@ def extract_simulation_wb_bases(simulation: Simulator) -> List[GUIPoint]:
     return to_return
 
 
-def extract_simulation_water_tanks(simulation: Simulator) -> List[GUIPoint]:
+def extract_simulation_water_tanks(simulation: Simulator) -> List[GUIWaterTank]:
     """Extract water tanks from simulator.
 
     Args:
         simulation (Simulator): simulation
 
     Returns:
-        List[GUIPoint]:
+        List[GUIWaterTank]:
     """
-    to_return: List[GUIPoint] = []
+    to_return: List[GUIWaterTank] = []
     for water_tank in simulation.water_tanks:
-        to_return.append(
-            GUIPoint(Location(water_tank.lat, water_tank.lon), radius=2, colour="blue")
-        )
+        to_return.append(GUIWaterTank(water_tank))
     return to_return
 
 
@@ -272,7 +281,9 @@ def extract_lightning_from_output(
     return to_return
 
 
-def extract_water_tanks_from_output(path: Path, scenario_name: str) -> List[GUIPoint]:
+def extract_water_tanks_from_output(
+    parameters: JSONParameters, scenario: int
+) -> List[GUIWaterTank]:
     """Extract water tanks from output of previous simulation.
 
     Args:
@@ -280,18 +291,20 @@ def extract_water_tanks_from_output(path: Path, scenario_name: str) -> List[GUIP
         scenario_name (str): scenario_name
 
     Returns:
-        List[GUILightning]:
+        List[GUIWaterTank]:
     """
-    to_return: List[GUIPoint] = []
-    water_tank_csv = CSVFile(path / f"{scenario_name}{'_' if scenario_name else ''}water_tanks.csv")
+    to_return: List[GUIWaterTank] = []
+    output_folder = parameters.filepath.parent / parameters.get_attribute(
+        "output_folder_name", scenario
+    )
+    scenario_name = parameters.scenarios[scenario]["scenario_name"]
+    water_tank_csv = CSVFile(
+        output_folder / f"{scenario_name}{'_' if scenario_name else ''}water_tanks.csv"
+    )
+    water_tanks = parameters.get_water_tanks(scenario)
     for row in water_tank_csv:
-        to_return.append(
-            GUIPoint(
-                Location(getattr(row, "Latitude"), getattr(row, "Longitude")),
-                radius=2,
-                colour="blue",
-            )
-        )
+        to_return.append(GUIWaterTank(water_tanks[int(row[1])]))
+        to_return[-1].capacity = Volume(float(row[5])).get()
     return to_return
 
 
