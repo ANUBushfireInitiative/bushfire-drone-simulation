@@ -1,6 +1,7 @@
 """Module containing lightning class for bushfire_drone_simulation."""
 
 import random
+from collections import namedtuple
 from typing import List, Union
 
 from bushfire_drone_simulation.fire_utils import Location
@@ -57,3 +58,6 @@ def reduce_lightning_to_ignitions(lightning_strikes: List[Lightning]) -> List[Li
             if strike.inspected_time is not None:  # Lightning was not inspected
                 ignitions.append(strike)
     return ignitions
+
+
+AllocatedLightning = namedtuple("AllocatedLightning", "lightning time")

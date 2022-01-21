@@ -20,7 +20,7 @@ from bushfire_drone_simulation.coordinators.abstract_coordinator import (
     WBCoordinator,
 )
 from bushfire_drone_simulation.fire_utils import Base, Location, WaterTank
-from bushfire_drone_simulation.lightning import Lightning
+from bushfire_drone_simulation.lightning import AllocatedLightning, Lightning
 from bushfire_drone_simulation.linked_list import Node
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.uav import UAV
@@ -49,7 +49,7 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
         super().__init__(uavs, uav_bases, parameters, scenario_idx, prioritisation_function)
         self.max_inspection_time: float = 0
         self.consider_max_inspection_time: bool = True
-        self.reprocess_max = True
+        self.reprocess_max = False
 
     def process_new_strike(  # pylint: disable=too-many-branches, too-many-statements
         self, lightning: Lightning
@@ -83,7 +83,7 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
             if not uav.event_queue.is_empty():
                 lightning_event: List[Location] = [lightning]
                 future_events: List[Location] = []
-                prev_inspection_times: List[float] = []
+                prev_inspection_times: List[AllocatedLightning] = []
                 closest_base_to_last_event: Optional[Base] = None
                 last_event_position = uav.event_queue.peak_last().position
                 if isinstance(last_event_position, Lightning):
@@ -99,7 +99,9 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                     future_events.insert(0, event.position)
                     if isinstance(event.position, Lightning):
                         prev_inspection_times.append(
-                            event.completion_time - event.position.spawn_time
+                            AllocatedLightning(
+                                event.position, event.completion_time - event.position.spawn_time
+                            )
                         )
                     prev_arrival_time = event.completion_time
                     prev_state: Union[Event, str] = "self"
@@ -118,19 +120,34 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                     )
                     if enough_fuel is not None:
                         new_strike_arr_time = uav.arrival_time([lightning], prev_state)
-                        old_strike_arr_time = uav.arrival_time(
+                        new_event_arr_time = uav.arrival_time(
                             [lightning, event.position], prev_state
                         )
-                        additional_arr_time = old_strike_arr_time - prev_arrival_time
+                        additional_arr_time = new_event_arr_time - prev_arrival_time
                         cumulative_time = (
                             new_strike_arr_time - lightning.spawn_time
                         ) ** mean_time_power
                         time_exceeded_target: bool = False
-                        for time in prev_inspection_times:
+                        for allocated_lightning in prev_inspection_times:
                             cumulative_time += (
-                                time + additional_arr_time
-                            ) ** mean_time_power - time ** mean_time_power
-                            if time + additional_arr_time > target_max_time:
+                                self.prioritisation_function(
+                                    allocated_lightning.time + additional_arr_time,
+                                    allocated_lightning.lightning.risk_rating,
+                                )
+                                ** mean_time_power
+                                - self.prioritisation_function(
+                                    allocated_lightning.time,
+                                    allocated_lightning.lightning.risk_rating,
+                                )
+                                ** mean_time_power
+                            )
+                            if (
+                                self.prioritisation_function(
+                                    allocated_lightning.time + additional_arr_time,
+                                    allocated_lightning.lightning.risk_rating,
+                                )
+                                > target_max_time
+                            ):
                                 time_exceeded_target = True
                         if time_exceeded_target:
                             if cumulative_time < min_arr_time_above_target:
@@ -210,9 +227,10 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
         if (
             self.consider_max_inspection_time and self.reprocess_max
         ):  # pylint: disable=too-many-nested-blocks, R1702
-            self.consider_max_inspection_time = False
+            self.consider_max_inspection_time = False  # Don't reprocess next time
             if best_uav is not None:
                 _LOG.debug("Best UAV is: %s", best_uav.get_name())
+                # Insert strike
                 if start_from is not None:
                     if isinstance(start_from, str):
                         best_uav.event_queue.clear()
@@ -225,9 +243,14 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                 remaining_events: List[Location] = []
                 after_strike_events: List[Location] = []
                 strike_to_reprocess: Optional[Lightning] = None
+                # Only check strikes that would may have been altered by the insertion
                 for event, prev_event in best_uav.event_queue.iterate_backwards():
                     if isinstance(event.position, Lightning):
-                        inspection_time = event.completion_time - event.position.spawn_time
+                        inspection_time = self.prioritisation_function(
+                            event.completion_time - event.position.spawn_time,
+                            event.position.risk_rating,
+                        )
+                        # prioritisation_function here
                         if inspection_time > max_inspection_time:
                             max_inspection_time = inspection_time
                             strike_to_reprocess = event.position
@@ -237,6 +260,7 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                     remaining_events.insert(0, event.position)
                 if self.max_inspection_time < max_inspection_time:
                     self.max_inspection_time = max_inspection_time
+                    # Remove strike to reprocess
                     if prior_to_strike is not None:
                         best_uav.event_queue.delete_after(prior_to_strike)
                     else:
@@ -245,10 +269,13 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                         best_uav.add_location_to_queue(location, lightning.spawn_time)
                     for event in best_uav.event_queue:
                         if isinstance(event.position, Lightning):
-                            inspection_time = event.completion_time - event.position.spawn_time
+                            inspection_time = self.prioritisation_function(
+                                event.completion_time - event.position.spawn_time,
+                                event.position.risk_rating,
+                            )
                             self.max_inspection_time = max(
                                 self.max_inspection_time, inspection_time
-                            )
+                            )  # TODO(I dont see why this is necessary) pylint: disable=fixme
                     assert isinstance(strike_to_reprocess, Lightning)
                     self.process_new_strike(strike_to_reprocess)
 
@@ -365,10 +392,10 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                         )
                         if enough_fuel is not None:
                             new_strike_arr_time = water_bomber.arrival_time([ignition], prev_state)
-                            old_strike_arr_time = water_bomber.arrival_time(
+                            new_event_arr_time = water_bomber.arrival_time(
                                 [ignition, event.position], prev_state
                             )
-                            additional_arr_time = old_strike_arr_time - prev_arrival_time
+                            additional_arr_time = new_event_arr_time - prev_arrival_time
                             cumulative_time = (
                                 new_strike_arr_time - ignition.spawn_time
                             ) ** mean_time_power
