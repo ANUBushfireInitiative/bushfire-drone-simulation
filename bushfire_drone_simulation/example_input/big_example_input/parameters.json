@@ -1,7 +1,7 @@
 {
-    "water_bomber_bases_filename": "input_data/base_locations.csv",
+    "water_bomber_bases_filename": "input_data/base_locations_test.csv",
     "uav_bases_filename": "input_data/uav_base_locations.csv",
-    "water_tanks_filename": "input_data/water_tank_locations.csv",
+    "water_tanks_filename": "input_data/reservoirs_tanks.csv",
     "lightning_filename": "input_data/lightning.csv",
     "scenario_parameters_filename": "input_data/scenario_parameters.csv",
     "output_folder_name": "output",
@@ -9,12 +9,12 @@
     "wb_coordinator": "MinimiseMeanTimeWBCoordinator",
     "uav_mean_time_power": 1,
     "wb_mean_time_power": 1,
-    "target_maximum_inspection_time": 0.5,
-    "target_maximum_suppression_time": 1,
-    "ignition_probability": "?",
+    "target_maximum_inspection_time": "inf",
+    "target_maximum_suppression_time": "inf",
+    "ignition_probability": 0.07,
     "uavs": {
         "spawn_loc_file": "input_data/uav_spawn_locations.csv",
-        "flight_speed": 85,
+        "flight_speed": "?",
         "fuel_refill_time": 15,
         "range": 680,
         "inspection_time": 1,
@@ -22,21 +22,21 @@
         "prioritisation_function": "product"
     },
     "water_bombers": {
-        "helicopter": {
+        "firehawk": {
             "spawn_loc_file": "input_data/helicopter_spawn_locations.csv",
             "flight_speed": 230,
             "suppression_time": 1,
             "water_refill_time": 30,
-            "fuel_refill_time": 30,
+            "fuel_refill_time": 15,
             "water_per_suppression": 2875,
-            "range_empty": 650,
-            "range_under_load": 650,
-            "water_capacity": 11500,
+            "range_empty": 640,
+            "range_under_load": 640,
+            "water_capacity": 3200,
             "pct_fuel_cutoff": 0.7
         },
-        "c130": {
+        "chinook": {
             "spawn_loc_file": "input_data/helicopter_spawn_locations.csv",
-            "flight_speed": 235,
+            "flight_speed": 230,
             "suppression_time": 1,
             "water_refill_time": 30,
             "fuel_refill_time": 30,
@@ -48,7 +48,6 @@
         }
     },
     "unassigned_drones": {
-        "targets_filename": "input_data/targets.csv",
         "boundary_polygon_filename": "input_data/boundary_polygon.csv",
         "dt": 60,
         "uav_repulsion_const": 50000.0,

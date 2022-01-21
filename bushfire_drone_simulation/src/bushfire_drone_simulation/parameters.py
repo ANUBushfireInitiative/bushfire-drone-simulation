@@ -388,7 +388,7 @@ class JSONParameters:
         """Return prioritisation function combining inspection/suppression time and risk rating."""
         aircraft_data = self.get_attribute(aircraft, scenario_idx)
         if "prioritisation_function" not in aircraft_data:
-            return lambda time, risk_rating: time
+            return lambda time, _: time
         function_name = aircraft_data["prioritisation_function"]
         if function_name == "product":
             return lambda time, risk_rating: time * risk_rating
