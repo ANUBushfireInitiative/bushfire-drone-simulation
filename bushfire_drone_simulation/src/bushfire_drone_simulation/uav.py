@@ -69,6 +69,17 @@ class UAV(Aircraft):
         """Typestring of UAV aircraft."""
         return AircraftType.UAV
 
+    def copy_from_uav(self, other: "UAV") -> None:
+        """Copy parameters from another UAV.
+
+        Args:
+            other ("UAV"): other
+        """
+        super().copy_from_aircraft(other)
+        self.total_range = other.total_range
+        self.inspection_time = other.inspection_time
+        self.past_locations = other.past_locations
+
     def get_range(self) -> float:
         """Return total range of UAV."""
         return self.total_range

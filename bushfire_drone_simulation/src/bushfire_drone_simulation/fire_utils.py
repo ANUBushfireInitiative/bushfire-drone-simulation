@@ -26,6 +26,15 @@ class Location:
         self.lat = latitude
         self.lon = longitude
 
+    def copy_from_location(self, other: "Location") -> None:
+        """Copy parameters from another location.
+
+        Args:
+            other ("Location"): other
+        """
+        self.lat = other.lat
+        self.lon = other.lon
+
     def distance(self, other: "Location") -> float:
         """Find Euclidian distance in km between two locations."""
         temp = (
