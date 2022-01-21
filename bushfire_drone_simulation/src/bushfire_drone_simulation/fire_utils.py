@@ -26,15 +26,6 @@ class Location:
         self.lat = latitude
         self.lon = longitude
 
-    def copy_from_location(self, other: "Location") -> None:
-        """Copy parameters from another location.
-
-        Args:
-            other ("Location"): other
-        """
-        self.lat = other.lat
-        self.lon = other.lon
-
     def distance(self, other: "Location") -> float:
         """Find Euclidian distance in km between two locations."""
         temp = (
@@ -142,11 +133,7 @@ class WaterTank(Location):
         Args:
             other ("WaterTank"): other
         """
-        super().copy_from_location(other)
-        self.capacity = other.capacity
-        self.unallocated_capacity = other.unallocated_capacity
-        self.initial_capacity = other.initial_capacity
-        self.id_no = other.id_no
+        self.__dict__.update(other.__dict__)
 
     def remove_water(self, volume: float) -> None:
         """Remove a given volume from the water tank."""

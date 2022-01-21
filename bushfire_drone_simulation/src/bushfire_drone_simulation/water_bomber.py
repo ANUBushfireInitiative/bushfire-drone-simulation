@@ -92,17 +92,7 @@ class WaterBomber(Aircraft):
         Args:
             other ("WaterBomber"): other
         """
-        super().copy_from_aircraft(other)
-        self.range_empty = other.range_empty
-        self.range_under_load = other.range_under_load
-        self.water_refill_time = other.water_refill_time
-        self.suppression_time = other.suppression_time
-        self.water_per_suppression = other.water_per_suppression
-        self.water_capacity = other.water_capacity
-        self.water_on_board = other.water_on_board
-        self.type = other.type
-        self.name = other.name
-        self.past_locations = other.past_locations
+        self.__dict__.update(other.__dict__)
 
     def get_range(self) -> float:
         """Return range of Water bomber."""

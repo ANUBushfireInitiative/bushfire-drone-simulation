@@ -168,23 +168,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         Args:
             other ("Aircraft"): other
         """
-        self.flight_speed = other.flight_speed
-        self.fuel_refill_time = other.fuel_refill_time
-        self.time = other.time
-        self.id_no = other.id_no
-        super().copy_from_location(other)
-        self.current_fuel_capacity = other.current_fuel_capacity
-        self.status = other.status
-        self.past_locations = other.past_locations
-        self.strikes_visited = other.strikes_visited
-        self.event_queue = other.event_queue
-        self.use_current_status = other.use_current_status
-        self.closest_base = other.closest_base
-        self.required_departure_time = other.required_departure_time
-        self.precomputed = other.precomputed
-        self.fuel_tank_capacity = other.fuel_tank_capacity
-        self.unassigned_target = other.unassigned_target
-        self.pct_fuel_cutoff = other.pct_fuel_cutoff
+        self.__dict__.update(other.__dict__)
 
     def accept_precomputed_distances(self, precomputed: PreComputedDistances) -> None:
         """Accept precomputed distance class with distances already evaluated."""
