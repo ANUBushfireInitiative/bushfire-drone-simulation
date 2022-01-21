@@ -3,7 +3,6 @@
     "uav_bases_filename": "input_data/uav_base_locations.csv",
     "water_tanks_filename": "input_data/reservoirs_tanks.csv",
     "lightning_filename": "input_data/lightning.csv",
-    "scenario_parameters_filename": "input_data/scenario_parameters.csv",
     "output_folder_name": "output",
     "uav_coordinator": "MinimiseMeanTimeUAVCoordinator",
     "wb_coordinator": "MinimiseMeanTimeWBCoordinator",
@@ -14,7 +13,7 @@
     "ignition_probability": 0.07,
     "uavs": {
         "spawn_loc_file": "input_data/uav_spawn_locations.csv",
-        "flight_speed": "?",
+        "flight_speed": 85,
         "fuel_refill_time": 15,
         "range": 680,
         "inspection_time": 1,
