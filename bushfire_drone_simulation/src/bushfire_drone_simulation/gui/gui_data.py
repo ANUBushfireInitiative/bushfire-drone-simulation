@@ -2,7 +2,7 @@
 
 import math
 from pathlib import Path
-from typing import Dict, List, Sequence, Type, TypeVar
+from typing import Dict, List, Optional, Sequence, Type, TypeVar
 
 from bushfire_drone_simulation.aircraft import Aircraft, Status, UpdateEvent
 from bushfire_drone_simulation.fire_utils import Location, Time
@@ -13,10 +13,14 @@ from bushfire_drone_simulation.gui.gui_objects import (
     GUIPoint,
     GUIUav,
     GUIWaterBomber,
+    GUIWaterTank,
 )
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.read_csv import CSVFile
 from bushfire_drone_simulation.simulator import Simulator
+from bushfire_drone_simulation.uav import UAV
+from bushfire_drone_simulation.units import Volume
+from bushfire_drone_simulation.water_bomber import WaterBomber
 
 HOURS_TO_SECONDS = 3600
 MINUTES_TO_SECONDS = 60
@@ -33,7 +37,7 @@ class GUIData:
         water_bombers: Sequence[GUIWaterBomber],
         uav_bases: Sequence[GUIPoint],
         wb_bases: Sequence[GUIPoint],
-        watertanks: Sequence[GUIPoint],
+        watertanks: Sequence[GUIWaterTank],
     ):
         """Initialize a GUI data object.
 
@@ -131,13 +135,15 @@ class GUIData:
         )
         lightning = extract_lightning_from_output(output_folder, scenario_name, ignited=False)
         ignitions = extract_lightning_from_output(output_folder, scenario_name, ignited=True)
-        uavs = extract_aircraft_from_output(output_folder, scenario_name, GUIUav)
-        water_bombers = extract_aircraft_from_output(output_folder, scenario_name, GUIWaterBomber)
+        uavs = extract_aircraft_from_output(parameters, output_folder, scenario, GUIUav)
+        water_bombers = extract_aircraft_from_output(
+            parameters, output_folder, scenario, GUIWaterBomber
+        )
         uav_bases: List[GUIPoint] = extract_bases_from_parameters(parameters, scenario, "uav")
         wb_bases: List[GUIPoint] = extract_bases_from_parameters(
             parameters, scenario, "water_bomber"
         )
-        watertanks: List[GUIPoint] = extract_water_tanks_from_output(output_folder, scenario_name)
+        watertanks = extract_water_tanks_from_output(parameters, scenario)
         return cls(lightning, ignitions, uavs, water_bombers, uav_bases, wb_bases, watertanks)
 
 
@@ -188,6 +194,13 @@ def extract_simulation_aircraft(
         aircraft_list = simulation.uavs
     for aircraft in aircraft_list:
         to_return.append(aircraft_type(aircraft.past_locations))
+        new_aircraft = to_return[-1]
+        if isinstance(new_aircraft, GUIUav):
+            assert isinstance(aircraft, UAV)
+            new_aircraft.copy_from_uav(aircraft)
+        if isinstance(new_aircraft, GUIWaterBomber):
+            assert isinstance(aircraft, WaterBomber)
+            new_aircraft.copy_from_wb(aircraft)
     return to_return
 
 
@@ -221,20 +234,18 @@ def extract_simulation_wb_bases(simulation: Simulator) -> List[GUIPoint]:
     return to_return
 
 
-def extract_simulation_water_tanks(simulation: Simulator) -> List[GUIPoint]:
+def extract_simulation_water_tanks(simulation: Simulator) -> List[GUIWaterTank]:
     """Extract water tanks from simulator.
 
     Args:
         simulation (Simulator): simulation
 
     Returns:
-        List[GUIPoint]:
+        List[GUIWaterTank]:
     """
-    to_return: List[GUIPoint] = []
+    to_return: List[GUIWaterTank] = []
     for water_tank in simulation.water_tanks:
-        to_return.append(
-            GUIPoint(Location(water_tank.lat, water_tank.lon), radius=2, colour="blue")
-        )
+        to_return.append(GUIWaterTank(water_tank))
     return to_return
 
 
@@ -270,7 +281,9 @@ def extract_lightning_from_output(
     return to_return
 
 
-def extract_water_tanks_from_output(path: Path, scenario_name: str) -> List[GUIPoint]:
+def extract_water_tanks_from_output(
+    parameters: JSONParameters, scenario: int
+) -> List[GUIWaterTank]:
     """Extract water tanks from output of previous simulation.
 
     Args:
@@ -278,18 +291,20 @@ def extract_water_tanks_from_output(path: Path, scenario_name: str) -> List[GUIP
         scenario_name (str): scenario_name
 
     Returns:
-        List[GUILightning]:
+        List[GUIWaterTank]:
     """
-    to_return: List[GUIPoint] = []
-    water_tank_csv = CSVFile(path / f"{scenario_name}{'_' if scenario_name else ''}water_tanks.csv")
+    to_return: List[GUIWaterTank] = []
+    output_folder = parameters.filepath.parent / parameters.get_attribute(
+        "output_folder_name", scenario
+    )
+    scenario_name = parameters.scenarios[scenario]["scenario_name"]
+    water_tank_csv = CSVFile(
+        output_folder / f"{scenario_name}{'_' if scenario_name else ''}water_tanks.csv"
+    )
+    water_tanks = parameters.get_water_tanks(scenario)
     for row in water_tank_csv:
-        to_return.append(
-            GUIPoint(
-                Location(getattr(row, "Latitude"), getattr(row, "Longitude")),
-                radius=2,
-                colour="blue",
-            )
-        )
+        to_return.append(GUIWaterTank(water_tanks[int(row[1])]))
+        to_return[-1].capacity = Volume(float(row[5])).get()
     return to_return
 
 
@@ -321,7 +336,7 @@ def extract_bases_from_parameters(
 
 
 def extract_aircraft_from_output(
-    path: Path, scenario_name: str, aircraft_type: Type[TAircraft]
+    parameters: JSONParameters, path: Path, scenario_idx: int, aircraft_type: Type[TAircraft]
 ) -> List[TAircraft]:
     """extract_aircraft_from_output.
 
@@ -334,6 +349,7 @@ def extract_aircraft_from_output(
         List[GUIAircraft]:
     """
     to_return: List[TAircraft] = []
+    scenario_name = parameters.scenarios[scenario_idx]["scenario_name"]
     aircraft_csv = CSVFile(
         path
         / (
@@ -345,8 +361,9 @@ def extract_aircraft_from_output(
     for row in aircraft_csv:
         aircraft_id = row[1]
         status_str = row.Status  # type: ignore
+        loc_id: Optional[int] = None
         try:
-            int(status_str.split()[-1])
+            loc_id = int(status_str.split()[-1])
             status = Status(" ".join(status_str.split()[:-1]))
         except ValueError:
             status = Status(status_str)
@@ -361,14 +378,31 @@ def extract_aircraft_from_output(
             row[8],
             row[6],
             0 if aircraft_type == GUIUav else row[9],
-            [],
-            None,
+            [],  # TODO(ryan) provide future events pylint: disable=fixme
+            loc_id,
         )
         if aircraft_id in aircraft_updates:
             aircraft_updates[aircraft_id].append(update_event)
         else:
             aircraft_updates[aircraft_id] = [update_event]
 
-    for _, aircraft in aircraft_updates.items():
-        to_return.append(aircraft_type(aircraft))
+    uavs = parameters.process_uavs(scenario_idx)
+    wbs, _ = parameters.process_water_bombers(
+        parameters.get_water_bomber_bases_all(scenario_idx), scenario_idx
+    )
+    lightning = parameters.get_lightning(scenario_idx)
+    for aircraft_id, updates in aircraft_updates.items():
+        to_return.append(aircraft_type(updates))
+        aircraft = to_return[-1]
+        if isinstance(aircraft, GUIUav):
+            aircraft.copy_from_uav(uavs[int(aircraft_id.split()[1])])
+        if isinstance(aircraft, GUIWaterBomber):
+            for water_bomber in wbs:
+                if aircraft_id == water_bomber.name:
+                    aircraft.copy_from_wb(water_bomber)
+        aircraft.past_locations = updates
+        for update in updates:
+            if update.status == Status.INSPECTING_STRIKE:
+                assert update.loc_id_no is not None, "Lightning loc id should be int, not None"
+                aircraft.strikes_visited.append((lightning[update.loc_id_no], update.time))
     return to_return

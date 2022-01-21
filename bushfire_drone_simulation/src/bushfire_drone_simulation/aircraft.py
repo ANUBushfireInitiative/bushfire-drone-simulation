@@ -75,6 +75,7 @@ class UpdateEvent(Location):  # pylint: disable=too-few-public-methods
         self.status = status
         self.status_str: str = status.value
         self.list_of_next_events = list_of_next_events
+        self.loc_id_no = loc_id_no
         if loc_id_no is not None:
             self.status_str += " " + str(loc_id_no)
         super().__init__(latitude, longitude)
@@ -160,6 +161,30 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         self.fuel_tank_capacity: float = 1  # TODO(read from input) pylint: disable=fixme
         self.unassigned_target: Optional[Location] = None
         self.pct_fuel_cutoff = pct_fuel_cutoff
+
+    def copy_from_aircraft(self, other: "Aircraft") -> None:
+        """Copy properties from another aircraft.
+
+        Args:
+            other ("Aircraft"): other
+        """
+        self.flight_speed = other.flight_speed
+        self.fuel_refill_time = other.fuel_refill_time
+        self.time = other.time
+        self.id_no = other.id_no
+        super().copy_from_location(other)
+        self.current_fuel_capacity = other.current_fuel_capacity
+        self.status = other.status
+        self.past_locations = other.past_locations
+        self.strikes_visited = other.strikes_visited
+        self.event_queue = other.event_queue
+        self.use_current_status = other.use_current_status
+        self.closest_base = other.closest_base
+        self.required_departure_time = other.required_departure_time
+        self.precomputed = other.precomputed
+        self.fuel_tank_capacity = other.fuel_tank_capacity
+        self.unassigned_target = other.unassigned_target
+        self.pct_fuel_cutoff = other.pct_fuel_cutoff
 
     def accept_precomputed_distances(self, precomputed: PreComputedDistances) -> None:
         """Accept precomputed distance class with distances already evaluated."""

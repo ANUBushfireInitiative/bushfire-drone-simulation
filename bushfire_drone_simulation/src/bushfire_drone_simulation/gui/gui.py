@@ -28,6 +28,7 @@ from bushfire_drone_simulation.plots import (
     inspection_time_histogram,
     suppression_time_histogram,
     suppressions_per_bomber_plot,
+    water_tank_plot,
 )
 from bushfire_drone_simulation.simulator import run_simulations
 
@@ -256,11 +257,9 @@ class GUI:
             )
             suppression_time_histogram(axs, suppression_times)
         elif plot_type == "suppressions_per_water_bomber":
-            water_bombers = self.gui_data.water_bombers
-            suppressions_per_bomber_plot(axs, water_bombers)
-        # elif plot_type == "water_tank_capacities":
-        # water_tanks = []
-        # water_tank_plot(axs, water_tanks)
+            suppressions_per_bomber_plot(axs, self.gui_data.water_bombers)
+        elif plot_type == "water_tank_capacities":
+            water_tank_plot(axs, self.gui_data.watertanks)
 
         canvas = FigureCanvasTkAgg(fig, popup)
         canvas.draw()

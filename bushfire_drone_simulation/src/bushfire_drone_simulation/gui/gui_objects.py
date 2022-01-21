@@ -4,7 +4,7 @@ from tkinter import Canvas
 from typing import Callable, List, Optional, Tuple
 
 from bushfire_drone_simulation.aircraft import UpdateEvent
-from bushfire_drone_simulation.fire_utils import Location
+from bushfire_drone_simulation.fire_utils import Location, WaterTank
 from bushfire_drone_simulation.uav import UAV
 from bushfire_drone_simulation.units import DURATION_FACTORS
 from bushfire_drone_simulation.water_bomber import WaterBomber
@@ -413,3 +413,12 @@ class GUIUav(GUIAircraft, UAV):
     ) -> None:
         """Initialise GUI UAV."""
         super().__init__(events, "green", "black")
+
+
+class GUIWaterTank(GUIPoint, WaterTank):
+    """GUI WaterTank class."""
+
+    def __init__(self, wt: WaterTank) -> None:
+        """Initialise GUI water tank."""
+        super().__init__(wt, radius=2, colour="blue")
+        self.copy_from_water_tank(wt)
