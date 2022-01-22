@@ -593,28 +593,24 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
     ) -> None:
         """Aircraft will return to the nearest base when necessary.
 
-        Necessary is defined to be when it takes more than the given percentage of its remaining
+        Necessary is defined to be when it takes more than self.pct_fuel_cutoff of its remaining
         fuel to return to the nearest base.
 
         Args:
             bases (List[Base]): list of avaliable bases
             departure_time (Time): time of triggering event of consider going to base
-            percentage (float, optional): fraction of remaining fuel. Defaults to 0.3, must be <= 1.
         """
         if self._get_future_status() in [Status.HOVERING, Status.UNASSIGNED]:
             base_index = int(np.argmin(list(map(self._get_future_position().distance, bases))))
             dist_to_base = self._get_future_position().distance(bases[base_index])
-            percentage_range = self._get_future_fuel() * self.get_range() * self.pct_fuel_cutoff
-            time_to_base = (percentage_range - dist_to_base) / self.flight_speed
-            # time to base could be negative because current range is a percentage of actual range
-            # we want departure time to be the current time if this is the case or the current time
-            # plus the time_to_base if not
-            if time_to_base > 0:
-                departure_time = self._get_future_time() + time_to_base
-            else:
-                departure_time = self._get_future_time()
+            extra_fuel = self._get_future_fuel() - dist_to_base / (
+                self.get_range() * self.pct_fuel_cutoff
+            )
+            total_flight_time = self.get_range() / self.flight_speed
+            self.required_departure_time = max(
+                departure_time + extra_fuel * total_flight_time, self._get_future_time()
+            )
             self.closest_base = bases[base_index]
-            self.required_departure_time = departure_time
         else:
             self.closest_base = None
             self.required_departure_time = None
