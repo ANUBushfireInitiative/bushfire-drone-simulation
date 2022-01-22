@@ -41,8 +41,8 @@ def test_reasonable_fuel_refill(simulations: List[Simulator]) -> None:
     for simulator in simulations:
         for aircraft in [*simulator.uavs, *simulator.water_bombers]:
             time_full = aircraft.past_locations[0].time
-            for update in aircraft.past_locations[1:]:
-                if update.status == Status.WAITING_AT_BASE:
+            for idx, update in enumerate(aircraft.past_locations[1:]):
+                if aircraft.past_locations[idx - 1].status == Status.WAITING_AT_BASE:
                     assert (
                         update.time - time_full
                     ) - 1 <= aircraft.get_range() / aircraft.flight_speed, (
