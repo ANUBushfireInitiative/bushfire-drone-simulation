@@ -409,6 +409,19 @@ class JSONParameters:
             )
         return to_return
 
+    def scenario_name(self, scenario_idx: int) -> str:
+        """Get name of scenario.
+
+        Args:
+            scenario_idx (int): scenario_idx
+
+        Returns:
+            str: Scenario name
+        """
+        if "scenario_name" in self.scenarios[scenario_idx]:
+            return self.scenarios[scenario_idx]["scenario_name"]  # type: ignore
+        return ""
+
     def get_relative_filepath(self, key: Union[str, Sequence[str]], scenario_idx: int) -> Path:
         """Return relative file path to given key."""
         filename = self.get_attribute(key, scenario_idx)

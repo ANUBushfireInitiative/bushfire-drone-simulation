@@ -387,8 +387,8 @@ class GUI:
         self.end_scale["to"] = int(self.gui_data.max_time / 3600 + 1.0)
         self.start_scale["to"] = int(self.gui_data.max_time / 3600 + 1.0)
         if self.params is not None:
-            for i, scenario in enumerate(self.params.scenarios):
-                name = scenario["scenario_name"]
+            for i in range(len(self.params.scenarios)):
+                name = self.params.scenario_name(i)
                 self.scenario_menu.add_command(
                     label=name,
                     command=partial(self.set_scenario, i),

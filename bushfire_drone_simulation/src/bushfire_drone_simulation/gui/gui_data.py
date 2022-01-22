@@ -122,7 +122,7 @@ class GUIData:
         return cls(lightning, ignitions, uavs, water_bombers, uav_bases, wb_bases, watertanks)
 
     @classmethod
-    def from_output(cls, parameters: JSONParameters, scenario: int) -> "GUIData":
+    def from_output(cls, parameters: JSONParameters, scenario_idx: int) -> "GUIData":
         """Generate GUI data from output of a prior simulation scenario.
 
         Args:
@@ -130,19 +130,19 @@ class GUIData:
             scenario_name (str): scenario_name
         """
         output_folder = parameters.filepath.parent / parameters.get_attribute(
-            "output_folder_name", scenario
+            "output_folder_name", scenario_idx
         )
-        lightning = extract_lightning_from_output(parameters, scenario, ignited=False)
-        ignitions = extract_lightning_from_output(parameters, scenario, ignited=True)
-        uavs = extract_aircraft_from_output(parameters, output_folder, scenario, GUIUav)
+        lightning = extract_lightning_from_output(parameters, scenario_idx, ignited=False)
+        ignitions = extract_lightning_from_output(parameters, scenario_idx, ignited=True)
+        uavs = extract_aircraft_from_output(parameters, output_folder, scenario_idx, GUIUav)
         water_bombers = extract_aircraft_from_output(
-            parameters, output_folder, scenario, GUIWaterBomber
+            parameters, output_folder, scenario_idx, GUIWaterBomber
         )
-        uav_bases: List[GUIPoint] = extract_bases_from_parameters(parameters, scenario, "uav")
+        uav_bases: List[GUIPoint] = extract_bases_from_parameters(parameters, scenario_idx, "uav")
         wb_bases: List[GUIPoint] = extract_bases_from_parameters(
-            parameters, scenario, "water_bomber"
+            parameters, scenario_idx, "water_bomber"
         )
-        watertanks = extract_water_tanks_from_output(parameters, scenario)
+        watertanks = extract_water_tanks_from_output(parameters, scenario_idx)
         return cls(lightning, ignitions, uavs, water_bombers, uav_bases, wb_bases, watertanks)
 
 
@@ -240,7 +240,7 @@ def extract_simulation_water_tanks(simulation: Simulator) -> List[GUIWaterTank]:
 
 
 def extract_lightning_from_output(
-    parameters: JSONParameters, scenario: int, ignited: bool
+    parameters: JSONParameters, scenario_idx: int, ignited: bool
 ) -> List[GUILightning]:
     """extract_lightning_from_output.
 
@@ -249,11 +249,11 @@ def extract_lightning_from_output(
     Returns:
         List[GUILightning]:
     """
-    scenario_name = parameters.scenarios[scenario]["scenario_name"]
+    scenario_name = parameters.scenario_name(scenario_idx)
     output_folder = parameters.filepath.parent / parameters.get_attribute(
-        "output_folder_name", scenario
+        "output_folder_name", scenario_idx
     )
-    input_lightning = parameters.get_lightning(scenario)
+    input_lightning = parameters.get_lightning(scenario_idx)
     to_return: List[GUILightning] = []
     lightning_csv = CSVFile(
         output_folder / f"{scenario_name}{'_' if scenario_name else ''}simulation_output.csv"
@@ -269,7 +269,7 @@ def extract_lightning_from_output(
 
 
 def extract_water_tanks_from_output(
-    parameters: JSONParameters, scenario: int
+    parameters: JSONParameters, scenario_idx: int
 ) -> List[GUIWaterTank]:
     """Extract water tanks from output of previous simulation.
 
@@ -282,13 +282,13 @@ def extract_water_tanks_from_output(
     """
     to_return: List[GUIWaterTank] = []
     output_folder = parameters.filepath.parent / parameters.get_attribute(
-        "output_folder_name", scenario
+        "output_folder_name", scenario_idx
     )
-    scenario_name = parameters.scenarios[scenario]["scenario_name"]
+    scenario_name = parameters.scenario_name(scenario_idx)
     water_tank_csv = CSVFile(
         output_folder / f"{scenario_name}{'_' if scenario_name else ''}water_tanks.csv"
     )
-    water_tanks = parameters.get_water_tanks(scenario)
+    water_tanks = parameters.get_water_tanks(scenario_idx)
     for row in water_tank_csv:
         to_return.append(GUIWaterTank(water_tanks[int(row[1])]))
         to_return[-1].capacity = Volume(float(row[5])).get()
@@ -296,20 +296,20 @@ def extract_water_tanks_from_output(
 
 
 def extract_bases_from_parameters(
-    parameters: JSONParameters, scenario: int, aircraft_type: str
+    parameters: JSONParameters, scenario_idx: int, aircraft_type: str
 ) -> List[GUIPoint]:
     """Extract bases from parameters of previous simulation.
 
     Args:
         parameters (JSONParameters): parameters
-        scenario (int): scenario_idx
+        scenario_idx (int): scenario_idx
 
     Returns:
         List[GUIPoint]:
     """
     to_return: List[GUIPoint] = []
     base_csv = CSVFile(
-        parameters.get_relative_filepath(aircraft_type + "_bases_filename", scenario)
+        parameters.get_relative_filepath(aircraft_type + "_bases_filename", scenario_idx)
     )
     for row in base_csv:
         to_return.append(
@@ -336,7 +336,7 @@ def extract_aircraft_from_output(
         List[GUIAircraft]:
     """
     to_return: List[TAircraft] = []
-    scenario_name = parameters.scenarios[scenario_idx]["scenario_name"]
+    scenario_name = parameters.scenario_name(scenario_idx)
     aircraft_csv = CSVFile(
         path
         / (
