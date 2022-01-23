@@ -1,11 +1,12 @@
 """Simulation of bushfire drone simulation."""
 
 import csv
+import multiprocessing
+from copy import copy
 from math import inf
-from queue import PriorityQueue, Queue
 from typing import Dict, List, Optional, Tuple, Type, Union
 
-from tqdm import tqdm
+from tqdm.std import tqdm
 
 from bushfire_drone_simulation.coordinators.abstract_coordinator import (
     UAVCoordinator,
@@ -55,11 +56,12 @@ class Simulator:
 
     def __init__(self, params: JSONParameters, scenario_idx: int):
         """Initialize simulation class."""
-        self.lightning_queue: "Queue[Lightning]" = PriorityQueue()
+        self.params = params
+        self.scenario_idx = scenario_idx
         self.lightning_strikes = params.get_lightning(scenario_idx)
-        for strike in self.lightning_strikes:
-            self.lightning_queue.put(strike)
-        self.ignitions: "Queue[Lightning]" = Queue()
+        self.lightning_queue: List[Lightning] = copy(self.lightning_strikes)
+        self.lightning_queue.sort()
+        self.ignitions: List[Lightning] = []
         self.water_bomber_bases_list = params.get_water_bomber_bases_all(scenario_idx)
         water_bombers, water_bomber_bases_dict = params.process_water_bombers(
             self.water_bomber_bases_list, scenario_idx
@@ -92,22 +94,22 @@ class Simulator:
         for water_bomber in self.water_bombers:
             water_bomber.accept_precomputed_distances(self.precomputed)
 
-        if unassigned_coordinator is None or self.lightning_queue.empty():
+        if unassigned_coordinator is None or not self.lightning_queue:
             update_unassigned_time = inf
         else:
-            update_unassigned_time = self.lightning_queue.queue[0].spawn_time
+            update_unassigned_time = self.lightning_queue[0].spawn_time
 
-        while not self.lightning_queue.empty():
-            strike = self.lightning_queue.get()
+        while self.lightning_queue:
+            strike = self.lightning_queue.pop(0)
             inspections = self._update_uavs_to_time(strike.spawn_time)
             uav_coordinator.lightning_strike_inspected(inspections)
             uav_coordinator.new_strike(strike)
             for (inspected, _) in inspections:
                 if inspected.ignition:
-                    self.ignitions.put(inspected)
+                    self.ignitions.append(inspected)
 
-            if not self.lightning_queue.empty():
-                while self.lightning_queue.queue[0].spawn_time > update_unassigned_time:
+            if self.lightning_queue:
+                while self.lightning_queue[0].spawn_time > update_unassigned_time:
                     assert unassigned_coordinator is not None
                     # print("UPDATING UAVS TO TIME " + str(update_unassigned_time / 60) + " mins")
                     inspections = self._update_uavs_to_time(update_unassigned_time)
@@ -115,16 +117,16 @@ class Simulator:
                     update_unassigned_time += unassigned_coordinator.dt
                     for (inspected, _) in inspections:
                         if inspected.ignition:
-                            self.ignitions.put(inspected)
+                            self.ignitions.append(inspected)
 
         # print("UPDATING UAVS TO TIME INF")
         inspections = self._update_uavs_to_time(inf)
         for (inspected, _) in inspections:
             if inspected.ignition:
-                self.ignitions.put(inspected)
+                self.ignitions.append(inspected)
 
-        while not self.ignitions.empty():
-            ignition = self.ignitions.get()
+        while self.ignitions:
+            ignition = self.ignitions.pop(0)
             assert (
                 ignition.inspected_time is not None
             ), f"Ignition {ignition.id_no} was not inspected"
@@ -187,39 +189,54 @@ class Simulator:
         )
 
 
+def run_simulation(simulator: Simulator) -> Simulator:
+    """Run single simulation."""
+    uav_coordinator = UAV_COORDINATORS[
+        simulator.params.get_attribute("uav_coordinator", simulator.scenario_idx)
+    ](
+        simulator.uavs,
+        simulator.uav_bases,
+        simulator.params,
+        simulator.scenario_idx,
+        simulator.uav_prioritisation_function,
+    )
+    wb_coordinator = WB_COORDINATORS[
+        simulator.params.get_attribute("wb_coordinator", simulator.scenario_idx)
+    ](
+        simulator.water_bombers,
+        simulator.water_bomber_bases_dict,
+        simulator.water_tanks,
+        simulator.params,
+        simulator.scenario_idx,
+        simulator.wb_prioritisation_function,
+    )
+    unassigned_coordinator: Optional[UnassignedCoordinator] = None
+    if "unassigned_drones" in simulator.params.parameters:
+        attributes, targets, polygon, folder = simulator.params.process_unassigned_drones(
+            simulator.scenario_idx
+        )
+        unassigned_coordinator = SimpleUnassignedCoordinator(
+            simulator.uavs, simulator.uav_bases, targets, folder, polygon, attributes
+        )
+    simulator.run_simulation(uav_coordinator, wb_coordinator, unassigned_coordinator)
+    simulator.output_results(simulator.params, simulator.scenario_idx)
+    return simulator
+
+
 def run_simulations(params: JSONParameters) -> List[Simulator]:
     """Run bushfire drone simulation."""
-    to_return = []
     params.write_to_input_parameters_folder()
-    for scenario_idx in tqdm(range(0, len(params.scenarios)), unit="scenario"):
-        simulator = Simulator(params, scenario_idx)
-        uav_coordinator = UAV_COORDINATORS[params.get_attribute("uav_coordinator", scenario_idx)](
-            simulator.uavs,
-            simulator.uav_bases,
-            params,
-            scenario_idx,
-            simulator.uav_prioritisation_function,
-        )
-        wb_coordinator = WB_COORDINATORS[params.get_attribute("wb_coordinator", scenario_idx)](
-            simulator.water_bombers,
-            simulator.water_bomber_bases_dict,
-            simulator.water_tanks,
-            params,
-            scenario_idx,
-            simulator.wb_prioritisation_function,
-        )
-        unassigned_coordinator: Optional[UnassignedCoordinator] = None
-        if "unassigned_drones" in params.parameters:
-            attributes, targets, polygon, folder = params.process_unassigned_drones(scenario_idx)
-            unassigned_coordinator = SimpleUnassignedCoordinator(
-                simulator.uavs, simulator.uav_bases, targets, folder, polygon, attributes
-            )
-        simulator.run_simulation(uav_coordinator, wb_coordinator, unassigned_coordinator)
-
-        simulator.output_results(params, scenario_idx)
-        to_return.append(simulator)
-    write_to_summary_file(to_return, params)
-    return to_return
+    simulators = [Simulator(params, i) for i in range(len(params.scenarios))]
+    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+        for simulator in tqdm(
+            pool.imap_unordered(run_simulation, simulators),
+            total=len(simulators),
+            unit="scenario",
+            smoothing=0,
+        ):
+            simulators[simulator.scenario_idx] = simulator
+    write_to_summary_file(simulators, params)
+    return simulators
 
 
 def write_to_summary_file(simulations: List[Simulator], params: JSONParameters) -> None:

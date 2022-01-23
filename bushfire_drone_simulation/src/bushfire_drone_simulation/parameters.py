@@ -6,6 +6,7 @@ import json
 import logging
 import shutil
 import sys
+import warnings
 from functools import reduce
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
@@ -84,6 +85,32 @@ def commandline_confirm(message: str) -> bool:
     """
     cont = input(f"{message}\nEnter 'Y' if yes and 'N' if no \n")
     return cont.lower().strip() == "y"
+
+
+def time_prioritisation(time: float, _: Any) -> float:
+    """Prioritisation function based purely on time.
+
+    Args:
+        time (float): time
+        _ (Any): _
+
+    Returns:
+        float:
+    """
+    return time
+
+
+def time_risk_product_prioritisation(time: float, risk: float) -> float:
+    """Prioritisation function based on product of time and risk.
+
+    Args:
+        time (float): time
+        risk (float): risk
+
+    Returns:
+        float:
+    """
+    return time * risk
 
 
 class JSONParameters:
@@ -388,10 +415,10 @@ class JSONParameters:
         """Return prioritisation function combining inspection/suppression time and risk rating."""
         aircraft_data = self.get_attribute(aircraft, scenario_idx)
         if "prioritisation_function" not in aircraft_data:
-            return lambda time, _: time
+            return time_prioritisation
         function_name = aircraft_data["prioritisation_function"]
         if function_name == "product":
-            return lambda time, risk_rating: time * risk_rating
+            return time_risk_product_prioritisation
         raise Exception(
             f"Error: Do not recognize value '{function_name}' "
             f"from attribute {aircraft}/prioritisation_function in '{self.filepath}'.\n"
@@ -456,7 +483,12 @@ class JSONParameters:
                     float(np.percentile(times_np, 50)),
                 ]
 
-        fig, axs = plt.subplots(2, 2, figsize=(12, 8), dpi=300)
+        fig = Figure(figsize=(8, 6), dpi=300, tight_layout=True)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", r"The value of the smallest subnormal for \<class .*\> type is zero."
+            )
+            axs = fig.subplots(2, 2)
 
         fig.suptitle(title)
 
@@ -467,12 +499,15 @@ class JSONParameters:
 
         fig.tight_layout()
         fig.savefig(self.output_folder / (prefix + "inspection_times_plot.png"))
+        plt.close(fig)
+
         fig = Figure(figsize=(8, 6), dpi=300, tight_layout=True)
         axs = fig.add_subplot(211)
         risk_rating_plot_over_time(fig, axs, lightning)
         axs = fig.add_subplot(212)
         risk_rating_plot(axs, lightning)
         fig.savefig(self.output_folder / (prefix + "risk_rating_plot.png"))
+        plt.close(fig)
         return summary_results
 
     def write_to_simulation_output_file(

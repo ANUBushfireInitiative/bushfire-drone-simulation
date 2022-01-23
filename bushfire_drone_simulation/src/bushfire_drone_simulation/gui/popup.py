@@ -1,6 +1,7 @@
 """Class for managing creating simple popup windows in GUI."""
 
 import tkinter as tk
+from typing import Callable
 
 
 class GuiPopup(tk.Toplevel):
@@ -26,8 +27,10 @@ class GuiPopup(tk.Toplevel):
             self.parent_window.winfo_y() + (self.parent_window.winfo_height() - self.height) // 2
         )
         self.geometry(f"{self.width}x{self.height}+{popup_x}+{popup_y}")
+        self.on_close: Callable[[], None] = lambda: None
 
     def close(self) -> None:
         """Close popup."""
+        self.on_close()
         self.grab_release()  # type: ignore
         self.destroy()

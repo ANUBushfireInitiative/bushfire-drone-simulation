@@ -15,6 +15,7 @@ from typing import Dict, Optional
 import _tkinter
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
+from matplotlib.pyplot import close
 from PIL import Image as img
 from PIL import ImageDraw, ImageFont, ImageTk
 
@@ -281,6 +282,7 @@ class GUI:
         toolbar.pack()
         canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
         toolbar.update()
+        popup.on_close = lambda: close(fig)  # type: ignore
 
     def _size_dialog(self) -> None:
         """Change size of map."""
