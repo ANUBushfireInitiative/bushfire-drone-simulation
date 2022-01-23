@@ -28,7 +28,7 @@ def fixture_simulations_list(
     to_return: List[Tuple[List[Simulator], JSONParameters]] = []
     to_return.append(
         (
-            run_simulation(FILE_LOC.parent / "parameters.json"),
+            run_simulation(FILE_LOC.parent / "parameters.json", parallel=False),
             JSONParameters(FILE_LOC.parent / "parameters.json"),
         )
     )
