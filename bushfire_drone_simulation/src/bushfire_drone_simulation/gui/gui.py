@@ -365,7 +365,7 @@ class GUI:
                 m,
             ),
         )
-        run_simulations(params)
+        run_simulations(params, use_parallel=True)
         self.open_file(params.gui_filename)
         # temp_gui_data = GUIData.from_simulator(simulators[0])
         # temp_gui_data = GUIData.from_output(filename.parent, "1")

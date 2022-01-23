@@ -223,13 +223,15 @@ def run_simulation(simulator: Simulator) -> Simulator:
     return simulator
 
 
-def run_simulations(params: JSONParameters) -> List[Simulator]:
+def run_simulations(params: JSONParameters, use_parallel: bool = False) -> List[Simulator]:
     """Run bushfire drone simulation."""
     params.write_to_input_parameters_folder()
     simulators = [Simulator(params, i) for i in range(len(params.scenarios))]
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         for simulator in tqdm(
-            pool.imap_unordered(run_simulation, simulators),
+            pool.imap_unordered(run_simulation, simulators)
+            if use_parallel
+            else map(run_simulation, simulators),
             total=len(simulators),
             unit="scenario",
             smoothing=0,
