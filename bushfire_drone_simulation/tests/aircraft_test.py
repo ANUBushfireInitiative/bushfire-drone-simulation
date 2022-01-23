@@ -4,24 +4,13 @@ from pathlib import Path
 from typing import List
 
 import pytest
-from _pytest.monkeypatch import MonkeyPatch
 
 from bushfire_drone_simulation.aircraft import EPSILON, Status
-from bushfire_drone_simulation.main import run_simulation
 from bushfire_drone_simulation.simulator import Simulator
 from bushfire_drone_simulation.water_bomber import WaterBomber
 
 FILE_LOC = Path(__file__)
 PARAMS_LOC = FILE_LOC.parent / "parameters.json"
-
-
-@pytest.fixture(name="simulations")
-def fixture_simulations(monkeypatch: MonkeyPatch) -> List[Simulator]:
-    """Run a simple simulation and output the results."""
-    monkeypatch.setattr("builtins.input", lambda _: "Y")
-    to_return = []
-    to_return += run_simulation(FILE_LOC.parent / "parameters.json")
-    return to_return
 
 
 @pytest.mark.slow

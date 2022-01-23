@@ -8,31 +8,13 @@ from statistics import mean
 from typing import List, Optional, Tuple
 
 import pytest
-from _pytest.monkeypatch import MonkeyPatch
 
 from bushfire_drone_simulation.fire_utils import Time
-from bushfire_drone_simulation.main import run_simulation
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.simulator import Simulator
 
 FILE_LOC = Path(__file__)
 PARAMS_LOC = FILE_LOC.parent / "parameters.json"
-
-
-@pytest.fixture(name="simulations_list")
-def fixture_simulations_list(
-    monkeypatch: MonkeyPatch,
-) -> List[Tuple[List[Simulator], JSONParameters]]:
-    """Run a simple simulation and output the results."""
-    monkeypatch.setattr("builtins.input", lambda _: "Y")
-    to_return: List[Tuple[List[Simulator], JSONParameters]] = []
-    to_return.append(
-        (
-            run_simulation(FILE_LOC.parent / "parameters.json", parallel=False),
-            JSONParameters(FILE_LOC.parent / "parameters.json"),
-        )
-    )
-    return to_return
 
 
 @pytest.mark.slow

@@ -46,12 +46,12 @@ Installing Python
 ~~~~~~~~~~~~~~~~~
 
 As this is a python application, we first need to install python. We
-will use Chocolatey to install version 3.8.5. Open Windows PowerShell as
+will use Chocolatey to install version 3.8.6. Open Windows PowerShell as
 an administrator and run the command:
 
 .. code:: powershell
 
-    choco install -y python3 --version=3.8.5 --force
+    choco install -y python3 --version=3.8.6 --force
 
 If the installation is successful, python 3.8 can then be accessed using
 the command ``py -3.8`` (and exited using the command ``exit()``).
@@ -151,10 +151,10 @@ To add this text to ~./bashrc, run the command
     eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc
 
 To create a pyenv environment called bushfires for this application with
-python version 3.8.5, run the commands
+python version 3.8.6, run the commands
 
-1. ``pyenv install 3.8.5``
-2. ``pyenv virtualenv 3.8.5 bushfires``
+1. ``pyenv install 3.8.6``
+2. ``pyenv virtualenv 3.8.6 bushfires``
 
 Then, prior to following the installation steps below and before each
 time using the ``bushfire_drone_simulation`` application, you will need

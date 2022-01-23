@@ -172,6 +172,7 @@ class JSONParameters:
         Args:
             confirmation (Callable[[str], bool]): confirmation method
         """
+        print(self.output_folder)
         if self.output_folder.exists():
             if any(self.output_folder.iterdir()):
                 if not confirmation(
