@@ -18,6 +18,7 @@ from matplotlib.figure import Figure
 from PIL import Image as img
 from PIL import ImageDraw, ImageFont, ImageTk
 
+from bushfire_drone_simulation.fire_utils import Coordinate
 from bushfire_drone_simulation.gui.gui_data import GUIData
 from bushfire_drone_simulation.gui.map_downloader import cache_folder
 from bushfire_drone_simulation.gui.map_image import MapImage
@@ -482,6 +483,8 @@ class GUI:
             event: Click event
         """
         self.coords = event.x, event.y
+        loc = self.map_image.get_lat_long(Coordinate(*self.coords))
+        print(f"Latitude: {loc.lat} Longitude: {loc.lon}")
         self.redraw()
 
     def reload(self) -> None:

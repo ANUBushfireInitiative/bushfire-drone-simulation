@@ -5,7 +5,7 @@ from typing import Tuple
 import PIL.Image
 from PIL.Image import Image
 
-from bushfire_drone_simulation.fire_utils import Location
+from bushfire_drone_simulation.fire_utils import Coordinate, Location
 from bushfire_drone_simulation.gui.map_downloader import MapDownloader
 
 
@@ -91,6 +91,10 @@ class MapImage:
         """
         big_coord = self.map_downloader.get_pixel_from_location(location)
         return big_coord.x - self.left, big_coord.y - self.top
+
+    def get_lat_long(self, pixel: Coordinate) -> Location:
+        """Get lat long from pixel coordinates."""
+        return self.map_downloader.get_location_from_pixel(pixel)
 
     def _update_image(self) -> None:
         """_update_image."""
