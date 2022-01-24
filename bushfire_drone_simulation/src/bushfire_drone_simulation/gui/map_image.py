@@ -94,7 +94,9 @@ class MapImage:
 
     def get_lat_long(self, pixel: Coordinate) -> Location:
         """Get lat long from pixel coordinates."""
-        return self.map_downloader.get_location_from_pixel(pixel)
+        return self.map_downloader.get_location_from_pixel(
+            Coordinate(pixel.x + self.left, pixel.y + self.top)
+        )
 
     def _update_image(self) -> None:
         """_update_image."""
