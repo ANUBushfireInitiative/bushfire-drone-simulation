@@ -122,10 +122,16 @@ The JSON parameters file should contain the following information formatted as i
             }
         }
 
-    `pct_fuel_cutoff` is used to determine when an aircraft should return to a base to refuel whilst it is
+    ``pct_fuel_cutoff`` is used to determine when an aircraft should return to a base to refuel whilst it is
     hovering. This is done by the following formula: If the fuel required to return to the nearest base
-    is greater than `pct_fuel_cutoff` multiplied by the aircraft's remaining fuel then the aircraft will
+    is greater than ``pct_fuel_cutoff`` multiplied by the aircraft's remaining fuel then the aircraft will
     return to this base. Note that this return may be interrupted with the knowledge of future lightning strikes.
+
+    The ``prioritisation_function`` is used to determine how to prioritise lightning strikes with varying risk ratings.
+    If no ``prioritisation_function`` is given strikes are prioritised purely on inspection time. Otherwise the following
+    prioritisation functions can be specified and strikes will be prioritised accordingly
+
+    *   `product` : inspection_time * rist_rating
 
 *  A dictionary containing the following information about water bombers
 
@@ -298,11 +304,11 @@ Alternatively "inf" can be used to indicate an infinite capacity.
     even if an unassigned_drones dictionary is included.
 
     .. csv-table::
-        :header: "latitude", "longitude", start time,finish time
+        :header: "latitude", "longitude","start time","finish time"
 
-        -37.81,144.97,0,80000
+        -37.81,144.97,5,8
 
-    Note that it is possible to enter "inf" to indicate an infinite end time.
+    Where start and finish time are in hours. Note that it is possible to enter "inf" to indicate an infinite end time.
 
 * boundary_polygon_file
 

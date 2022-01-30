@@ -8,7 +8,7 @@ ANU Bushfire Initiative Drone Simulation's documentation
 
 The ANU Bushfire Initiative Simulation is a python application that allows the simulation of drones for fast lightning strike investigation and potential suppression by a fleet of water bombers.
 
-This is the documentation of the repository `anu-bushfire-initiative-simulation <https://github.com/ryanstocks00/anu-bushfire-initiative-simulation>`_
+This is the documentation of the repository `anu-bushfire-initiative-simulation <https://github.com/ANUBushfireInitiative/bushfire-drone-simulation>`_
 
 Contents
 --------
