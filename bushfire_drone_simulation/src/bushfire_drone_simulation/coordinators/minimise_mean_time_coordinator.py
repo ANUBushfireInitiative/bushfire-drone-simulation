@@ -176,7 +176,7 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
             )
             if temp_arr_time is not None:
                 inspection_time = uav.arrival_time([lightning]) - lightning.spawn_time
-                temp_arr_time = inspection_time ** mean_time_power
+                temp_arr_time = inspection_time**mean_time_power
                 if inspection_time > target_max_time:
                     if temp_arr_time < min_arr_time_above_target:  # type: ignore
                         min_arr_time_above_target = temp_arr_time  # type: ignore
@@ -199,7 +199,7 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                         inspection_time = (
                             uav.arrival_time([uav_base, lightning]) - lightning.spawn_time
                         )
-                        temp_arr_time = inspection_time ** mean_time_power
+                        temp_arr_time = inspection_time**mean_time_power
 
                         if inspection_time > target_max_time:
                             if temp_arr_time < min_arr_time_above_target:  # type: ignore
@@ -403,7 +403,7 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                             for time in prev_suppression_times:
                                 cumulative_time += (
                                     time + additional_arr_time
-                                ) ** mean_time_power - time ** mean_time_power
+                                ) ** mean_time_power - time**mean_time_power
                                 if time + additional_arr_time > target_max_time:
                                     time_exceeded_target = True
                             if time_exceeded_target:
@@ -434,7 +434,7 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                 )
                 if temp_arr_time is not None:
                     suppression_time = water_bomber.arrival_time([ignition]) - ignition.spawn_time
-                    temp_arr_time = suppression_time ** mean_time_power
+                    temp_arr_time = suppression_time**mean_time_power
                     if suppression_time > target_max_time:
                         if temp_arr_time < min_arr_time_above_target:  # type: ignore
                             min_arr_time_above_target = temp_arr_time  # type: ignore
@@ -456,7 +456,7 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                             suppression_time = (
                                 water_bomber.arrival_time([base, ignition]) - ignition.spawn_time
                             )
-                            temp_arr_time = suppression_time ** mean_time_power
+                            temp_arr_time = suppression_time**mean_time_power
                             if suppression_time > target_max_time:
                                 if temp_arr_time < min_arr_time_above_target:  # type: ignore
                                     min_arr_time_above_target = temp_arr_time  # type: ignore
@@ -482,7 +482,7 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                         suppression_time = (
                             water_bomber.arrival_time([water_tank, ignition]) - ignition.spawn_time
                         )
-                        temp_arr_time = suppression_time ** mean_time_power
+                        temp_arr_time = suppression_time**mean_time_power
                         if suppression_time > target_max_time:
                             if temp_arr_time < min_arr_time_above_target:  # type: ignore
                                 min_arr_time_above_target = temp_arr_time  # type: ignore
@@ -515,7 +515,7 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                                     water_bomber.arrival_time([water_tank, base, ignition])
                                     - ignition.spawn_time
                                 )
-                                temp_arr_time = suppression_time ** mean_time_power
+                                temp_arr_time = suppression_time**mean_time_power
                                 if suppression_time > target_max_time:
                                     if temp_arr_time < min_arr_time_above_target:  # type: ignore
                                         min_arr_time_above_target = temp_arr_time  # type: ignore
@@ -548,7 +548,7 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                                     water_bomber.arrival_time([base, water_tank, ignition])
                                     - ignition.spawn_time
                                 )
-                                temp_arr_time = suppression_time ** mean_time_power
+                                temp_arr_time = suppression_time**mean_time_power
                                 if suppression_time > target_max_time:
                                     if temp_arr_time < min_arr_time_above_target:  # type: ignore
                                         min_arr_time_above_target = temp_arr_time  # type: ignore

@@ -62,7 +62,7 @@ class SimpleUnassignedCoordinator(UnassignedCoordinator):
                                 contributing_locs.append(
                                     uav.plane_intermediate_point(
                                         other_uav,
-                                        -self.uav_const * dist ** self.uav_pwr,
+                                        -self.uav_const * dist**self.uav_pwr,
                                     )
                                 )
                     for target in self.targets:
@@ -72,7 +72,7 @@ class SimpleUnassignedCoordinator(UnassignedCoordinator):
                                 contributing_locs.append(
                                     uav.plane_intermediate_point(
                                         target,
-                                        self.target_const * dist ** self.target_pwr,
+                                        self.target_const * dist**self.target_pwr,
                                     )
                                 )
                     prev_point = self.polygon[-1]
@@ -90,7 +90,7 @@ class SimpleUnassignedCoordinator(UnassignedCoordinator):
                         contributing_locs.append(
                             uav.plane_intermediate_point(
                                 closest_boundary_point,
-                                -self.boundary_const * min_dist ** self.boundary_pwr,
+                                -self.boundary_const * min_dist**self.boundary_pwr,
                             )
                         )
                     if contributing_locs:

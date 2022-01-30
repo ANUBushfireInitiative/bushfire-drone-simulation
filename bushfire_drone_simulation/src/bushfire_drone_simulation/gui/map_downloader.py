@@ -84,7 +84,7 @@ def get_pixel_coordinates(
     Returns:
         Tuple[int, int]: Pixel coordinates in tile
     """
-    x = (lon + 180.0) / 360.0 * (2 ** zoom)
+    x = (lon + 180.0) / 360.0 * (2**zoom)
     y = (
         1.0 - math.log(math.tan(math.radians(lat)) + (1 / math.cos(math.radians(lat)))) / math.pi
     ) * (2 ** (zoom - 1))
@@ -105,7 +105,7 @@ def get_tile_coordinates(lat: float, lon: float, zoom: int) -> Tuple[int, int]:
     Returns:
         Tuple[int, int]: Tile coordinates
     """
-    x = int((lon + 180.0) / 360.0 * (2 ** zoom))
+    x = int((lon + 180.0) / 360.0 * (2**zoom))
     y = int(
         (1.0 - math.log(math.tan(math.radians(lat)) + (1 / math.cos(math.radians(lat)))) / math.pi)
         * (2 ** (zoom - 1))
@@ -124,7 +124,7 @@ def get_lat_lon_from_tile(x: float, y: float, zoom: int) -> Tuple[float, float]:
     Returns:
         Tuple[float, float]: Lat/lon of upper left corner of specified tile
     """
-    lon = x / (2 ** zoom) * 360.0 - 180.0
+    lon = x / (2**zoom) * 360.0 - 180.0
     lat = math.degrees(math.atan(math.sinh(math.pi * (1 - y / (2 ** (zoom - 1))))))
     return (lat, lon)
 
@@ -149,8 +149,8 @@ def tile_url(
     Returns:
         str: Url
     """
-    x = x % (2 ** zoom)
-    y = y % (2 ** zoom)
+    x = x % (2**zoom)
+    y = y % (2**zoom)
     return url_format.format(zoom, x, y)
 
 

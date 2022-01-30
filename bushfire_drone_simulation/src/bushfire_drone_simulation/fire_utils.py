@@ -8,6 +8,8 @@ from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Duration
 
 _LOG = logging.getLogger(__name__)
 
+EARTH_RADIUS = 6371  # in km
+
 
 class Coordinate:
     """Coordinate."""
@@ -34,7 +36,7 @@ class Location:
             * cos(radians(other.lat))
             * sin(radians(other.lon - self.lon) / 2) ** 2
         )
-        return 6371 * 2 * atan2(sqrt(temp), sqrt(1 - temp))
+        return EARTH_RADIUS * 2 * atan2(sqrt(temp), sqrt(1 - temp))
 
     def plane_distance_sq(self, other: "Location") -> float:
         """Find planar distance squared in degrees between two locations."""
@@ -50,7 +52,7 @@ class Location:
 
     def intermediate_point(self, other: "Location", percentage: float) -> "Location":
         """Find intermediate point a proportion of the way between self and other."""
-        angular_distance = self.distance(other) / 6371  # The radius of the earth is 6371 km
+        angular_distance = self.distance(other) / EARTH_RADIUS
         if angular_distance == 0:
             return self.copy_loc()
         h_1 = sin(radians((1 - percentage) * angular_distance)) / sin(radians(angular_distance))
