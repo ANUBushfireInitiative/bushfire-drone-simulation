@@ -416,7 +416,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             self.go_to_base(self.closest_base, self.required_departure_time)
         assert isinstance(update_time, float)
         if update_time > self.time and not math.isinf(update_time):
-            if self.status == Status.HOVERING:
+            if self.status in [Status.HOVERING, Status.UNASSIGNED]:
                 self._reduce_current_fuel(
                     (update_time - self.time) * self.flight_speed / self.get_range()
                 )
@@ -527,7 +527,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             assert self.status in [
                 Status.HOVERING,
                 Status.UNASSIGNED,
-            ], f"status was {self.status}"  # Must have been called from consider
+            ], f"status was {self.status}"  # Must have been called from when necessary
             self._reduce_current_fuel(
                 (departure_time - self.time) * (self.flight_speed) / self.get_range()
             )
