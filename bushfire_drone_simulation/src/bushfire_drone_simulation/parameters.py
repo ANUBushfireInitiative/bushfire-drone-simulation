@@ -114,6 +114,47 @@ def time_risk_product_prioritisation(time: float, risk: float) -> float:
     return time * risk
 
 
+def time_risk_squared_prioritisation(time: float, risk: float) -> float:
+    """Prioritisation function based on product of time and risk.
+
+    Args:
+        time (float): time
+        risk (float): risk
+
+    Returns:
+        float:
+    """
+    return time * risk * risk
+
+
+def time_risk_cubed_prioritisation(time: float, risk: float) -> float:
+    """Prioritisation function based on product of time and risk.
+
+    Args:
+        time (float): time
+        risk (float): risk
+
+    Returns:
+        float:
+    """
+    return time * risk * risk * risk
+
+
+def time_risk_threshold_prioritisation(time: float, risk: float) -> float:
+    """Prioritisation function based on product of time and risk.
+
+    Args:
+        time (float): time
+        risk (float): risk
+
+    Returns:
+        float:
+    """
+    if risk > 0.8:
+        return time * 100
+    return time
+
+
 class JSONParameters:
     """Class for reading parameters from a csv file."""
 
@@ -397,7 +438,9 @@ class JSONParameters:
         attribute_dict = self.get_attribute("unassigned_drones", scenario_idx)
         assert isinstance(attribute_dict, dict)
         targets: List[Target] = []
-        if "targets_filename" in attribute_dict:
+        if "targets_filename" in attribute_dict and isinstance(
+            attribute_dict["targets_filename"], str
+        ):
             targets = read_targets(self.folder / attribute_dict["targets_filename"])
         if "boundary_polygon_filename" in attribute_dict:
             polygon = read_locations(self.folder / attribute_dict["boundary_polygon_filename"])
@@ -442,8 +485,16 @@ class JSONParameters:
         if "prioritisation_function" not in aircraft_data:
             return time_prioritisation
         function_name = aircraft_data["prioritisation_function"]
+        if function_name == "time":
+            return time_prioritisation
         if function_name == "product":
             return time_risk_product_prioritisation
+        if function_name == "p_sq":
+            return time_risk_squared_prioritisation
+        if function_name == "p_cub":
+            return time_risk_cubed_prioritisation
+        if function_name == "thresh":
+            return time_risk_threshold_prioritisation
         raise Exception(
             f"Error: Do not recognize value '{function_name}' "
             f"from attribute {aircraft}/prioritisation_function in '{self.filepath}'.\n"
@@ -761,12 +812,14 @@ class JSONParameters:
                     print("ERROR")
                 else:
                     heading = "/".join(file_parameter)
-                    assert heading in scenario_parameters_csv.get_column_headings()
-                    for i, cell in enumerate(scenario_parameters_csv.get_column(heading)):
+                    column = scenario_parameters_csv.get_column(heading)
+                    for i, cell in enumerate(column):
+                        if not isinstance(cell, str):
+                            continue
                         path = copy_to_input(
                             self.get_relative_filepath(file_parameter, i), input_folder
                         )
-                        cell.value = path.relative_to(self.output_folder)
+                        column[i] = path.relative_to(self.output_folder)
 
         with open(self.gui_filename, "w", encoding="utf8") as gui_file:
             json.dump(gui_params, gui_file)

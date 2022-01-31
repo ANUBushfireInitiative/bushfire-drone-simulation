@@ -93,7 +93,7 @@ using ``cd`` (change directory). You can now run the following commands
 to download and install the application:
 
 1. ``git clone https://github.com/ANUBushfireInitiative/bushfire-drone-simulation``
-2. ``cd bushfire-initiative-simulation``
+2. ``cd bushfire-drone-simulation``
 3. ``.\tools\windows-install.ps1``
 
 Congratulations! The ANU Bushfire Initiative's Drone Simulation is now

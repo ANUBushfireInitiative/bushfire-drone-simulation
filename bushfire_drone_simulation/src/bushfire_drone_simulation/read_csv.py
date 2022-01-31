@@ -15,7 +15,7 @@ from bushfire_drone_simulation.fire_utils import (
     assert_number,
 )
 from bushfire_drone_simulation.lightning import Lightning
-from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Volume
+from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Duration, Volume
 
 
 class ColumnNotFoundException(Exception):
@@ -259,8 +259,8 @@ def read_targets(filename: Path) -> List[Target]:
             Target(
                 lat,
                 lon,
-                start_time,
-                finish_time,
+                Duration(start_time, "hr").get(),
+                Duration(finish_time, "hr").get(),
                 attraction_const,
                 attraction_power,
             ),
