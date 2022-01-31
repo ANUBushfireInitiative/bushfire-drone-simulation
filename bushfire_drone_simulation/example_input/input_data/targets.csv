@@ -1,2 +1,2 @@
-latitude,longitude,start time,finish time
--36.7,145.8,0,"inf"
+latitude,longitude,start time,finish time,attraction constant,attraction power
+-36.7,145.8,0,"inf",200,-1.2

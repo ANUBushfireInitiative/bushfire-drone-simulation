@@ -111,7 +111,6 @@ class Simulator:
             if self.lightning_queue:
                 while self.lightning_queue[0].spawn_time > update_unassigned_time:
                     assert unassigned_coordinator is not None
-                    # print("UPDATING UAVS TO TIME " + str(update_unassigned_time / 60) + " mins")
                     inspections = self._update_uavs_to_time(update_unassigned_time)
                     unassigned_coordinator.assign_unassigned_uavs(update_unassigned_time)
                     update_unassigned_time += unassigned_coordinator.dt
@@ -119,7 +118,6 @@ class Simulator:
                         if inspected.ignition:
                             self.ignitions.append(inspected)
 
-        # print("UPDATING UAVS TO TIME INF")
         inspections = self._update_uavs_to_time(inf)
         for (inspected, _) in inspections:
             if inspected.ignition:
@@ -130,7 +128,6 @@ class Simulator:
             assert (
                 ignition.inspected_time is not None
             ), f"Ignition {ignition.id_no} was not inspected"
-            # print("UPDATING WBS TO TIME " + str(ignition.inspected_time.get()))
             suppressions = self._update_water_bombers_to_time(ignition.inspected_time)
             wb_coordinator.lightning_strike_suppressed(suppressions)
             wb_coordinator.unsuppressed_strikes.add(ignition)
@@ -138,7 +135,6 @@ class Simulator:
             # wb_coordinator.new_ignition(ignition)
             # TODO(get this silly function to work) pylint: disable=fixme
 
-        # print("UPDATING WBS TO TIME INF")
         suppressions = self._update_water_bombers_to_time(inf)
 
     def _update_to_time(
@@ -213,7 +209,7 @@ def run_simulation(simulator: Simulator) -> Simulator:
     unassigned_coordinator: Optional[UnassignedCoordinator] = None
     if "unassigned_drones" in simulator.params.parameters:
         attributes, targets, polygon, folder = simulator.params.process_unassigned_drones(
-            simulator.scenario_idx
+            simulator.scenario_idx, simulator.lightning_strikes
         )
         unassigned_coordinator = SimpleUnassignedCoordinator(
             simulator.uavs, simulator.uav_bases, targets, folder, polygon, attributes

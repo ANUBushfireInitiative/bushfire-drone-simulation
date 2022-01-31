@@ -49,12 +49,16 @@
     },
     "unassigned_drones": {
         "targets_filename": "input_data/targets.csv",
+        "automatic_targets": {
+            "radius": 50,
+            "min_in_target": 25,
+            "target_resolution": 30,
+            "look_ahead": 60
+        },
         "boundary_polygon_filename": "input_data/boundary_polygon.csv",
         "dt": 120,
         "uav_repulsion_const": 50000000.0,
         "uav_repulsion_power": -5,
-        "target_attraction_const": 200.0,
-        "target_attraction_power": -1.2,
         "boundary_repulsion_const": 4000.0,
         "boundary_repulsion_power": -2,
         "centre_lat": -36.5,

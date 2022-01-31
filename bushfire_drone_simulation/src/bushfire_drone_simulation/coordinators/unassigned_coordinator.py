@@ -6,11 +6,8 @@ from typing import List, Optional
 import matplotlib.pyplot as plt
 import numpy as np
 
-from bushfire_drone_simulation.coordinators.abstract_coordinator import (
-    UnassignedCoordinator,
-    average_location,
-)
-from bushfire_drone_simulation.fire_utils import Location
+from bushfire_drone_simulation.coordinators.abstract_coordinator import UnassignedCoordinator
+from bushfire_drone_simulation.fire_utils import Location, average_location
 
 
 class SimpleUnassignedCoordinator(UnassignedCoordinator):
@@ -72,7 +69,7 @@ class SimpleUnassignedCoordinator(UnassignedCoordinator):
                                 contributing_locs.append(
                                     uav.plane_intermediate_point(
                                         target,
-                                        self.target_const * dist**self.target_pwr,
+                                        target.attraction_const * dist**target.attraction_power,
                                     )
                                 )
                     prev_point = self.polygon[-1]

@@ -18,6 +18,7 @@ import numpy.typing as npt
 from matplotlib.figure import Figure
 
 from bushfire_drone_simulation.aircraft import AircraftType, UpdateEvent
+from bushfire_drone_simulation.cluster import LightningCluster
 from bushfire_drone_simulation.fire_utils import (
     Base,
     Location,
@@ -45,7 +46,7 @@ from bushfire_drone_simulation.read_csv import (
     read_water_tanks,
 )
 from bushfire_drone_simulation.uav import UAV, UAVAttributes
-from bushfire_drone_simulation.units import Distance, Volume
+from bushfire_drone_simulation.units import Distance, Duration, Volume
 from bushfire_drone_simulation.water_bomber import WaterBomber, WBAttributes
 
 _LOG = logging.getLogger(__name__)
@@ -120,7 +121,7 @@ class JSONParameters:
         """Read collection of variables stored in filename.
 
         Args:
-            filename (str): filepath to json parameters file from current working directory
+            parameters_file (str): filepath to json parameters file from current working directory
         """
         self.folder = parameters_file.parent
         self.filepath = parameters_file
@@ -389,7 +390,7 @@ class JSONParameters:
         return uavs
 
     def process_unassigned_drones(
-        self, scenario_idx: int
+        self, scenario_idx: int, lightning: List[Lightning]
     ) -> Tuple[Dict[str, Any], List[Target], List[Location], Path]:
         """Process targets, polygon and attributes associated with unassigned drone."""
         assert "unassigned_drones" in self.parameters
@@ -402,6 +403,29 @@ class JSONParameters:
             polygon = read_locations(self.folder / attribute_dict["boundary_polygon_filename"])
             if polygon[0].equals(polygon[-1]):
                 del polygon[-1]
+            if "automatic_targets" in attribute_dict:
+                target_dict = attribute_dict["automatic_targets"]
+                for attribute in [
+                    "radius",
+                    "min_in_target",
+                    "target_resolution",
+                    "look_ahead",
+                ]:
+                    if attribute not in target_dict:
+                        raise Exception(
+                            f"Error: Parameter '{attribute}' is missing in '{self.filepath}'.\n"
+                            f"Please add '{attribute}' to 'unassigned_drones/automatic_targets' in"
+                            f" '{self.filepath}' and run the simulation again"
+                        )
+                cluster = LightningCluster(
+                    lightning,
+                    polygon,
+                    Distance(target_dict["radius"], "km"),
+                    target_dict["min_in_target"],
+                    Duration(target_dict["target_resolution"], "min"),
+                    Duration(target_dict["look_ahead"], "min"),
+                )
+                targets += cluster.generate_targets()
         else:
             raise Exception(
                 f"Error: Parameter 'boundary_polygon_filename' is missing in '{self.filepath}'.\n"

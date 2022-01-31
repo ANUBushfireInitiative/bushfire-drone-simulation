@@ -93,7 +93,7 @@ using ``cd`` (change directory). You can now run the following commands
 to download and install the application:
 
 1. ``git clone https://github.com/ANUBushfireInitiative/bushfire-drone-simulation``
-2. ``cd anu-bushfire-initiative-simulation``
+2. ``cd bushfire-initiative-simulation``
 3. ``.\tools\windows-install.ps1``
 
 Congratulations! The ANU Bushfire Initiative's Drone Simulation is now
@@ -150,6 +150,13 @@ To add this text to ~./bashrc, run the command
     eval "$(pyenv init -)"
     eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc
 
+You now need to reload your shell which can be done by restarting your terminal
+or running the command
+
+.. code:: bash
+
+    exec $SHELL
+
 To create a pyenv environment called bushfires for this application with
 python version 3.8.6, run the commands
 
@@ -170,7 +177,7 @@ terminal, navigate to the folder in which you would like to perform the
 installation and run the commands
 
 1. ``git clone https://github.com/ANUBushfireInitiative/bushfire-drone-simulation``
-2. ``cd anu-bushfire-initiative-simulation``
+2. ``cd bushfire-initiative-simulation``
 3. ``source tools/install-dev-env``
 
 Congratulations! The ANU Bushfire Initiative's Drone Simulation is now

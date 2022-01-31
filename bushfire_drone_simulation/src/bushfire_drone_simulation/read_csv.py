@@ -225,6 +225,8 @@ def read_targets(filename: Path) -> List[Target]:
     lons = target_data["longitude"]
     start_times = target_data["start time"]
     finish_times = target_data["finish time"]
+    attraction_consts = target_data["attraction constant"]
+    attraction_powers = target_data["attraction power"]
     for i, lat in enumerate(lats):
         lat = assert_number(
             lat, f"Error: The latitude on row {i+1} of '{filename}' ('{lat}') is not a number."
@@ -235,12 +237,22 @@ def read_targets(filename: Path) -> List[Target]:
         )
         start_time = assert_number(
             start_times[i],
-            f"Error: The longitude on row {i+1} of '{filename}' ('{start_times[i]}') "
+            f"Error: The start time on row {i+1} of '{filename}' ('{start_times[i]}') "
             f"is not a number.",
         )
         finish_time = assert_number(
             finish_times[i],
-            f"Error: The longitude on row {i+1} of '{filename}' ('{finish_times[i]}') "
+            f"Error: The finish time on row {i+1} of '{filename}' ('{finish_times[i]}') "
+            f"is not a number.",
+        )
+        attraction_const = assert_number(
+            attraction_consts[i],
+            f"Error: The attraction constant on row {i+1} of '{filename}' "
+            f"('{attraction_consts[i]}') is not a number.",
+        )
+        attraction_power = assert_number(
+            attraction_powers[i],
+            f"Error: The attraction power on row {i+1} of '{filename}' ('{attraction_powers[i]}') "
             f"is not a number.",
         )
         targets.append(
@@ -249,6 +261,8 @@ def read_targets(filename: Path) -> List[Target]:
                 lon,
                 start_time,
                 finish_time,
+                attraction_const,
+                attraction_power,
             ),
         )
     return targets

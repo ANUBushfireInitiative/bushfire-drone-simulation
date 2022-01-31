@@ -83,8 +83,6 @@ class UnassignedCoordinator:
         self.targets = targets
         self.uav_const: float = attributes["uav_repulsion_const"]
         self.uav_pwr: float = attributes["uav_repulsion_power"]
-        self.target_const: float = attributes["target_attraction_const"]
-        self.target_pwr: float = attributes["target_attraction_power"]
         self.boundary_const: float = attributes["boundary_repulsion_const"]
         self.boundary_pwr: float = attributes["boundary_repulsion_power"]
         if "output_plots" in attributes:
@@ -164,16 +162,6 @@ def ccw(loc_1: Location, loc_2: Location, loc_3: Location) -> bool:
     return (loc_3.lat - loc_1.lat) * (loc_2.lon - loc_1.lon) > (loc_2.lat - loc_1.lat) * (
         loc_3.lon - loc_1.lon
     )
-
-
-def average_location(locations: List[Location]) -> Location:
-    """Return the average location given a list of locations."""
-    lat_sum: float = 0
-    lon_sum: float = 0
-    for location in locations:
-        lat_sum += location.lat
-        lon_sum += location.lon
-    return Location(lat_sum / len(locations), lon_sum / len(locations))
 
 
 class WBCoordinator:

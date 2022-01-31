@@ -1,13 +1,14 @@
 """Class for clustering lightning strikes."""
 import math
-from math import pi
+from math import inf, pi
 from typing import List
 
 import numpy as np
 from matplotlib import path
 
-from bushfire_drone_simulation.coordinators.abstract_coordinator import average_location
-from bushfire_drone_simulation.fire_utils import EARTH_RADIUS, Location
+from bushfire_drone_simulation.fire_utils import EARTH_RADIUS, Location, Target, average_location
+from bushfire_drone_simulation.lightning import Lightning
+from bushfire_drone_simulation.units import Distance, Duration
 
 EPSILON = 0.01
 
@@ -33,9 +34,8 @@ class Cluster:
 
     def __init__(
         self,
-        points: List[Location],
         boundary_polygon: List[Location],
-        radius: float,
+        radius: Distance,
         min_in_target: int,
     ) -> None:
         """Initialize a cluster.
@@ -46,13 +46,12 @@ class Cluster:
             radius (float): radius of circles to cluster with
             min_in_target (int): cut-off number of points within a circle for considering a target
         """
-        self.points = points
-        self.radius = radius
+        self.radius = radius.get()
         self.polygon = boundary_polygon
         self.polygon_points = [(loc.lat, loc.lon) for loc in self.polygon]
         self.boundary = path.Path(self.polygon_points)
         self.min_in_target = min_in_target
-        self.radius_in_deg = radius * 180 / (pi * EARTH_RADIUS)
+        self.radius_in_deg = self.radius * 180 / (pi * EARTH_RADIUS)
 
     def create_circles(self) -> List[Circle]:
         """Create circles required for clustering."""
@@ -94,8 +93,14 @@ class Cluster:
                         circles.remove(circle1)
                         break
 
-    def cluster_points(self) -> List[Location]:
+    def cluster_points(
+        self, points: List[Location], target_start: float, target_end: float
+    ) -> List[Target]:
         """Clusters points based on Mean-Shift Clustering algorithm.
+
+        Args:
+            target_start (float): start time of target
+            target_end (float): end time of target
 
         Returns:
             List[Location]: list of targets
@@ -108,7 +113,7 @@ class Cluster:
                 if not circle.target:
                     loop = True
                     contained_locs = []
-                    for loc in self.points:
+                    for loc in points:
                         if circle.location.distance(loc) <= self.radius:
                             contained_locs.append(loc)
                     if not contained_locs:
@@ -116,7 +121,7 @@ class Cluster:
                         continue
                     new_centre = average_location(contained_locs)
                     if circle.location.distance(new_centre) < EPSILON:
-                        if len(contained_locs) > self.min_in_target:
+                        if len(contained_locs) >= self.min_in_target:
                             circle.target = True
                         else:
                             circles.remove(circle)
@@ -127,30 +132,88 @@ class Cluster:
         targets = []
         for circle in circles:
             if circle.target:
-                targets.append(circle.location)
+                # TODO(some function of contained points and radius) pylint: disable=fixme
+                targets.append(
+                    Target(
+                        circle.location.lat,
+                        circle.location.lon,
+                        target_start,
+                        target_end,
+                        200,
+                        -1.2,
+                    )
+                )
         return targets
 
 
-# class LightningCluster:
-#     """Clusters lightning."""
+class LightningCluster(Cluster):
+    """Clusters lightning."""
 
-#     def __init__(
-#         self,
-#         lightning: List[Lightning],
-#         radius: float,
-#         min_in_target: int,
-#         target_resolution: float,
-#         look_ahead: float,
-#     ) -> None:
-#         """Initialize lightning cluster
+    def __init__(  # pylint: disable=too-many-arguments
+        self,
+        lightning: List[Lightning],
+        boundary_polygon: List[Location],
+        radius: Distance,
+        min_in_target: int,
+        target_resolution: Duration,
+        look_ahead: Duration,
+    ) -> None:
+        """Initialize lightning cluster.
 
-#         Args:
-#             lightning (List[Lightning]): lightning
-#             radius (float): radius of circles to cluster with
-#            min_in_target (int): cut-off number of strikes within a circle for considering a target
-#             target_resolution (float): time between recomputing targets
-#             look_ahead (float): consider all strikes that spawn in the next look_ahead time
-#         """
-#         # TODO(make these not times) #pylint: disable=fixme
-#         self.lightning = lightning
-#         self.radius = radius
+        Args:
+            lightning (List[Lightning]): lightning
+            radius (float): radius of circles to cluster with
+           min_in_target (int): cut-off number of strikes within a circle for considering a target
+            target_resolution (float): time between recomputing targets
+            look_ahead (float): consider all strikes that spawn in the next look_ahead time
+        """
+        super().__init__(boundary_polygon, radius, min_in_target)
+        self.lightning = lightning
+        self.target_resolution = target_resolution.get()
+        self.look_ahead = look_ahead.get()
+
+    def find_min_spawn_time(self) -> float:
+        """Return the minimum spawn time of all strikes.
+
+        Returns:
+            float: minimum spawn time
+        """
+        min_time = inf
+        for strike in self.lightning:
+            if strike.spawn_time < min_time:
+                min_time = strike.spawn_time
+        return min_time
+
+    def find_max_spawn_time(self) -> float:
+        """Return the maximum spawn time of all strikes.
+
+        Returns:
+            float: maximum spawn time
+        """
+        max_time = -inf
+        for strike in self.lightning:
+            if strike.spawn_time > max_time:
+                max_time = strike.spawn_time
+        return max_time
+
+    def generate_targets(self) -> List[Target]:
+        """Generate all targets for lightning swarm.
+
+        Returns:
+            List[Target]: list of targets
+        """
+        target_list = []
+        min_spawn_time = self.find_min_spawn_time()
+        max_spawn_time = self.find_max_spawn_time()
+        for start_time in np.arange(min_spawn_time, max_spawn_time, self.target_resolution):
+            finish_time = start_time + self.look_ahead
+            strikes_to_consider: List[Location] = []
+            for strike in self.lightning:
+                if strike.spawn_time >= start_time and strike.spawn_time <= finish_time:
+                    assert isinstance(strike, Location)
+                    strikes_to_consider.append(strike)
+            targets = self.cluster_points(
+                strikes_to_consider, start_time, start_time + self.target_resolution
+            )
+            target_list += targets
+        return target_list

@@ -2,7 +2,7 @@
 
 import logging
 from math import atan2, cos, degrees, inf, radians, sin, sqrt
-from typing import Any, Tuple
+from typing import Any, List, Tuple
 
 from bushfire_drone_simulation.units import DEFAULT_DURATION_UNITS, Duration
 
@@ -96,13 +96,23 @@ class Location:
 
 
 class Target(Location):
-    """Location and time frame for UAV target (level of attraction defined in parameters file)."""
+    """Location and time frame and attraction for UAV target."""
 
-    def __init__(self, latitude: float, longitude: float, start_time: float, end_time: float):
+    def __init__(
+        self,
+        latitude: float,
+        longitude: float,
+        start_time: float,
+        end_time: float,
+        attraction_const: float,
+        attraction_power: float,
+    ):  # pylint: disable=too-many-arguments
         """Initialize target."""
         super().__init__(latitude, longitude)
         self.start_time = start_time
         self.end_time = end_time
+        self.attraction_const = attraction_const
+        self.attraction_power = attraction_power
 
     def currently_active(self, time: float) -> bool:
         """Return whether or not a given time falls between the start and finish time."""
@@ -167,6 +177,16 @@ class WaterTank(Location):
         if future_capacity:
             return self.unallocated_capacity
         return self.capacity
+
+
+def average_location(locations: List[Location]) -> Location:
+    """Return the average location given a list of locations."""
+    lat_sum: float = 0
+    lon_sum: float = 0
+    for location in locations:
+        lat_sum += location.lat
+        lon_sum += location.lon
+    return Location(lat_sum / len(locations), lon_sum / len(locations))
 
 
 def month_to_days(month: int, leap_year: bool = False) -> int:
