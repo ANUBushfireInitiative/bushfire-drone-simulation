@@ -131,7 +131,12 @@ The JSON parameters file should contain the following information formatted as i
     If no ``prioritisation_function`` is given strikes are prioritised purely on inspection time. Otherwise the following
     prioritisation functions can be specified and strikes will be prioritised accordingly
 
-    *   `product` : inspection_time * rist_rating
+    *   `time` : risk_rating
+    *   `product` : inspection_time * risk_rating
+    *   `p_sq` : inspection_time * risk_rating ^ 2
+    *   `p_cub` : inspection_time * risk_rating ^ 3
+    *   `thresh` : inspection_time * 100,  if risk > 0.8
+                 : inspected_time,  otherwise
 
 *  A dictionary containing the following information about water bombers
 
@@ -158,7 +163,7 @@ The JSON parameters file should contain the following information formatted as i
         }
     }
 
-*  And an optional dictionary containing the following information about how the coordinator should treat unassigned drones.
+*  And an optional dictionary containing the following information about how the coordinator should treat unassigned uavs.
 
     If this dictionary is included in the parameters file, then at the end of every time interval dt,
     the unassigned aircraft will move according to the following instructions:
@@ -180,19 +185,37 @@ The JSON parameters file should contain the following information formatted as i
 .. code-block :: json
 
     {
-        "unassigned_drones": {
+        "unassigned_uavs": {
             "targets_filename": "input_data/targets.csv",
+            "automatic_targets": "an optional dictionary detailed below outlining parameters for automatic targets if desired"
             "boundary_polygon_filename": "input_data/boundary_polygon.csv",
             "dt": "time in seconds between unassigned aircraft updates",
             "uav_repulsion_const": "uav repulsion coefficient (positive for repulsion)",
-            "uav_repulsion_power": "uav repulsion power (adviced to be negative)",
-            "target_attraction_const": "target attraction coefficient (positive for attraction)",
-            "target_attraction_power": "target attraction power (adviced to be negative)",
+            "uav_repulsion_power": "uav repulsion power (advised to be negative)",
             "boundary_repulsion_const": "boundary repulsion coefficient (positive for repulsion)",
-            "boundary_repulsion_power": "boundary repulsion power (adviced to be negative)",
-            "centre_lat": "centre latitude for drones outside boundary to return to",
-            "centre_lon": "centre longitude for drones outside boundary to return to",
+            "boundary_repulsion_power": "boundary repulsion power (advised to be negative)",
+            "centre_lat": "centre latitude for uavs outside boundary to return to",
+            "centre_lon": "centre longitude for uavs outside boundary to return to",
             "output_plots": "Optional. If 'true' will output plots in the specified output folder, otherwise will not."
+        }
+    }
+
+    To simulate strike forecasting, targets can be specified automatically via the targets_filename or
+    by including the automatic_targets dictionary (or both of these options). Automatic targets are determined
+    using the Mean-Shift Clustering algorithm with circles of a given radius. Once these circles have converged,
+    a point is considered a target if it contains more than `min_in_target` strikes. Targets are calculated
+    every `target_resolution` minutes taking into conisderation the next `look_ahead` minutes worth of strikes.
+
+    The automatic_targets dictionary should be structured as follows:
+
+.. code-block :: json
+
+    {
+        "automatic_targets": {
+            "radius": "radius of circles",
+            "min_in_target": "required number of strikes within a circle for it to be considered a target",
+            "target_resolution": "how frequently targets are calculated in minutes",
+            "look_ahead": "how far ahead we should consider strikes in minutes"
         }
     }
 
@@ -299,20 +322,24 @@ Alternatively "inf" can be used to indicate an infinite capacity.
 
 *  target_file
 
-    The optional targets file designates the locations and active duration of various targets that
+    The optional targets file designates the locations, active duration and attraction of various targets that
     aircraft should travel towards when unassigned. Note that this file does not have to be specified
-    even if an unassigned_drones dictionary is included.
+    even if an unassigned_uavs dictionary is included.
 
     .. csv-table::
-        :header: "latitude", "longitude","start time","finish time"
+        :header: "latitude", "longitude","start time","finish time","attraction constant","attraction power"
 
-        -37.81,144.97,5,8
+        -37.81,144.97,5,8,200,-1.2
 
     Where start and finish time are in hours. Note that it is possible to enter "inf" to indicate an infinite end time.
+    The targets attraction is determined by
+
+    .. math::
+        attraction constant * distance to target ^ attraction power
 
 * boundary_polygon_file
 
-    The optional boundary polygon file, required if the unassigned_drones dictionary is included,
+    The optional boundary polygon file, required if the unassigned_uavs dictionary is included,
     designates the vertices of a boundary polygon for the simulation area.
 
     .. csv-table::
@@ -493,7 +520,7 @@ UAV Event Updates
 ~~~~~~~~~~~~~~~~~
 
 The UAV event updates csv file contains all movements of the UAVs throughout the entire simulation.
-These updates are listed in chronological order so if a particular drones movements would like to
+These updates are listed in chronological order so if a particular uavs movements would like to
 be analysed it is recommended that a filter function is used to filter out the desired data.
 Each movement update of the UAV contains the following information:
 
@@ -511,7 +538,7 @@ Each movement update of the UAV contains the following information:
 Water Bomber Event Updates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The water bomber event updates are structed exactly as the UAV updates however they include one
+The water bomber event updates are structured exactly as the UAV updates however they include one
 additional column:
 
 * **Water capacity** (L): the water on board of the aircraft upon departure

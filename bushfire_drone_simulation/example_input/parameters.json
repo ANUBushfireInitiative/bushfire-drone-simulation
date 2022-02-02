@@ -47,7 +47,7 @@
             "pct_fuel_cutoff": 0.7
         }
     },
-    "unassigned_drones": {
+    "unassigned_uavs": {
         "targets_filename": "input_data/targets.csv",
         "automatic_targets": {
             "radius": 50,
