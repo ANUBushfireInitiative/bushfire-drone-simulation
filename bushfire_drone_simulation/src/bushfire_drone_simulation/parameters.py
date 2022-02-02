@@ -430,12 +430,12 @@ class JSONParameters:
             )
         return uavs
 
-    def process_unassigned_drones(
+    def process_unassigned_uavs(
         self, scenario_idx: int, lightning: List[Lightning]
     ) -> Tuple[Dict[str, Any], List[Target], List[Location], Path]:
         """Process targets, polygon and attributes associated with unassigned drone."""
-        assert "unassigned_drones" in self.parameters
-        attribute_dict = self.get_attribute("unassigned_drones", scenario_idx)
+        assert "unassigned_uavs" in self.parameters
+        attribute_dict = self.get_attribute("unassigned_uavs", scenario_idx)
         assert isinstance(attribute_dict, dict)
         targets: List[Target] = []
         if "targets_filename" in attribute_dict and isinstance(
@@ -457,7 +457,7 @@ class JSONParameters:
                     if attribute not in target_dict:
                         raise Exception(
                             f"Error: Parameter '{attribute}' is missing in '{self.filepath}'.\n"
-                            f"Please add '{attribute}' to 'unassigned_drones/automatic_targets' in"
+                            f"Please add '{attribute}' to 'unassigned_uavs/automatic_targets' in"
                             f" '{self.filepath}' and run the simulation again"
                         )
                 cluster = LightningCluster(
@@ -472,7 +472,7 @@ class JSONParameters:
         else:
             raise Exception(
                 f"Error: Parameter 'boundary_polygon_filename' is missing in '{self.filepath}'.\n"
-                f"Please add 'boundary_polygon_filename' to 'unassigned_drones' in "
+                f"Please add 'boundary_polygon_filename' to 'unassigned_uavs' in "
                 f"'{self.filepath}' and run the simulation again"
             )
         return attribute_dict, targets, polygon, self.output_folder
@@ -798,10 +798,10 @@ class JSONParameters:
             ["water_bombers", water_bomber_type, "spawn_loc_file"]
             for water_bomber_type in self.get_attribute("water_bombers", 0)
         ]
-        if "unassigned_drones" in gui_params:
-            file_parameters.append(["unassigned_drones", "boundary_polygon_filename"])
-            if _get_from_dict(gui_params, ["unassigned_drones", "targets_filename"]) is not None:
-                file_parameters.append(["unassigned_drones", "targets_filename"])
+        if "unassigned_uavs" in gui_params:
+            file_parameters.append(["unassigned_uavs", "boundary_polygon_filename"])
+            if _get_from_dict(gui_params, ["unassigned_uavs", "targets_filename"]) is not None:
+                file_parameters.append(["unassigned_uavs", "targets_filename"])
 
         for file_parameter in file_parameters:
             if _get_from_dict(gui_params, file_parameter) != "?":
