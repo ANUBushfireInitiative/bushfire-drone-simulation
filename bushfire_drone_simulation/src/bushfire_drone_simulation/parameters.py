@@ -808,18 +808,19 @@ class JSONParameters:
                 path = copy_to_input(self.get_relative_filepath(file_parameter, 0), input_folder)
                 _set_in_dict(gui_params, file_parameter, str(path.relative_to(self.output_folder)))
             else:
-                if scenario_parameters_csv is None:
-                    print("ERROR")
+                assert scenario_parameters_csv is not None
+                if isinstance(file_parameter, str):
+                    heading = file_parameter
                 else:
                     heading = "/".join(file_parameter)
-                    column = scenario_parameters_csv.get_column(heading)
-                    for i, cell in enumerate(column):
-                        if not isinstance(cell, str):
-                            continue
-                        path = copy_to_input(
-                            self.get_relative_filepath(file_parameter, i), input_folder
-                        )
-                        column[i] = path.relative_to(self.output_folder)
+                column = scenario_parameters_csv.get_column(heading)
+                for i, cell in enumerate(column):
+                    if not isinstance(cell, str):
+                        continue
+                    path = copy_to_input(
+                        self.get_relative_filepath(file_parameter, i), input_folder
+                    )
+                    column[i] = path.relative_to(self.output_folder)
 
         with open(self.gui_filename, "w", encoding="utf8") as gui_file:
             json.dump(gui_params, gui_file)
