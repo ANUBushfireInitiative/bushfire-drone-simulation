@@ -208,7 +208,7 @@ def run_simulation(simulator: Simulator) -> Simulator:
     )
     unassigned_coordinator: Optional[UnassignedCoordinator] = None
     if "unassigned_drones" in simulator.params.parameters:
-        attributes, targets, polygon, folder = simulator.params.process_unassigned_drones(
+        attributes, targets, polygon, folder = simulator.params.process_unassigned_uavs(
             simulator.scenario_idx, simulator.lightning_strikes
         )
         unassigned_coordinator = SimpleUnassignedCoordinator(
