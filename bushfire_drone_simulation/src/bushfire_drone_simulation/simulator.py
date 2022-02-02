@@ -207,7 +207,7 @@ def run_simulation(simulator: Simulator) -> Simulator:
         simulator.wb_prioritisation_function,
     )
     unassigned_coordinator: Optional[UnassignedCoordinator] = None
-    if "unassigned_drones" in simulator.params.parameters:
+    if "unassigned_uavs" in simulator.params.parameters:
         attributes, targets, polygon, folder = simulator.params.process_unassigned_uavs(
             simulator.scenario_idx, simulator.lightning_strikes
         )
