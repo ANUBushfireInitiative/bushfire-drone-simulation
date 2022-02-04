@@ -1,5 +1,4 @@
 """Class for clustering lightning strikes."""
-import math
 from math import inf, pi
 from typing import List
 
@@ -56,10 +55,10 @@ class Cluster:
     def create_circles(self) -> List[Circle]:
         """Create circles required for clustering."""
         circles = []
-        min_lat = math.inf
-        max_lat = -math.inf
-        min_lon = math.inf
-        max_lon = -math.inf
+        min_lat = inf
+        max_lat = -inf
+        min_lon = inf
+        max_lon = -inf
         for point in self.polygon:
             if point.lat > max_lat:
                 max_lat = point.lat
