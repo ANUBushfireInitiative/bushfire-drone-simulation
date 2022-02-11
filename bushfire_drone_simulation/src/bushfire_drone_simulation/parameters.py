@@ -818,8 +818,8 @@ class JSONParameters:
                             [
                                 target.lat,
                                 target.lon,
-                                Time.from_float(target.start_time).get("min"),
-                                Time.from_float(target.end_time).get("min"),
+                                Time.from_float(target.start_time).get("hr"),
+                                Time.from_float(target.end_time).get("hr"),
                                 target.attraction_const,
                                 target.attraction_power,
                                 target.automatic,

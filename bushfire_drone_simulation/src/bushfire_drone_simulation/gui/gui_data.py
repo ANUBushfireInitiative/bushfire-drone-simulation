@@ -39,17 +39,19 @@ class GUIData:
         uav_bases: Sequence[GUIPoint],
         wb_bases: Sequence[GUIPoint],
         watertanks: Sequence[GUIWaterTank],
+        targets: Sequence[GUITarget],
     ):
         """Initialize a GUI data object.
 
         Args:
-            lightning (List[GUILightning]): lightning
-            ignitions (List[GUILightning]): ignitions
-            uavs (List[GUIAircraft]): uavs
-            water_bombers (List[GUIAircraft]): wbs
-            uav_bases (List[GUIPoint]): uav_bases
-            wb_bases (List[GUIPoint]): wb_bases
-            watertanks (List[GUIPoint]): watertanks
+            lightning (Sequence[GUILightning]): lightning
+            ignitions (Sequence[GUILightning]): ignitions
+            uavs (Sequence[GUIAircraft]): uavs
+            water_bombers (Sequence[GUIAircraft]): wbs
+            uav_bases (Sequence[GUIPoint]): uav_bases
+            wb_bases (Sequence[GUIPoint]): wb_bases
+            watertanks (Sequence[GUIPoint]): watertanks
+            targets (Sequence[GUITarget]): targets
         """
         self.lightning = lightning
         self.ignitions = ignitions
@@ -60,6 +62,7 @@ class GUIData:
         self.uav_bases = uav_bases
         self.wb_bases = wb_bases
         self.watertanks = watertanks
+        self.targets = targets
         if len(water_bombers) + len(uavs) == 0:
             self.max_time = 0.0
         else:
@@ -98,6 +101,7 @@ class GUIData:
             "ignitions": self.ignitions,
             "uavs": self.uavs,
             "water_bombers": self.water_bombers,
+            "targets": self.targets,
         }
 
     def __getitem__(self, key: str) -> Sequence[GUIObject]:
@@ -120,7 +124,10 @@ class GUIData:
         uav_bases = extract_simulation_uav_bases(simulation)
         wb_bases = extract_simulation_wb_bases(simulation)
         watertanks = extract_simulation_water_tanks(simulation)
-        return cls(lightning, ignitions, uavs, water_bombers, uav_bases, wb_bases, watertanks)
+        targets = extract_simulation_targets(simulation)
+        return cls(
+            lightning, ignitions, uavs, water_bombers, uav_bases, wb_bases, watertanks, targets
+        )
 
     @classmethod
     def from_output(cls, parameters: JSONParameters, scenario_idx: int) -> "GUIData":
@@ -144,7 +151,10 @@ class GUIData:
             parameters, scenario_idx, "water_bomber"
         )
         watertanks = extract_water_tanks_from_output(parameters, scenario_idx)
-        return cls(lightning, ignitions, uavs, water_bombers, uav_bases, wb_bases, watertanks)
+        targets = extract_targets_from_output(parameters, scenario_idx)
+        return cls(
+            lightning, ignitions, uavs, water_bombers, uav_bases, wb_bases, watertanks, targets
+        )
 
 
 def extract_simulation_lightning(simulation: Simulator, ignited: bool) -> List[GUILightning]:
@@ -295,15 +305,17 @@ def extract_targets_from_output(parameters: JSONParameters, scenario_idx: int) -
         List[GUITarget]: GUI targets
     """
     if "unassigned_uavs" in parameters.parameters:
-        scenario_name = parameters.scenario_name(scenario_idx)
-        output_folder = parameters.filepath.parent / parameters.get_attribute(
-            "output_folder_name", scenario_idx
-        )
-        targets = read_targets(
-            output_folder / f"{scenario_name}{'_' if scenario_name else ''}all_targets.csv"
-        )
-        gui_targets = [GUITarget(target) for target in targets]
-        return gui_targets
+        unassigned_uavs = parameters.parameters["unassigned_uavs"]
+        if "targets_filename" in unassigned_uavs or "automatic_targets" in unassigned_uavs:
+            scenario_name = parameters.scenario_name(scenario_idx)
+            output_folder = parameters.filepath.parent / parameters.get_attribute(
+                "output_folder_name", scenario_idx
+            )
+            targets = read_targets(
+                output_folder / f"{scenario_name}{'_' if scenario_name else ''}all_targets.csv"
+            )
+            gui_targets = [GUITarget(target) for target in targets]
+            return gui_targets
     return []
 
 

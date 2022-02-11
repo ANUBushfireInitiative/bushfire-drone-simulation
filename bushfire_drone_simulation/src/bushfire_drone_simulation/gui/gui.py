@@ -51,7 +51,7 @@ class GUI:
         self.content = False
         self.width, self.height = WIDTH, HEIGHT
         self.params: Optional[JSONParameters] = None
-        self.gui_data = GUIData([], [], [], [], [], [], [])
+        self.gui_data = GUIData([], [], [], [], [], [], [], [])
 
         self.window = tk.Tk()
         self.window.title("ANU Bushfire Initiative Drone Simulation")
@@ -413,6 +413,7 @@ class GUI:
             "ignitions": "Show Ignitions",
             "uavs": "Show UAVs",
             "water_bombers": "Show Water Bombers",
+            "targets": "Show Targets",
         }
 
         for object_type in self.gui_data.dict:
