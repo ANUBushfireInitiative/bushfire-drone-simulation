@@ -176,7 +176,7 @@ class GUI:
 
         def record_video() -> None:
             filename = tkinter.filedialog.asksaveasfilename(
-                initialfile="Video.avi", filetypes=[("AVI", "*.avi")]
+                initialfile="Video.mp4", filetypes=[("MP4", "*.mp4")]
             )
             self.video(
                 filename,
@@ -187,6 +187,7 @@ class GUI:
             )
             self.start_time.set(start_time)
             self.end_time.set(end_time)
+            self.update_objects()
             popup.close()
 
         tk.Label(popup, text="Start time (hr):").grid(row=1, column=0)
@@ -295,7 +296,7 @@ class GUI:
             self.window.update()
             frames.append(self.screenshot())
 
-        video = cv2.VideoWriter(filename, 0, 30, frames[0].size)
+        video = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*"mp4v"), 30, frames[0].size)
         for frame in frames:
             video.write(cv2.cvtColor(np.array(frame), cv2.COLOR_RGB2BGR))
         cv2.destroyAllWindows()
