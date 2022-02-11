@@ -138,8 +138,9 @@ class Cluster:
                         circle.location.lon,
                         target_start,
                         target_end,
-                        200,
+                        1000,
                         -1.2,
+                        True,
                     )
                 )
         return targets

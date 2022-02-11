@@ -227,6 +227,10 @@ def read_targets(filename: Path) -> List[Target]:
     finish_times = target_data["finish time"]
     attraction_consts = target_data["attraction constant"]
     attraction_powers = target_data["attraction power"]
+    if "automatic" in target_data.get_column_headings():
+        automatic = target_data["automatic"]
+    else:
+        automatic = [False for lat in lats]
     for i, lat in enumerate(lats):
         lat = assert_number(
             lat, f"Error: The latitude on row {i+1} of '{filename}' ('{lat}') is not a number."
@@ -263,6 +267,7 @@ def read_targets(filename: Path) -> List[Target]:
                 Duration(finish_time, "hr").get(),
                 attraction_const,
                 attraction_power,
+                automatic[i],
             ),
         )
     return targets

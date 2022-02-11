@@ -32,6 +32,7 @@ from bushfire_drone_simulation.coordinators.simple_coordinator import (
 from bushfire_drone_simulation.coordinators.unassigned_coordinator import (
     SimpleUnassignedCoordinator,
 )
+from bushfire_drone_simulation.fire_utils import Target
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.parameters import JSONParameters
 from bushfire_drone_simulation.precomupted import PreComputedDistances
@@ -79,6 +80,7 @@ class Simulator:
         self.wb_prioritisation_function = params.get_prioritisation_function(
             "water_bombers", scenario_idx
         )
+        self.targets: List[Target] = []
 
     def run_simulation(  # pylint: disable=too-many-branches
         self,
@@ -168,19 +170,12 @@ class Simulator:
         prefix = ""
         if "scenario_name" in params.scenarios[scenario_idx]:
             prefix = str(params.get_attribute("scenario_name", scenario_idx)) + "_"
-
-        inspection_times, suppression_times = params.write_to_simulation_output_file(
-            self.lightning_strikes, prefix
-        )
-        params.write_to_uav_updates_file(self.uavs, prefix)
-        params.write_to_water_tanks_file(self.water_tanks, prefix)
-        params.write_to_wb_updates_file(self.water_bombers, prefix)
-        self.summary_results = params.create_plots(
-            inspection_times,
-            suppression_times,
+        self.summary_results = params.write_simulation_output(
+            self.uavs,
             self.water_bombers,
             self.water_tanks,
             self.lightning_strikes,
+            self.targets,
             prefix,
         )
 
@@ -214,6 +209,7 @@ def run_simulation(simulator: Simulator) -> Simulator:
         unassigned_coordinator = SimpleUnassignedCoordinator(
             simulator.uavs, simulator.uav_bases, targets, folder, polygon, attributes
         )
+        simulator.targets = targets
     simulator.run_simulation(uav_coordinator, wb_coordinator, unassigned_coordinator)
     simulator.output_results(simulator.params, simulator.scenario_idx)
     return simulator

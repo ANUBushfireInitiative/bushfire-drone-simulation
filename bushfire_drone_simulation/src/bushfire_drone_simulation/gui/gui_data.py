@@ -11,12 +11,13 @@ from bushfire_drone_simulation.gui.gui_objects import (
     GUILightning,
     GUIObject,
     GUIPoint,
+    GUITarget,
     GUIUav,
     GUIWaterBomber,
     GUIWaterTank,
 )
 from bushfire_drone_simulation.parameters import JSONParameters
-from bushfire_drone_simulation.read_csv import CSVFile
+from bushfire_drone_simulation.read_csv import CSVFile, read_targets
 from bushfire_drone_simulation.simulator import Simulator
 from bushfire_drone_simulation.uav import UAV
 from bushfire_drone_simulation.units import Volume
@@ -162,6 +163,21 @@ def extract_simulation_lightning(simulation: Simulator, ignited: bool) -> List[G
     return to_return
 
 
+def extract_simulation_targets(simulation: Simulator) -> List[GUITarget]:
+    """Extract simulation targets.
+
+    Args:
+        simulation (Simulator): simulation
+
+    Returns:
+        List[GUITarget]:
+    """
+    to_return: List[GUITarget] = []
+    for target in simulation.targets:
+        to_return.append(GUITarget(target))
+    return to_return
+
+
 TAircraft = TypeVar("TAircraft", GUIUav, GUIWaterBomber)
 
 
@@ -266,6 +282,29 @@ def extract_lightning_from_output(
             lightning.ignition = ignited
             to_return.append(GUILightning(lightning))
     return to_return
+
+
+def extract_targets_from_output(parameters: JSONParameters, scenario_idx: int) -> List[GUITarget]:
+    """Extract targets from output.
+
+    Args:
+        parameters (JSONParameters): parameters
+        scenario_idx (int): scenario index
+
+    Returns:
+        List[GUITarget]: GUI targets
+    """
+    if "unassigned_uavs" in parameters.parameters:
+        scenario_name = parameters.scenario_name(scenario_idx)
+        output_folder = parameters.filepath.parent / parameters.get_attribute(
+            "output_folder_name", scenario_idx
+        )
+        targets = read_targets(
+            output_folder / f"{scenario_name}{'_' if scenario_name else ''}all_targets.csv"
+        )
+        gui_targets = [GUITarget(target) for target in targets]
+        return gui_targets
+    return []
 
 
 def extract_water_tanks_from_output(

@@ -106,6 +106,7 @@ class Target(Location):
         end_time: float,
         attraction_const: float,
         attraction_power: float,
+        automatic: bool,
     ):  # pylint: disable=too-many-arguments
         """Initialize target."""
         super().__init__(latitude, longitude)
@@ -113,10 +114,19 @@ class Target(Location):
         self.end_time = end_time
         self.attraction_const = attraction_const
         self.attraction_power = attraction_power
+        self.automatic = automatic
 
     def currently_active(self, time: float) -> bool:
         """Return whether or not a given time falls between the start and finish time."""
         return self.start_time <= time <= self.end_time
+
+    def copy_from_target(self, other: "Target") -> None:
+        """Copy parameters from another target.
+
+        Args:
+            other ("Target"): other
+        """
+        self.__dict__.update(other.__dict__)
 
 
 class Base(Location):

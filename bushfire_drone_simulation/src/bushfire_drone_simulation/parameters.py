@@ -531,7 +531,39 @@ class JSONParameters:
         assert isinstance(filename, str)
         return self.folder / filename
 
-    def create_plots(  # pylint: disable=too-many-arguments
+    def write_simulation_output(  # pylint: disable=too-many-arguments
+        self,
+        uavs: List[UAV],
+        water_bombers: List[WaterBomber],
+        water_tanks: List[WaterTank],
+        lightning: List[Lightning],
+        targets: List[Target],
+        prefix: str,
+    ) -> Dict[str, List[Union[float, str]]]:
+        """Write simulation output to output folder.
+
+        Args:
+            simulator (Simulator): simulator
+            prefix (str): scenario file prefix
+        """
+        inspection_times, suppression_times = self._write_to_simulation_output_file(
+            lightning, prefix
+        )
+        self._write_to_uav_updates_file(uavs, prefix)
+        self._write_to_water_tanks_file(water_tanks, prefix)
+        self._write_to_wb_updates_file(water_bombers, prefix)
+        self._write_to_targets_file(targets, prefix)
+        summary_results = self._create_plots(
+            inspection_times,
+            suppression_times,
+            water_bombers,
+            water_tanks,
+            lightning,
+            prefix,
+        )
+        return summary_results
+
+    def _create_plots(  # pylint: disable=too-many-arguments
         self,
         inspection_times: List[float],
         suppression_times: List[float],
@@ -586,7 +618,7 @@ class JSONParameters:
         plt.close(fig)
         return summary_results
 
-    def write_to_simulation_output_file(
+    def _write_to_simulation_output_file(
         self, lightning_strikes: List[Lightning], prefix: str
     ) -> Tuple[List[float], List[float]]:
         """Write simulation data to output file."""
@@ -645,7 +677,7 @@ class JSONParameters:
                 filewriter.writerow(row)
         return inspection_times_to_return, suppression_times_to_return
 
-    def write_to_water_tanks_file(self, water_tanks: List[WaterTank], prefix: str) -> None:
+    def _write_to_water_tanks_file(self, water_tanks: List[WaterTank], prefix: str) -> None:
         """Write water tanks to output file."""
         with open(
             self.output_folder / (prefix + "water_tanks.csv"),
@@ -668,7 +700,7 @@ class JSONParameters:
                     ]
                 )
 
-    def write_to_uav_updates_file(self, uavs: List[UAV], prefix: str) -> None:
+    def _write_to_uav_updates_file(self, uavs: List[UAV], prefix: str) -> None:
         """Write UAV event update data to output file."""
         with open(
             self.output_folder / (f"{prefix}{AircraftType.UAV.value}_event_updates.csv"),
@@ -712,9 +744,8 @@ class JSONParameters:
                     ]
                 )
 
-    def write_to_wb_updates_file(self, water_bombers: List[WaterBomber], prefix: str) -> None:
+    def _write_to_wb_updates_file(self, water_bombers: List[WaterBomber], prefix: str) -> None:
         """Write water bomber event update data to output file."""
-        # water_bombers: List[WaterBomber] = coordinator.water_bombers
         with open(
             self.output_folder / (f"{prefix}{AircraftType.WB.value}_event_updates.csv"),
             "w",
@@ -758,6 +789,42 @@ class JSONParameters:
                         wb_update.list_of_next_events,
                     ]
                 )
+
+    def _write_to_targets_file(self, targets: List[Target], prefix: str) -> None:
+        """Write water bomber event update data to output file."""
+        if "unassigned_uavs" in self.parameters:
+            unassigned_uavs = self.parameters["unassigned_uavs"]
+            if "targets_filename" in unassigned_uavs or "automatic_targets" in unassigned_uavs:
+                with open(
+                    self.output_folder / (f"{prefix}all_targets.csv"),
+                    "w",
+                    newline="",
+                    encoding="utf8",
+                ) as outputfile:
+                    filewriter = csv.writer(outputfile)
+                    filewriter.writerow(
+                        [
+                            "latitude",
+                            "longitude",
+                            "start time",
+                            "finish time",
+                            "attraction constant",
+                            "attraction power",
+                            "automatic",
+                        ]
+                    )
+                    for target in targets:
+                        filewriter.writerow(
+                            [
+                                target.lat,
+                                target.lon,
+                                Time.from_float(target.start_time).get("min"),
+                                Time.from_float(target.end_time).get("min"),
+                                target.attraction_const,
+                                target.attraction_power,
+                                target.automatic,
+                            ]
+                        )
 
     @property
     def gui_filename(self) -> Path:

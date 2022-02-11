@@ -4,7 +4,7 @@ from tkinter import Canvas
 from typing import Callable, List, Optional, Tuple
 
 from bushfire_drone_simulation.aircraft import UpdateEvent
-from bushfire_drone_simulation.fire_utils import Location, WaterTank
+from bushfire_drone_simulation.fire_utils import Location, Target, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.uav import UAV
 from bushfire_drone_simulation.units import DURATION_FACTORS
@@ -207,10 +207,7 @@ class GUILightning(GUIPoint, Lightning):
         """__init__.
 
         Args:
-            location (Location): location
-            spawn_time (float): spawn_time
-            inspection_time (Optional[float]): inspection_time
-            suppressed_time (Optional[float]): suppressed_time
+            lightning (Lightning): lightning
         """
         self.copy_from_lightning(lightning)
         super().__init__(lightning, colour="red" if self.ignition else "yellow")
@@ -281,6 +278,36 @@ class GUILightning(GUIPoint, Lightning):
                     canvas.itemconfig(self.canvas_object, fill="#FFFFDD")
                 else:
                     canvas.itemconfig(self.canvas_object, fill="yellow")
+            self.show(canvas)
+
+
+class GUITarget(GUIPoint, Target):
+    """Point target object for GUI."""
+
+    def __init__(  # pylint: disable=too-many-arguments
+        self,
+        target: Target,
+    ):
+        """__init__.
+
+        Args:
+            target (Target): target
+        """
+        self.copy_from_target(target)
+        super().__init__(target, colour="purple")
+        self.tags += ("target",)
+
+    def show_given_time(self, canvas: Canvas, start_time: float, end_time: float) -> None:
+        """Show lightning state at given time.
+
+        Args:
+            canvas (Canvas): canvas
+            start_time (float): start_time
+            end_time (float): end_time
+        """
+        if self.end_time < start_time or self.start_time > end_time:
+            self.hide(canvas)
+        else:
             self.show(canvas)
 
 
