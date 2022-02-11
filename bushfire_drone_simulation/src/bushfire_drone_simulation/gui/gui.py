@@ -288,17 +288,18 @@ class GUI:
             end_time (float): end_time
             frame_time (float): frame_time
         """
-        frames = []
+        self.start_time.set(max(0, start_time - tail_time))
+        self.end_time.set(start_time)
+        self.update_objects()
+        self.window.update()
+        frame = self.screenshot()
+        video = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*"mp4v"), 30, frame.size)
         for frame_end_time in np.arange(start_time, end_time, frame_time):
             self.start_time.set(max(0, frame_end_time - tail_time))
             self.end_time.set(frame_end_time)
             self.update_objects()
             self.window.update()
-            frames.append(self.screenshot())
-
-        video = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*"mp4v"), 30, frames[0].size)
-        for frame in frames:
-            video.write(cv2.cvtColor(np.array(frame), cv2.COLOR_RGB2BGR))
+            video.write(cv2.cvtColor(np.array(self.screenshot()), cv2.COLOR_RGB2BGR))
         cv2.destroyAllWindows()
         video.release()
 
@@ -486,11 +487,11 @@ class GUI:
             "uavs": "Show UAVs",
             "water_bombers": "Show Water Bombers",
             "targets": "Show Targets",
+            "simple": "Simple View",
         }
 
-        for object_type in self.gui_data.dict:
-            toggle = tk.BooleanVar()
-            toggle.set(True)
+        for object_type in list(self.gui_data.dict) + ["simple"]:
+            toggle = tk.BooleanVar(value=True)
             self.view_menu.add_checkbutton(
                 label=name_map[object_type],
                 onvalue=1,
@@ -505,6 +506,8 @@ class GUI:
         """Update whether a set of points is displayed on the canvas."""
         if self.content:
             for name, toggle in self.checkbox_dict.items():
+                if name == "simple":
+                    continue
                 if not toggle.get():
                     for obj in self.gui_data[name]:
                         obj.hide(self.canvas)
@@ -514,6 +517,7 @@ class GUI:
                             self.canvas,
                             self.start_time.get() * 60 * 60,
                             self.end_time.get() * 60 * 60,
+                            self.checkbox_dict["simple"].get(),
                         )
                         obj.update(self.canvas)
 

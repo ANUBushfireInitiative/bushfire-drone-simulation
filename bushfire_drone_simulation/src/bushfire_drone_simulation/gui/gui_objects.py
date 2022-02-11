@@ -51,7 +51,9 @@ class GUIObject:
             self.cur_shown = True
 
     @abstractmethod
-    def show_given_time(self, canvas: Canvas, start_time: float, end_time: float) -> None:
+    def show_given_time(
+        self, canvas: Canvas, start_time: float, end_time: float, simple: bool = True
+    ) -> None:
         """Show the object if it should be visible in the given timeframe."""
 
     @abstractmethod
@@ -109,7 +111,9 @@ class GUIPoint(GUIObject):
         canvas.move(self.canvas_object, x - self.x, y - self.y)  # type: ignore
         self.x, self.y = x, y
 
-    def show_given_time(self, canvas: Canvas, start_time: float, end_time: float) -> None:
+    def show_given_time(
+        self, canvas: Canvas, start_time: float, end_time: float, simple: bool = True
+    ) -> None:
         """Show point at the given time.
 
         This implementation will always show the point.
@@ -171,7 +175,9 @@ class GUILine(GUIObject):
             coordinates = list(c_1 + c_2)
             canvas.coords(self.canvas_object, coordinates)  # type: ignore
 
-    def show_given_time(self, canvas: Canvas, start_time: float, end_time: float) -> None:
+    def show_given_time(
+        self, canvas: Canvas, start_time: float, end_time: float, simple: bool = True
+    ) -> None:
         """Show line at the given time.
 
         This implementation will always show the point.
@@ -246,7 +252,9 @@ class GUILightning(GUIPoint, Lightning):
         """
         print("You clicked lightning:", self.id_no)
 
-    def show_given_time(self, canvas: Canvas, start_time: float, end_time: float) -> None:
+    def show_given_time(
+        self, canvas: Canvas, start_time: float, end_time: float, simple: bool = True
+    ) -> None:
         """Show lightning state at given time.
 
         Args:
@@ -256,12 +264,12 @@ class GUILightning(GUIPoint, Lightning):
         """
         if self.ignition:
             assert self.suppressed_time is not None
-            if self.suppressed_time < start_time:
+            if self.suppressed_time < start_time or (simple and self.suppressed_time < end_time):
                 self.hide(canvas)
                 return
         else:
             assert self.inspected_time is not None
-            if self.inspected_time < start_time:
+            if self.inspected_time < start_time or (simple and self.inspected_time < end_time):
                 self.hide(canvas)
                 return
         if self.spawn_time > end_time:
@@ -269,12 +277,12 @@ class GUILightning(GUIPoint, Lightning):
         else:
             assert self.inspected_time is not None
             if self.ignition and self.inspected_time < end_time:
-                if self.inspected_time < start_time:
+                if self.inspected_time < start_time and not simple:
                     canvas.itemconfig(self.canvas_object, fill="#FFCCCB")
                 else:
                     canvas.itemconfig(self.canvas_object, fill="red")
             else:
-                if self.spawn_time < start_time:
+                if self.spawn_time < start_time and not simple:
                     canvas.itemconfig(self.canvas_object, fill="#FFFFDD")
                 else:
                     canvas.itemconfig(self.canvas_object, fill="yellow")
@@ -297,15 +305,21 @@ class GUITarget(GUIPoint, Target):
         super().__init__(target, colour="purple")
         self.tags += ("target",)
 
-    def show_given_time(self, canvas: Canvas, start_time: float, end_time: float) -> None:
-        """Show lightning state at given time.
+    def show_given_time(
+        self, canvas: Canvas, start_time: float, end_time: float, simple: bool = True
+    ) -> None:
+        """Show target at given time.
 
         Args:
             canvas (Canvas): canvas
             start_time (float): start_time
             end_time (float): end_time
         """
-        if self.end_time < start_time or self.start_time > end_time:
+        if (
+            self.end_time < start_time
+            or (simple and self.end_time < end_time)
+            or self.start_time > end_time
+        ):
             self.hide(canvas)
         else:
             self.show(canvas)
@@ -366,7 +380,9 @@ class GUIAircraft(GUIObject):
         super().place_on_canvas(canvas, to_coordinates)
         self.aircraft_point.place_on_canvas(canvas, to_coordinates)
 
-    def show_given_time(self, canvas: Canvas, start_time: float, end_time: float) -> None:
+    def show_given_time(
+        self, canvas: Canvas, start_time: float, end_time: float, simple: bool = True
+    ) -> None:
         """Show aircraft at given time.
 
         Args:
@@ -393,7 +409,7 @@ class GUIAircraft(GUIObject):
                     self.aircraft_point.update(canvas)
                 break
 
-        self.aircraft_point.show_given_time(canvas, start_time, end_time)
+        self.aircraft_point.show_given_time(canvas, start_time, end_time, simple)
 
     def hide(self, canvas: Canvas) -> None:
         """Hide Aircraft.

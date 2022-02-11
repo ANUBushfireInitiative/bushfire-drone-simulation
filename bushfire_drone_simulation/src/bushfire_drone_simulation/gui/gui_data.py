@@ -168,7 +168,7 @@ def extract_simulation_lightning(simulation: Simulator, ignited: bool) -> List[G
     """
     to_return: List[GUILightning] = []
     for strike in simulation.lightning_strikes:
-        if strike.ignition == ignited:
+        if not ignited or strike.ignition:
             to_return.append(GUILightning(strike))
     return to_return
 
@@ -285,7 +285,7 @@ def extract_lightning_from_output(
         output_folder / f"{scenario_name}{'_' if scenario_name else ''}simulation_output.csv"
     )
     for row in lightning_csv:
-        if math.isnan(row[6]) != ignited:
+        if not ignited or not math.isnan(row[6]):
             lightning = input_lightning[row[1]]
             lightning.inspected_time = (row[4] + row[5]) * HOURS_TO_SECONDS
             lightning.suppressed_time = (row[4] + row[6]) * HOURS_TO_SECONDS if ignited else None
