@@ -30,11 +30,17 @@ class GUIObject:
     def place_on_canvas(
         self, canvas: Canvas, to_coordinates: Callable[[Location], Tuple[float, float]]
     ) -> None:
-        """Place object on canvas."""
+        """Place object on canvas.
+
+        Args:
+            canvas (Canvas): canvas
+            to_coordinates (Callable[[float, float], Tuple[float, float]]): Function converting
+                location to coordinates on the canvas.
+        """
         assert self.canvas_object == -1
 
     def remove_from_canvas(self, canvas: Canvas) -> None:
-        """Place object on canvas."""
+        """Remove object from canvas."""
         canvas.delete(self.canvas_object)
         self.canvas_object = -1
 
@@ -298,7 +304,7 @@ class GUITarget(GUIPoint, Target):
         self.tags += ("target",)
 
     def show_given_time(self, canvas: Canvas, start_time: float, end_time: float) -> None:
-        """Show lightning state at given time.
+        """Show target at given time.
 
         Args:
             canvas (Canvas): canvas

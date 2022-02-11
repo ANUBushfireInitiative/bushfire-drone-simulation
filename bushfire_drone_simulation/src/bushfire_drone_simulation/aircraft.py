@@ -11,7 +11,7 @@ import numpy as np
 from bushfire_drone_simulation.fire_utils import Base, Location, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.linked_list import LinkedList
-from bushfire_drone_simulation.precomupted import PreComputedDistances
+from bushfire_drone_simulation.precomputed import PreComputedDistances
 
 _LOG = logging.getLogger(__name__)
 

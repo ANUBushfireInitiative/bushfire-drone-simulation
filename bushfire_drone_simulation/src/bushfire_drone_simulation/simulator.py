@@ -35,7 +35,7 @@ from bushfire_drone_simulation.coordinators.unassigned_coordinator import (
 from bushfire_drone_simulation.fire_utils import Target
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.parameters import JSONParameters
-from bushfire_drone_simulation.precomupted import PreComputedDistances
+from bushfire_drone_simulation.precomputed import PreComputedDistances
 
 UAV_COORDINATORS: Dict[str, Type[UAVCoordinator]] = {
     "SimpleUAVCoordinator": SimpleUAVCoordinator,

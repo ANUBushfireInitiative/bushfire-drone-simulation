@@ -89,7 +89,7 @@ class GUIData:
         """Get dictionary of contained GUIObjects by type.
 
         Returns:
-            Dict[str, Sequence[GUIObject]]:
+            Dict[str, Sequence[GUIObject]]: GUIObject dictionary
         """
         return {
             "water_tanks": self.watertanks,
