@@ -13,6 +13,8 @@ from tkinter.constants import BOTH, DISABLED, HORIZONTAL, INSERT, X
 from typing import Dict, Optional
 
 import _tkinter
+import cv2
+import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 from matplotlib.pyplot import close
@@ -60,8 +62,8 @@ class GUI:
         )
         self.canvas.pack(fill=BOTH, expand=True)
 
-        self.canvas.bind("<B1-Motion>", self.drag)
-        self.window.bind("<Button-1>", self.click)
+        self.canvas.bind("<B1-Motion>", self._drag)
+        self.window.bind("<Button-1>", self._click)
         self.window.bind("<Configure>", self.resize)
 
         self._create_menu()
@@ -146,6 +148,7 @@ class GUI:
         self.tools_menu.add_command(label="Clear Cache", command=self.clear_cache)
         self.tools_menu.add_command(label="Change map dimensions", command=self._size_dialog)
         self.tools_menu.add_command(label="Screenshot", command=self._screenshot_dialog)
+        self.tools_menu.add_command(label="Video", command=self._video_dialog)
         self.menu_bar.add_cascade(label="Tools", menu=self.tools_menu)
         self.window.config(menu=self.menu_bar)
 
@@ -154,6 +157,50 @@ class GUI:
             initialfile="Screenshot.png", filetypes=[("PNG", "*.png")]
         )
         self.screenshot().save(filename)
+
+    def _video_dialog(self) -> None:
+        popup = GuiPopup(self.window, 300, 150)
+        popup.grid_columnconfigure(0, weight=1)
+        popup.grid_columnconfigure(1, weight=1)
+        tk.Label(popup, text="Select video settings").grid(row=0, column=0, columnspan=2)
+        start_box = tk.Entry(popup)
+        start_box.insert(0, str(self.start_time.get()))
+        end_box = tk.Entry(popup)
+        end_box.insert(0, str(self.end_time.get()))
+        resolution_box = tk.Entry(popup)
+        resolution_box.insert(0, str(0.01))
+        tail_box = tk.Entry(popup)
+        tail_box.insert(0, str(0.2))
+        start_time = self.start_time.get()
+        end_time = self.end_time.get()
+
+        def record_video() -> None:
+            filename = tkinter.filedialog.asksaveasfilename(
+                initialfile="Video.mp4", filetypes=[("MP4", "*.mp4")]
+            )
+            self.video(
+                filename,
+                float(start_box.get()),
+                float(end_box.get()),
+                float(resolution_box.get()),
+                float(tail_box.get()),
+            )
+            self.start_time.set(start_time)
+            self.end_time.set(end_time)
+            self.update_objects()
+            popup.close()
+
+        tk.Label(popup, text="Start time (hr):").grid(row=1, column=0)
+        start_box.grid(row=1, column=1)
+        tk.Label(popup, text="End time (hr):").grid(row=2, column=0)
+        end_box.grid(row=2, column=1)
+        tk.Label(popup, text="Frame time (hr):").grid(row=3, column=0)
+        resolution_box.grid(row=3, column=1)
+        tk.Label(popup, text="Tail time (hr):").grid(row=4, column=0)
+        tail_box.grid(row=4, column=1)
+        ttk.Button(popup, text="Record video", command=record_video).grid(
+            row=5, column=0, columnspan=2
+        )
 
     def _add_scales(self) -> None:
         self.start_time = DoubleVar()
@@ -203,8 +250,8 @@ class GUI:
             colormode="color",
             width=self.width,
             height=self.height,
-            pagewidth=self.width * 2,
-            pageheight=self.height * 2,
+            pagewidth=self.width * 5,
+            pageheight=self.height * 5,
         )
         try:
             image = img.open(BytesIO(postscript.encode("utf-8"))).resize((self.width, self.height))
@@ -229,6 +276,32 @@ class GUI:
             font=font,
         )
         return image
+
+    def video(  # pylint: disable=too-many-arguments
+        self, filename: str, start_time: float, end_time: float, frame_time: float, tail_time: float
+    ) -> None:
+        """Record a video.
+
+        Args:
+            filename (str): filename
+            start_time (float): start_time
+            end_time (float): end_time
+            frame_time (float): frame_time
+        """
+        self.start_time.set(max(0, start_time - tail_time))
+        self.end_time.set(start_time)
+        self.update_objects()
+        self.window.update()
+        frame = self.screenshot()
+        video = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*"mp4v"), 30, frame.size)
+        for frame_end_time in np.arange(start_time, end_time, frame_time):
+            self.start_time.set(max(0, frame_end_time - tail_time))
+            self.end_time.set(frame_end_time)
+            self.update_objects()
+            self.window.update()
+            video.write(cv2.cvtColor(np.array(self.screenshot()), cv2.COLOR_RGB2BGR))
+        cv2.destroyAllWindows()
+        video.release()
 
     def clear_cache(self) -> None:
         """Remove all cached map tiles."""
@@ -414,11 +487,11 @@ class GUI:
             "uavs": "Show UAVs",
             "water_bombers": "Show Water Bombers",
             "targets": "Show Targets",
+            "simple": "Simple View",
         }
 
-        for object_type in self.gui_data.dict:
-            toggle = tk.BooleanVar()
-            toggle.set(True)
+        for object_type in list(self.gui_data.dict) + ["simple"]:
+            toggle = tk.BooleanVar(value=True)
             self.view_menu.add_checkbutton(
                 label=name_map[object_type],
                 onvalue=1,
@@ -433,6 +506,8 @@ class GUI:
         """Update whether a set of points is displayed on the canvas."""
         if self.content:
             for name, toggle in self.checkbox_dict.items():
+                if name == "simple":
+                    continue
                 if not toggle.get():
                     for obj in self.gui_data[name]:
                         obj.hide(self.canvas)
@@ -442,6 +517,7 @@ class GUI:
                             self.canvas,
                             self.start_time.get() * 60 * 60,
                             self.end_time.get() * 60 * 60,
+                            self.checkbox_dict["simple"].get(),
                         )
                         obj.update(self.canvas)
 
@@ -469,7 +545,7 @@ class GUI:
             self.map_image.change_zoom(self.zoom)
             self.restart()
 
-    def drag(self, event: Event) -> None:  # type: ignore
+    def _drag(self, event: Event) -> None:  # type: ignore
         """Process mouse drag.
 
         Args:
@@ -479,7 +555,7 @@ class GUI:
         self.restart()
         self.coords = event.x, event.y
 
-    def click(self, event: Event) -> None:  # type: ignore
+    def _click(self, event: Event) -> None:  # type: ignore
         """Process click.
 
         Args:

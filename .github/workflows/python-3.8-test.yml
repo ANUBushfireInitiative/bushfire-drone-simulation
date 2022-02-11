@@ -31,7 +31,7 @@ jobs:
         Xvfb $disp -screen $screen $geom &
         export DISPLAY=:99
         python -m coverage run --source=. -m pytest
-        python -m coverage xml
+        python -m coverage xml -i
     - name: Upload coverage
       run: |
           export CODECOV_TOKEN=fca5ec9c-2568-4c8b-9e47-1b570b85fad4
