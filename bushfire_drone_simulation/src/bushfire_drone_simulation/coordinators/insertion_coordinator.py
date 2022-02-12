@@ -133,7 +133,7 @@ class InsertionUAVCoordinator(UAVCoordinator):
                 else:
                     best_uav.event_queue.delete_after(start_from)
             for location in assigned_locations:
-                best_uav.add_location_to_queue(location, lightning.spawn_time)
+                best_uav.add_location_to_queue(location)
         else:
             _LOG.error("No UAVs were available to process lightning strike %s", lightning.id_no)
         for uav in self.uavs:
@@ -296,12 +296,13 @@ class InsertionWBCoordinator(WBCoordinator):
                 else:
                     best_water_bomber.event_queue.delete_after(start_from)
             for location in assigned_locations:
-                best_water_bomber.add_location_to_queue(location, ignition.inspected_time)
+                best_water_bomber.add_location_to_queue(location)
 
         else:
             _LOG.error("No water bombers were available")
         for water_bomber in self.water_bombers:
             bases = self.water_bomber_bases_dict[water_bomber.type]
+            water_bomber.go_to_water_if_necessary(self.water_tanks, bases)
             water_bomber.go_to_base_when_necessary(bases, ignition.inspected_time)
 
     def process_new_strike(self, lightning: Lightning) -> None:

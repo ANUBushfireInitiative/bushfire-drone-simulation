@@ -161,7 +161,7 @@ class WaterTank(Location):
         """Remove a given volume from the water tank."""
         self.capacity -= volume
         if self.capacity < 0:
-            _LOG.error("Water tank ran out of water")
+            _LOG.error("Water tank %s ran out of water", self.id_no)
 
     def remove_unallocated_water(self, volume: float) -> None:
         """Remove a given volume from unallocated water in the water tank."""

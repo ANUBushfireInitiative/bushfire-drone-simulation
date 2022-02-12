@@ -423,15 +423,14 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             self.time = update_time
         return strikes_inspected, strikes_suppressed
 
-    def add_location_to_queue(self, position: Location, departure_time: float) -> None:
-        """Add location to queue departing at the earliest at the given time.
+    def add_location_to_queue(self, position: Location) -> None:
+        """Add location to queue.
 
-        The arrival time, fuel level, water level and status are calculated and appended to the
-        queue along with the location and departure time.
+        The departure time, arrival time, fuel level, water level and status are calculated
+        and appended to the queue along with the location.
 
         Args:
             position (Location): position to target
-            departure_time (Time): departure time
         """
         if self.use_current_status:
             # TODO(Add allocated water back to water tank!!) pylint: disable=fixme
@@ -449,7 +448,6 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             self.event_queue.clear()
             self.use_current_status = False
         fuel = self._get_future_fuel()
-        assert self._get_future_time() >= departure_time
         departure_time = self._get_future_time()
         dist_to_position = self._get_future_position().distance(position)
         arrival_fuel = fuel - dist_to_position / self.get_range()
@@ -546,46 +544,6 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         self.status = Status.WAITING_AT_BASE
         self._add_update(base.id_no)
 
-    def consider_going_to_base(
-        self,
-        bases: List[Base],
-        departure_time: float,
-        percentage: float = 0.3,
-    ) -> None:
-        """Aircraft will return to base.
-
-        if it takes more than percentage of its fuel tank to return to the nearest base
-
-        Args:
-            bases (List[Base]): list of avaliable bases
-            departure_time (Time): time of triggering event of consider going to base
-            percentage (float, optional): percentage of fuel tank. Defaults to 0.3, must be <= 1.
-        """
-        if self._get_future_status() == Status.HOVERING:
-            current_fuel = self._get_future_fuel()
-            # Update fuel loss from hovering [necessary in case we're given a funky departure time
-            # but doesn't affect current implementation]
-            if self._get_future_time() < departure_time:
-                current_fuel -= (
-                    (departure_time - self._get_future_time())
-                    * self.flight_speed
-                    / self.get_range()
-                )
-            # Calculate distance that if a base is within we can break
-            required_distance = self.get_range() * current_fuel * percentage
-            best_base = bases[0]
-            min_dist = self._get_future_position().distance(best_base)
-            for base in bases:
-                dist_to_base = self._get_future_position().distance(base)
-                if dist_to_base <= required_distance:
-                    # There is a close enough base so we don't need to do anything
-                    return
-                if dist_to_base < min_dist:
-                    best_base = base
-                    min_dist = dist_to_base
-            # Find nearest base and go to if necessary
-            self.add_location_to_queue(best_base, departure_time)
-
     def go_to_base_when_necessary(
         self,
         bases: List[Base],
@@ -634,6 +592,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                 combines the inspection time for a strike with the strikes risk rating.
             state (Optional[Union[Event, str]]): the departure state of the aircraft.
                 The input "self" indicates the aircraft should depart from its current position.
+                None indicates the aircraft should depart from its future position
 
         Returns:
             Optional[Time]: The arrival time of the aircraft after traversing the array of positions

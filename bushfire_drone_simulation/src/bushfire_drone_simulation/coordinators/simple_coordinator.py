@@ -62,13 +62,13 @@ class SimpleUAVCoordinator(UAVCoordinator):
         if best_uav is not None:
             _LOG.debug("Best UAV is: %s", best_uav.get_name())
             for location in assigned_locations:
-                best_uav.add_location_to_queue(location, lightning.spawn_time)
+                best_uav.add_location_to_queue(location)
             # if via_base is not None:
             #     # The minimum arrival time was achieved by travelling via a base
             #     # Update UAV position accordingly
-            #     best_uav.add_location_to_queue(via_base, lightning.spawn_time)
+            #     best_uav.add_location_to_queue(via_base)
             # # There exists a UAV that has enough fuel, send it to the lightning strike
-            # best_uav.add_location_to_queue(lightning, lightning.spawn_time)
+            # best_uav.add_location_to_queue(lightning)
         else:
             _LOG.error("No UAVs were available to process lightning strike %s", lightning.id_no)
         for uav in self.uavs:
@@ -169,12 +169,14 @@ class SimpleWBCoordinator(WBCoordinator):
         if best_water_bomber is not None:
             _LOG.debug("Best water bomber is: %s", best_water_bomber.get_name())
             for location in assigned_locations:
-                best_water_bomber.add_location_to_queue(location, ignition.inspected_time)
+                best_water_bomber.add_location_to_queue(location)
 
         else:
             _LOG.error("No water bombers were available")
         for water_bomber in self.water_bombers:
             bases = self.water_bomber_bases_dict[water_bomber.type]
+            # Go to water first because acting on go to base assumes an empty queue
+            water_bomber.go_to_water_if_necessary(self.water_tanks, bases)
             water_bomber.go_to_base_when_necessary(bases, ignition.inspected_time)
 
     def process_new_strike(self, lightning: Lightning) -> None:

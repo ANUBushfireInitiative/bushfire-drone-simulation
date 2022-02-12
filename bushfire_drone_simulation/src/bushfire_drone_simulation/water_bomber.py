@@ -1,11 +1,13 @@
 """Water bomber class."""
 
+from math import inf
 from typing import List, Optional, Union
 
+import numpy as np
 from pydantic.main import BaseModel
 
 from bushfire_drone_simulation.aircraft import Aircraft, AircraftType, Event, UpdateEvent
-from bushfire_drone_simulation.fire_utils import Location, WaterTank
+from bushfire_drone_simulation.fire_utils import Base, Location, WaterTank
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.units import Distance, Duration, Speed, Volume
 
@@ -165,3 +167,28 @@ class WaterBomber(Aircraft):
     def _set_water_on_board(self, water: float) -> None:
         """Set water on board of Aircraft."""
         self.water_on_board = water
+
+    def go_to_water_if_necessary(self, water_tanks: List[WaterTank], bases: List[Base]) -> None:
+        """Aircraft will fill up water if it does not have enough to suppress another strike.
+
+        Args:
+            water_tanks (List[WaterTank]): list of water tanks
+            bases (List[Base]): list of avaliable bases
+        """
+        if self._get_future_water() < self.water_per_suppression:
+            min_dist = inf
+            best_tank = None
+            for tank in water_tanks:
+                if self.check_water_tank(tank):
+                    base_index = int(np.argmin(list(map(tank.distance, bases))))
+                    if self.enough_fuel([tank, bases[base_index]]) is not None:
+                        dist_to_tank = self._get_future_position().distance(tank)
+                        if dist_to_tank < min_dist:
+                            min_dist = dist_to_tank
+                            best_tank = tank
+            if best_tank is None:
+                # If we can't get to water and fuel go staight to fule - no point hovering anymore
+                base_index = int(np.argmin(list(map(self._get_future_position().distance, bases))))
+                self.add_location_to_queue(bases[base_index])
+            else:
+                self.add_location_to_queue(best_tank)

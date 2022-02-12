@@ -237,7 +237,7 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                     else:
                         best_uav.event_queue.delete_after(start_from)
                 for location in assigned_locations:
-                    best_uav.add_location_to_queue(location, lightning.spawn_time)
+                    best_uav.add_location_to_queue(location)
                 max_inspection_time: float = 0
                 prior_to_strike: Optional[Node[Event]] = None
                 remaining_events: List[Location] = []
@@ -266,7 +266,7 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                     else:
                         best_uav.event_queue.clear()
                     for location in after_strike_events:
-                        best_uav.add_location_to_queue(location, lightning.spawn_time)
+                        best_uav.add_location_to_queue(location)
                     for event in best_uav.event_queue:
                         if isinstance(event.position, Lightning):
                             inspection_time = self.prioritisation_function(
@@ -289,7 +289,7 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                     else:
                         best_uav.event_queue.delete_after(start_from)
                 for location in assigned_locations:
-                    best_uav.add_location_to_queue(location, lightning.spawn_time)
+                    best_uav.add_location_to_queue(location)
                 for event in best_uav.event_queue:
                     if isinstance(event.position, Lightning):
                         inspection_time = event.completion_time - event.position.spawn_time
@@ -586,7 +586,7 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                     else:
                         best_water_bomber.event_queue.delete_after(start_from)
                 for location in assigned_locations:
-                    best_water_bomber.add_location_to_queue(location, ignition.spawn_time)
+                    best_water_bomber.add_location_to_queue(location)
                 max_inspection_time: float = 0
                 prior_to_strike: Optional[Node[Event]] = None
                 remaining_events: List[Location] = []
@@ -609,7 +609,7 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                     else:
                         best_water_bomber.event_queue.clear()
                     for location in after_strike_events:
-                        best_water_bomber.add_location_to_queue(location, ignition.spawn_time)
+                        best_water_bomber.add_location_to_queue(location)
                     for event in best_water_bomber.event_queue:
                         if isinstance(event.position, Lightning):
                             inspection_time = event.completion_time - event.position.spawn_time
@@ -629,7 +629,7 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
                     else:
                         best_water_bomber.event_queue.delete_after(start_from)
                 for location in assigned_locations:
-                    best_water_bomber.add_location_to_queue(location, ignition.spawn_time)
+                    best_water_bomber.add_location_to_queue(location)
                 for event in best_water_bomber.event_queue:
                     if isinstance(event.position, Lightning):
                         inspection_time = event.completion_time - event.position.spawn_time
@@ -638,6 +638,7 @@ class MinimiseMeanTimeWBCoordinator(WBCoordinator):
 
         for water_bomber in self.water_bombers:
             bases = self.water_bomber_bases_dict[water_bomber.type]
+            water_bomber.go_to_water_if_necessary(self.water_tanks, bases)
             water_bomber.go_to_base_when_necessary(bases, ignition.inspected_time)
 
     def process_new_strike(self, lightning: Lightning) -> None:
