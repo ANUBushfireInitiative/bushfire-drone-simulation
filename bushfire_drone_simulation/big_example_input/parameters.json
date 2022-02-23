@@ -17,7 +17,7 @@
         "fuel_refill_time": 15,
         "range": 680,
         "inspection_time": 1,
-        "pct_fuel_cutoff": 0,
+        "pct_fuel_cutoff": 0.7,
         "prioritisation_function": "time"
     },
     "water_bombers": {
