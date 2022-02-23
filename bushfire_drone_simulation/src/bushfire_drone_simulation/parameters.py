@@ -453,6 +453,8 @@ class JSONParameters:
                     "min_in_target",
                     "target_resolution",
                     "look_ahead",
+                    "attraction_const",
+                    "attraction_pwr",
                 ]:
                     if attribute not in target_dict:
                         raise Exception(
@@ -467,6 +469,8 @@ class JSONParameters:
                     target_dict["min_in_target"],
                     Duration(target_dict["target_resolution"], "min"),
                     Duration(target_dict["look_ahead"], "min"),
+                    target_dict["attraction_const"],
+                    target_dict["attraction_pwr"],
                 )
                 targets += cluster.generate_targets()
         else:

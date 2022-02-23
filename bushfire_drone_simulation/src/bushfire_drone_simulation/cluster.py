@@ -54,6 +54,8 @@ class Cluster:
 
     def create_circles(self) -> List[Circle]:
         """Create circles required for clustering."""
+        if self.radius == 0:
+            return []
         circles = []
         min_lat = inf
         max_lat = -inf
@@ -93,7 +95,7 @@ class Cluster:
                         break
 
     def cluster_points(
-        self, points: List[Location], target_start: float, target_end: float
+        self, points: List[Location], target_start: float, target_end: float, attraction_const: float, attraction_pwr: float
     ) -> List[Target]:
         """Clusters points based on Mean-Shift Clustering algorithm.
 
@@ -138,8 +140,8 @@ class Cluster:
                         circle.location.lon,
                         target_start,
                         target_end,
-                        1000,
-                        -1.2,
+                        attraction_const,
+                        attraction_pwr,
                         True,
                     )
                 )
@@ -157,6 +159,8 @@ class LightningCluster(Cluster):
         min_in_target: int,
         target_resolution: Duration,
         look_ahead: Duration,
+        attraction_const: float,
+        attraction_pwr: float,
     ) -> None:
         """Initialize lightning cluster.
 
@@ -171,6 +175,8 @@ class LightningCluster(Cluster):
         self.lightning = lightning
         self.target_resolution = target_resolution.get()
         self.look_ahead = look_ahead.get()
+        self.attraction_const = attraction_const
+        self.attraction_pwr = attraction_pwr
 
     def find_min_spawn_time(self) -> float:
         """Return the minimum spawn time of all strikes.
@@ -213,7 +219,7 @@ class LightningCluster(Cluster):
                     assert isinstance(strike, Location)
                     strikes_to_consider.append(strike)
             targets = self.cluster_points(
-                strikes_to_consider, start_time, start_time + self.target_resolution
+                strikes_to_consider, start_time, start_time + self.target_resolution, self.attraction_const, self.attraction_pwr
             )
             target_list += targets
         return target_list
