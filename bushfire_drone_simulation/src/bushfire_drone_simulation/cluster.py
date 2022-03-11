@@ -94,8 +94,13 @@ class Cluster:
                         circles.remove(circle1)
                         break
 
-    def cluster_points(
-        self, points: List[Location], target_start: float, target_end: float, attraction_const: float, attraction_pwr: float
+    def cluster_points(  # pylint: disable=too-many-arguments
+        self,
+        points: List[Location],
+        target_start: float,
+        target_end: float,
+        attraction_const: float,
+        attraction_pwr: float,
     ) -> List[Target]:
         """Clusters points based on Mean-Shift Clustering algorithm.
 
@@ -219,7 +224,11 @@ class LightningCluster(Cluster):
                     assert isinstance(strike, Location)
                     strikes_to_consider.append(strike)
             targets = self.cluster_points(
-                strikes_to_consider, start_time, start_time + self.target_resolution, self.attraction_const, self.attraction_pwr
+                strikes_to_consider,
+                start_time,
+                start_time + self.target_resolution,
+                self.attraction_const,
+                self.attraction_pwr,
             )
             target_list += targets
         return target_list
