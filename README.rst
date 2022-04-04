@@ -148,6 +148,7 @@ To add this text to ~./bashrc, run the command
     echo 'export PATH="$HOME/.pyenv/bin:$PATH"
     export PATH="$HOME/.pyenv/shims:$PATH"
     eval "$(pyenv init -)"
+    eval "$(pyenv init --path)"
     eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc
 
 You now need to reload your shell which can be done by restarting your terminal
