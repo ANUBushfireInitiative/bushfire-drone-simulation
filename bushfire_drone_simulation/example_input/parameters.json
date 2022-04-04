@@ -53,7 +53,9 @@
             "radius": 50,
             "min_in_target": 25,
             "target_resolution": 30,
-            "look_ahead": 60
+            "look_ahead": 60,
+	    "attraction_const": 200,
+	    "attraction_pwr":-2
         },
         "boundary_polygon_filename": "input_data/boundary_polygon.csv",
         "dt": 120,

@@ -264,13 +264,20 @@ class Time:
             try:
                 self.time = Duration(float(time_in), "min")
             except ValueError:
-                self.time = (
-                    # Duration(int(time_in[:4]), "year")
-                    Duration(month_to_days(int(time_in[5:7])) + int(time_in[8:10]) - 1, "day")
-                    + Duration(int(time_in[11:13]), "hr")
-                    + Duration(int(time_in[14:16]), "min")
-                    + Duration(int(time_in[17:19]), "s")
-                )
+                if len(time_in) < 6:
+                    # Assume hh:mm format (or h:mm format)
+                    self.time = (
+                        Duration(int(time_in[:-3]), "hr")
+                        + Duration(int(time_in[-2:]), "min")
+                    )
+                else:
+                    self.time = (
+                        # Duration(int(time_in[:4]), "year")
+                        Duration(month_to_days(int(time_in[5:7])) + int(time_in[8:10]) - 1, "day")
+                        + Duration(int(time_in[11:13]), "hr")
+                        + Duration(int(time_in[14:16]), "min")
+                        + Duration(int(time_in[17:19]), "s")
+                    )
 
     @classmethod
     def from_float(cls, time: float, units: str = DEFAULT_DURATION_UNITS) -> "Time":
