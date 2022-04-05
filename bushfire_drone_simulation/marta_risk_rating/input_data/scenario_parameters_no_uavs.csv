@@ -1,0 +1,5 @@
+scenario_name,uavs/spawn_loc_file
+5,input_data/5_uav_spawn_locations.csv
+10,input_data/10_uav_spawn_locations.csv
+15,input_data/15_uav_spawn_locations.csv
+20,input_data/20_uav_spawn_locations.csv
