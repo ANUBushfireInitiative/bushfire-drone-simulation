@@ -125,7 +125,9 @@ class UnassignedCoordinator:
                     min_dist = dist
                     closest_boundary_point = intersection_point
             prev_point = point
-        assert closest_boundary_point is not None
+        assert (
+            closest_boundary_point is not None
+        ), "Boundary polygon points may not be in the correct order"
         epsilon = 0.001
         if inside_point.lat > closest_boundary_point.lat:
             closest_boundary_point.lat += epsilon
