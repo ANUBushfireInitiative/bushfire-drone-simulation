@@ -3,8 +3,8 @@
     "uav_bases_filename": "input_data/uav_base_locations.csv",
     "water_tanks_filename": "input_data/reservoirs_tanks.csv",
     "lightning_filename": "input_data/lightning_utc00190120_risk_rating.csv",
-    "scenario_parameters_filename": "input_data/scenario_parameters.csv",
-    "output_folder_name": "output",
+    "scenario_parameters_filename": "input_data/scenario_parameters_no_uavs.csv",
+    "output_folder_name": "no_of_uavs",
     "uav_coordinator": "MinimiseMeanTimeUAVCoordinator",
     "wb_coordinator": "MinimiseMeanTimeWBCoordinator",
     "uav_mean_time_power": 1,
@@ -13,13 +13,13 @@
     "target_maximum_suppression_time": "inf",
     "ignition_probability": 0.0,
     "uavs": {
-        "spawn_loc_file": "input_data/uav_spawn_locations.csv",
+        "spawn_loc_file": "?",
         "flight_speed": 85,
         "fuel_refill_time": 15,
         "range": 680,
         "inspection_time": 1,
         "pct_fuel_cutoff": 0.7,
-        "prioritisation_function": "?"
+        "prioritisation_function": "time"
     },
     "water_bombers": {
         "firehawk": {
@@ -50,19 +50,11 @@
     "unassigned_uavs": {
         "boundary_polygon_filename": "input_data/boundary_polygon.csv",
         "dt": 120,
-        "automatic_targets": {
-            "radius": 50,
-            "min_in_target": 25,
-            "target_resolution": 30,
-            "look_ahead": 60,
-            "attraction_const": 200,
-            "attraction_pwr":-2
-        },
         "uav_repulsion_const": 50000000.0,
         "uav_repulsion_power": -5,
         "boundary_repulsion_const": 4000.0,
         "boundary_repulsion_power": -2,
-        "centre_lat": -36.5,
-        "centre_lon": 148
+        "centre_lat": -35.5,
+        "centre_lon": 149
     }
 }
