@@ -340,6 +340,7 @@ def extract_water_tanks_from_output(
         output_folder / f"{scenario_name}{'_' if scenario_name else ''}water_tanks.csv"
     )
     water_tanks = parameters.get_water_tanks(scenario_idx)
+
     for row in water_tank_csv:
         to_return.append(GUIWaterTank(water_tanks[int(row[1])]))
         to_return[-1].capacity = Volume(float(row[5])).get()
