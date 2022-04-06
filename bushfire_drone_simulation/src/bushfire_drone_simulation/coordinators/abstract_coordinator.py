@@ -150,6 +150,16 @@ def intersection(
     if ccw(loc_1, loc_3, loc_4) != ccw(loc_2, loc_3, loc_4) and ccw(loc_1, loc_2, loc_3) != ccw(
         loc_1, loc_2, loc_4
     ):
+        if loc_1.lon == loc_2.lon and loc_3.lon - loc_4.lon:
+            return None
+        if loc_1.lon == loc_2.lon:
+            grad = (loc_3.lat - loc_4.lat) / (loc_3.lon - loc_4.lon)
+            ret_lat = grad * (loc_1.lon - loc_3.lon) + loc_3.lat
+            return Location(ret_lat, loc_1.lon)
+        if loc_3.lon == loc_4.lon:
+            grad = (loc_1.lat - loc_2.lat) / (loc_1.lon - loc_2.lon)
+            ret_lat = grad * (loc_3.lon - loc_1.lon) + loc_1.lat
+            return Location(ret_lat, loc_3.lon)
         grad_1 = (loc_1.lat - loc_2.lat) / (loc_1.lon - loc_2.lon)
         grad_2 = (loc_3.lat - loc_4.lat) / (loc_3.lon - loc_4.lon)
         int_1 = -grad_1 * loc_1.lon + loc_1.lat
