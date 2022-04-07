@@ -200,13 +200,13 @@ The JSON parameters file should contain the following information formatted as i
         }
     }
 
-    To simulate strike forecasting, targets can be specified automatically via the targets_filename or
-    by including the automatic_targets dictionary (or both of these options). Automatic targets are determined
-    using the Mean-Shift Clustering algorithm with circles of a given radius. Once these circles have converged,
-    a point is considered a target if it contains more than `min_in_target` strikes. Targets are calculated
-    every `target_resolution` minutes taking into conisderation the next `look_ahead` minutes worth of strikes.
+To simulate strike forecasting, targets can be specified automatically via the targets_filename or
+by including the automatic_targets dictionary (or both of these options). Automatic targets are determined
+using the Mean-Shift Clustering algorithm with circles of a given radius. Once these circles have converged,
+a point is considered a target if it contains more than `min_in_target` strikes. Targets are calculated
+every `target_resolution` minutes taking into conisderation the next `look_ahead` minutes worth of strikes.
 
-    The automatic_targets dictionary should be structured as follows:
+The automatic_targets dictionary should be structured as follows:
 
 .. code-block :: json
 

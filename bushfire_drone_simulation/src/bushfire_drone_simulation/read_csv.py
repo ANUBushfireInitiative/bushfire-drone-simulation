@@ -33,6 +33,7 @@ class CSVFile:
         """
         self.filename = filename
         self.csv_dataframe: pd.DataFrame = pd.DataFrame(pd.read_csv(filename))  # type: ignore
+        self.csv_dataframe.dropna(how="all", inplace=True)
 
     def save(self, path: Path) -> None:
         """Save to new csv file.
