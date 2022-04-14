@@ -13,7 +13,7 @@ DURATION_FACTORS = {"ms": 0.001, "s": 1.0, "min": 60, "hr": 3600, "day": 86400, 
 DEFAULT_VOLUME_UNITS = "L"
 VOLUME_FACTORS = {"mL": 0.001, "L": 1.0, "kL": 1000, "ML": 1000000}
 
-UnitsType = TypeVar("UnitsType", bound="Units")
+UnitsType = TypeVar("UnitsType", bound="Units")  # pylint: disable=invalid-name
 
 
 class Units:
