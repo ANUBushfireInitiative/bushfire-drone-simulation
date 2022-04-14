@@ -3,7 +3,7 @@
     "uav_bases_filename": "input_data/uav_base_locations.csv",
     "water_tanks_filename": "input_data/reservoirs_tanks.csv",
     "lightning_filename": "input_data/lightning.csv",
-    "output_folder_name": "forecasting4",
+    "output_folder_name": "varying_init_fuel_date",
     "uav_coordinator": "MinimiseMeanTimeUAVCoordinator",
     "wb_coordinator": "MinimiseMeanTimeWBCoordinator",
     "uav_mean_time_power": 1,
