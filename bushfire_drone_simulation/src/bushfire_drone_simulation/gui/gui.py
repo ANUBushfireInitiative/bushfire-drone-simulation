@@ -369,11 +369,18 @@ class GUI:
         height_box.insert(0, str(self.height))
 
         def set_size() -> None:
-            self.width = int(width_box.get())
-            self.height = int(height_box.get())
-            self.canvas.config(width=self.width, height=self.height)
-            popup.close()
-            self.redraw()
+            # width = self.window.winfo_width()
+            # height = self.window.winfo_height()
+            new_width = int(width_box.get())
+            new_height = int(height_box.get())
+            # self.window.geometry(f"{new_width - self.width + width}x
+            # {new_height - self.height + height}")
+            # self.resize(None)
+            self.canvas.config(width=new_width, height=new_height)
+            self.width = new_width
+            self.height = new_height
+            self.restart()
+            # popup.close() # For some reason this breaks it ¯\_(ツ)_/¯
 
         tk.Label(popup, text="Width:").grid(row=1, column=0)
         width_box.grid(row=1, column=1)
@@ -596,7 +603,7 @@ class GUI:
         # stats = pstats.Stats(profiler).sort_stats('cumtime')
         # stats.print_stats()
 
-    def resize(self, _: Event) -> None:  # type: ignore
+    def resize(self, _: Optional[Event]) -> None:  # type: ignore
         """Resize canvas."""
         if (
             int(self.canvas.winfo_height() != self.height)
