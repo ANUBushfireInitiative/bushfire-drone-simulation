@@ -215,6 +215,8 @@ class MinimiseMeanTimeUAVCoordinator(UAVCoordinator):
                             start_from = None
 
         if best_uav is None:
+            # We cannot keep the strike's inspection time under the target time
+            # So revert to minimising mean time instead
             if best_uav_above_target is None:
                 _LOG.error("No UAVs were available to process lightning strike %s", lightning.id_no)
             else:
