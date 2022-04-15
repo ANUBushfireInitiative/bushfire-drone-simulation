@@ -1,4 +1,5 @@
 """Class for clustering lightning strikes."""
+from copy import copy
 from math import inf, pi
 from typing import List
 
@@ -115,7 +116,7 @@ class Cluster:
         loop = True
         while loop:
             loop = False
-            for circle in circles:
+            for circle in copy(circles):
                 if not circle.target:
                     loop = True
                     contained_locs = []
