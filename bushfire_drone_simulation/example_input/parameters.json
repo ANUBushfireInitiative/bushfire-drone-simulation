@@ -49,7 +49,7 @@
     },
     "unassigned_uavs": {
         "targets_filename": "input_data/targets.csv",
-        "automatic_targets": {
+        "forecasting": {
             "radius": 50,
             "min_in_target": 25,
             "target_resolution": 30,

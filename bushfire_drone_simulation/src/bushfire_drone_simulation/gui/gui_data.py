@@ -306,7 +306,7 @@ def extract_targets_from_output(parameters: JSONParameters, scenario_idx: int) -
     """
     if "unassigned_uavs" in parameters.parameters:
         unassigned_uavs = parameters.parameters["unassigned_uavs"]
-        if "targets_filename" in unassigned_uavs or "automatic_targets" in unassigned_uavs:
+        if "targets_filename" in unassigned_uavs or "forecasting" in unassigned_uavs:
             scenario_name = parameters.scenario_name(scenario_idx)
             output_folder = parameters.filepath.parent / parameters.get_attribute(
                 "output_folder_name", scenario_idx

@@ -573,7 +573,8 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
             )
             total_flight_time = self.get_range() / self.flight_speed
             self.required_departure_time = self._get_future_time() + max(
-                0, extra_fuel * total_flight_time - self.unassigned_dt)
+                0, extra_fuel * total_flight_time - self.unassigned_dt
+            )
             self.closest_base = bases[base_index]
         else:
             self.closest_base = None

@@ -446,8 +446,8 @@ class JSONParameters:
             polygon = read_locations(self.folder / attribute_dict["boundary_polygon_filename"])
             if polygon[0].equals(polygon[-1]):
                 del polygon[-1]
-            if "automatic_targets" in attribute_dict:
-                target_dict = attribute_dict["automatic_targets"]
+            if "forecasting" in attribute_dict:
+                target_dict = attribute_dict["forecasting"]
                 for attribute in [
                     "radius",
                     "min_in_target",
@@ -459,7 +459,7 @@ class JSONParameters:
                     if attribute not in target_dict:
                         raise Exception(
                             f"Error: Parameter '{attribute}' is missing in '{self.filepath}'.\n"
-                            f"Please add '{attribute}' to 'unassigned_uavs/automatic_targets' in"
+                            f"Please add '{attribute}' to 'unassigned_uavs/forecasting' in"
                             f" '{self.filepath}' and run the simulation again"
                         )
                 cluster = LightningCluster(
@@ -798,7 +798,7 @@ class JSONParameters:
         """Write water bomber event update data to output file."""
         if "unassigned_uavs" in self.parameters:
             unassigned_uavs = self.parameters["unassigned_uavs"]
-            if "targets_filename" in unassigned_uavs or "automatic_targets" in unassigned_uavs:
+            if "targets_filename" in unassigned_uavs or "forecasting" in unassigned_uavs:
                 with open(
                     self.output_folder / (f"{prefix}all_targets.csv"),
                     "w",
