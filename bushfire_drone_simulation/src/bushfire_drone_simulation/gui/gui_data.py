@@ -8,6 +8,7 @@ from bushfire_drone_simulation.aircraft import Aircraft, Status, UpdateEvent
 from bushfire_drone_simulation.fire_utils import Location, Time
 from bushfire_drone_simulation.gui.gui_objects import (
     GUIAircraft,
+    GUIBasicLine,
     GUILightning,
     GUIObject,
     GUIPoint,
@@ -17,7 +18,7 @@ from bushfire_drone_simulation.gui.gui_objects import (
     GUIWaterTank,
 )
 from bushfire_drone_simulation.parameters import JSONParameters
-from bushfire_drone_simulation.read_csv import CSVFile, read_targets
+from bushfire_drone_simulation.read_csv import CSVFile, read_locations, read_targets
 from bushfire_drone_simulation.simulator import Simulator
 from bushfire_drone_simulation.uav import UAV
 from bushfire_drone_simulation.units import Volume
@@ -40,6 +41,7 @@ class GUIData:
         wb_bases: Sequence[GUIPoint],
         watertanks: Sequence[GUIWaterTank],
         targets: Sequence[GUITarget],
+        boundary: Sequence[GUIBasicLine],
     ):
         """Initialize a GUI data object.
 
@@ -63,6 +65,7 @@ class GUIData:
         self.wb_bases = wb_bases
         self.watertanks = watertanks
         self.targets = targets
+        self.boundary = boundary
         if len(water_bombers) + len(uavs) == 0:
             self.max_time = 0.0
         else:
@@ -102,6 +105,7 @@ class GUIData:
             "uavs": self.uavs,
             "water_bombers": self.water_bombers,
             "targets": self.targets,
+            "boundary": self.boundary,
         }
 
     def __getitem__(self, key: str) -> Sequence[GUIObject]:
@@ -125,8 +129,17 @@ class GUIData:
         wb_bases = extract_simulation_wb_bases(simulation)
         watertanks = extract_simulation_water_tanks(simulation)
         targets = extract_simulation_targets(simulation)
+        boundary = extract_boundary_polygon(simulation.params, simulation.scenario_idx)
         return cls(
-            lightning, ignitions, uavs, water_bombers, uav_bases, wb_bases, watertanks, targets
+            lightning,
+            ignitions,
+            uavs,
+            water_bombers,
+            uav_bases,
+            wb_bases,
+            watertanks,
+            targets,
+            boundary,
         )
 
     @classmethod
@@ -152,9 +165,37 @@ class GUIData:
         )
         watertanks = extract_water_tanks_from_output(parameters, scenario_idx)
         targets = extract_targets_from_output(parameters, scenario_idx)
+        boundary = extract_boundary_polygon(parameters, scenario_idx)
         return cls(
-            lightning, ignitions, uavs, water_bombers, uav_bases, wb_bases, watertanks, targets
+            lightning,
+            ignitions,
+            uavs,
+            water_bombers,
+            uav_bases,
+            wb_bases,
+            watertanks,
+            targets,
+            boundary,
         )
+
+
+def extract_boundary_polygon(params: JSONParameters, scenario_idx: int) -> List[GUIBasicLine]:
+    """Extract boundary polygon from simulation parameters.
+
+    Args:
+        params (JSONParameters): params
+        scenario_idx (int): scenario_idx
+
+    Returns:
+        List[GUIBasicLine]:
+    """
+    if "unassigned_uavs" in params.parameters:
+        attribute_dict = params.get_attribute("unassigned_uavs", scenario_idx)
+        if "boundary_polygon_filename" in attribute_dict:
+            polygon = read_locations(params.folder / attribute_dict["boundary_polygon_filename"])
+            polygon.append(polygon[0])
+            return [GUIBasicLine(polygon[i], polygon[i + 1]) for i in range(len(polygon) - 1)]
+    return []
 
 
 def extract_simulation_lightning(simulation: Simulator, ignited: bool) -> List[GUILightning]:
