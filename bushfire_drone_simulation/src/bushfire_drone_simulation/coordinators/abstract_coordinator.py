@@ -100,6 +100,8 @@ class UnassignedCoordinator:
         self.polygon_points = [(loc.lat, loc.lon) for loc in self.polygon]
         self.boundary = path.Path(self.polygon_points)
         self.output_folder = output_folder
+        for uav in uavs:
+            uav.unassigned_dt = self.dt
 
     @abstractmethod
     def assign_unassigned_uavs(self, current_time: float) -> None:

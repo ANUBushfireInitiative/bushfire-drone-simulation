@@ -110,4 +110,4 @@ class SimpleUnassignedCoordinator(UnassignedCoordinator):
             else:
                 uav.unassigned_target = None
         for uav in self.uavs:
-            uav.go_to_base_when_necessary(self.uav_bases, current_time)
+            uav.go_to_base_when_necessary(self.uav_bases)

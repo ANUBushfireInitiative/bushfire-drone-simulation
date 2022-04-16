@@ -161,6 +161,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         self.fuel_tank_capacity: float = 1  # TODO(read from input) pylint: disable=fixme
         self.unassigned_target: Optional[Location] = None
         self.pct_fuel_cutoff = pct_fuel_cutoff
+        self.unassigned_dt = 0  # Time between unassigned updates
 
     def copy_from_aircraft(self, other: "Aircraft") -> None:
         """Copy properties from another aircraft.
@@ -328,7 +329,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         """Update aircraft to given time and delete all updates beyond this time.
 
         Args:
-            time (Time): Time to update to
+            update_time (float): Time to update to
 
         Returns:
             List[Lightning]: list of strikes inspected
@@ -554,7 +555,6 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
     def go_to_base_when_necessary(
         self,
         bases: List[Base],
-        departure_time: float,
     ) -> None:
         """Aircraft will return to the nearest base when necessary.
 
@@ -572,9 +572,8 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                 self.get_range() * self.pct_fuel_cutoff
             )
             total_flight_time = self.get_range() / self.flight_speed
-            self.required_departure_time = max(
-                departure_time + extra_fuel * total_flight_time, self._get_future_time()
-            )
+            self.required_departure_time = self._get_future_time() + max(
+                0, extra_fuel * total_flight_time - self.unassigned_dt)
             self.closest_base = bases[base_index]
         else:
             self.closest_base = None
