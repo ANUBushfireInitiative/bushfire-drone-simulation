@@ -14,7 +14,7 @@ def frequency_histogram(
     values: List[float],
     title: str,
     xlabel: str,
-    bins: int = 20,
+    bins: int = 40,
 ) -> None:
     """Shorthand for generating a simple histogram frequency plot on a set of matplotlib axes.
 

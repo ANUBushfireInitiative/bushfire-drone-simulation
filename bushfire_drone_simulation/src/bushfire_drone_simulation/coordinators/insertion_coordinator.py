@@ -137,7 +137,7 @@ class InsertionUAVCoordinator(UAVCoordinator):
         else:
             _LOG.error("No UAVs were available to process lightning strike %s", lightning.id_no)
         for uav in self.uavs:
-            uav.go_to_base_when_necessary(self.uav_bases, lightning.spawn_time)
+            uav.go_to_base_when_necessary(self.uav_bases)
 
 
 class InsertionWBCoordinator(WBCoordinator):
@@ -303,7 +303,7 @@ class InsertionWBCoordinator(WBCoordinator):
         for water_bomber in self.water_bombers:
             bases = self.water_bomber_bases_dict[water_bomber.type]
             water_bomber.go_to_water_if_necessary(self.water_tanks, bases)
-            water_bomber.go_to_base_when_necessary(bases, ignition.inspected_time)
+            water_bomber.go_to_base_when_necessary(bases)
 
     def process_new_strike(self, lightning: Lightning) -> None:
         """Decide on water bombers movement with new strike."""

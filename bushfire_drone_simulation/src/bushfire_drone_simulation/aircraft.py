@@ -161,6 +161,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         self.fuel_tank_capacity: float = 1  # TODO(read from input) pylint: disable=fixme
         self.unassigned_target: Optional[Location] = None
         self.pct_fuel_cutoff = pct_fuel_cutoff
+        self.unassigned_dt = 0  # Time between unassigned updates
 
     def copy_from_aircraft(self, other: "Aircraft") -> None:
         """Copy properties from another aircraft.
@@ -328,7 +329,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         """Update aircraft to given time and delete all updates beyond this time.
 
         Args:
-            time (Time): Time to update to
+            update_time (float): Time to update to
 
         Returns:
             List[Lightning]: list of strikes inspected
@@ -337,31 +338,7 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
         assert isinstance(update_time, float)
         strikes_inspected: List[Lightning] = []
         strikes_suppressed: List[Lightning] = []
-        if (
-            self.event_queue.is_empty()
-            and self.unassigned_target is not None
-            and not math.isinf(update_time)
-            and self.time < update_time
-        ):
-            if self.lat != self.unassigned_target.lat or self.lon != self.unassigned_target.lon:
-                percentage = (
-                    (update_time - self.time)
-                    * self.flight_speed
-                    / self.distance(self.unassigned_target)
-                )
-                if percentage < 1:
-                    destination = self.intermediate_point(self.unassigned_target, percentage)
-                    self._reduce_current_fuel(self.distance(destination) / self.get_range())
-                else:
-                    destination = self.unassigned_target
-                    self.unassigned_target = None
-                    self._reduce_current_fuel(
-                        (self.flight_speed * (update_time - self.time)) / self.get_range()
-                    )
-                self.time += self.distance(destination) / self.flight_speed
-                self._update_location(destination)
-            self.status = Status.UNASSIGNED
-            self._add_update()
+        queue_empty = self.event_queue.is_empty()
         # If we can get to the next position then complete update, otherwise make it half way there
         while not self.event_queue.is_empty():
             next_event = self.event_queue.peak()
@@ -407,14 +384,44 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                     self.time += self.distance(destination) / self.flight_speed
                     self._update_location(destination)
                 break
-        # Lose fuel if hovering and update self.time to update_time
+
+        # Go to base if necessary (after completing all other tasks)
         if (
             self.required_departure_time is not None
             and update_time - self.required_departure_time > -EPSILON
         ):
             assert self.closest_base is not None
             self.go_to_base(self.closest_base, self.required_departure_time)
-        assert isinstance(update_time, float)
+
+        # Update unassigned UAVs
+        if (
+            # self.event_queue.is_empty()
+            queue_empty
+            and self.unassigned_target is not None
+            and not math.isinf(update_time)
+            and self.time < update_time
+        ):
+            if self.lat != self.unassigned_target.lat or self.lon != self.unassigned_target.lon:
+                percentage = (
+                    (update_time - self.time)
+                    * self.flight_speed
+                    / self.distance(self.unassigned_target)
+                )
+                if percentage < 1:
+                    destination = self.intermediate_point(self.unassigned_target, percentage)
+                    self._reduce_current_fuel(self.distance(destination) / self.get_range())
+                else:
+                    destination = self.unassigned_target
+                    self.unassigned_target = None
+                    self._reduce_current_fuel(
+                        (self.flight_speed * (update_time - self.time)) / self.get_range()
+                    )
+                self.time += self.distance(destination) / self.flight_speed
+                self._update_location(destination)
+            self.status = Status.UNASSIGNED
+            self._add_update()
+
+        # Lose fuel if hovering and update self.time to update_time
         if update_time > self.time and not math.isinf(update_time):
             if self.status in [Status.HOVERING, Status.UNASSIGNED]:
                 self._reduce_current_fuel(
@@ -522,10 +529,11 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
     def go_to_base(self, base: Base, departure_time: float) -> None:
         """Go to and refill Aircraft at base."""
         if departure_time - self.time > EPSILON:
+            # Must have been called from when necessary
             assert self.status in [
                 Status.HOVERING,
                 Status.UNASSIGNED,
-            ], f"status was {self.status}"  # Must have been called from when necessary
+            ], f"status of {self.get_name()} was {self.status}"
             self._reduce_current_fuel(
                 (departure_time - self.time) * (self.flight_speed) / self.get_range()
             )
@@ -547,7 +555,6 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
     def go_to_base_when_necessary(
         self,
         bases: List[Base],
-        departure_time: float,
     ) -> None:
         """Aircraft will return to the nearest base when necessary.
 
@@ -565,8 +572,8 @@ class Aircraft(Location):  # pylint: disable=too-many-public-methods
                 self.get_range() * self.pct_fuel_cutoff
             )
             total_flight_time = self.get_range() / self.flight_speed
-            self.required_departure_time = max(
-                departure_time + extra_fuel * total_flight_time, self._get_future_time()
+            self.required_departure_time = self._get_future_time() + max(
+                0, extra_fuel * total_flight_time - self.unassigned_dt
             )
             self.closest_base = bases[base_index]
         else:

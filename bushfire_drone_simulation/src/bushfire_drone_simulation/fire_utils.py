@@ -266,9 +266,8 @@ class Time:
             except ValueError:
                 if len(time_in) < 6:
                     # Assume hh:mm format (or h:mm format)
-                    self.time = (
-                        Duration(int(time_in[:-3]), "hr")
-                        + Duration(int(time_in[-2:]), "min")
+                    self.time = Duration(int(time_in[:-3]), "hr") + Duration(
+                        int(time_in[-2:]), "min"
                     )
                 else:
                     self.time = (

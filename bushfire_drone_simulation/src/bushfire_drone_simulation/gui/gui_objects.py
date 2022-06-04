@@ -56,11 +56,15 @@ class GUIObject:
             canvas.itemconfigure(self.canvas_object, state="normal")
             self.cur_shown = True
 
-    @abstractmethod
     def show_given_time(
-        self, canvas: Canvas, start_time: float, end_time: float, simple: bool = True
+        self,
+        canvas: Canvas,
+        start_time: float,  # pylint: disable=unused-argument
+        end_time: float,  # pylint: disable=unused-argument
+        simple: bool = True,  # pylint: disable=unused-argument
     ) -> None:
         """Show the object if it should be visible in the given timeframe."""
+        self.show(canvas)
 
     @abstractmethod
     def update(self, canvas: Canvas) -> None:
@@ -130,6 +134,50 @@ class GUIPoint(GUIObject):
             end_time (float): end_time
         """
         self.show(canvas)
+
+
+class GUIBasicLine(GUIObject):
+    """GUIBasicLine."""
+
+    def __init__(self, p_1: Location, p_2: Location, width: int = 3, colour: str = "black"):
+        """__init__.
+
+        Args:
+            p_1 (Location): Global coordinates of start of line.
+            p_2 (Location): Global coordinates of end of line.
+        """
+        super().__init__()
+        self.p_1 = p_1
+        self.p_2 = p_2
+        self.width = width
+        self.colour = colour
+        self.tags += ("line",)
+
+    def place_on_canvas(
+        self, canvas: Canvas, to_coordinates: Callable[[Location], Tuple[float, float]]
+    ) -> None:
+        """Place line on canvas.
+
+        Args:
+            canvas (Canvas): canvas
+            to_coordinates (Callable[[float, float], Tuple[float,float]]): to_coordinates
+        """
+        super().place_on_canvas(canvas, to_coordinates)
+        self.to_coordinates = to_coordinates
+        c_1 = self.to_coordinates(self.p_1)
+        c_2 = self.to_coordinates(self.p_2)
+        print(c_1, c_2)
+        self.canvas_object = canvas.create_line(
+            *c_1, *c_2, fill=self.colour, width=self.width, tags=self.tags
+        )
+
+    def update(self, canvas: Canvas) -> None:
+        """Update position of line."""
+        if self.cur_shown:
+            c_1 = self.to_coordinates(self.p_1)
+            c_2 = self.to_coordinates(self.p_2)
+            coordinates = list(c_1 + c_2)
+            canvas.coords(self.canvas_object, coordinates)  # type: ignore
 
 
 class GUILine(GUIObject):
