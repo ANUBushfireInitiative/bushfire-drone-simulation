@@ -1,9 +1,9 @@
 {
     "water_bomber_bases_filename": "input_data/base_locations_test.csv",
-    "uav_bases_filename": "input_data/uav_base_locations.csv",
+    "uav_bases_filename": "input_data/100_uav_spawn_locs.csv",
     "water_tanks_filename": "input_data/reservoirs_tanks.csv",
     "lightning_filename": "input_data/lightning.csv",
-    "output_folder_name": "swarming",
+    "output_folder_name": "Swarming",
     "uav_coordinator": "MinimiseMeanTimeUAVCoordinator",
     "wb_coordinator": "MinimiseMeanTimeWBCoordinator",
     "uav_mean_time_power": 1,

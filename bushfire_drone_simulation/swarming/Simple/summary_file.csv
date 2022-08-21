@@ -1,0 +1,3 @@
+Scenario Name,,Mean time (hr),Max time (hr),99th percentile (hr),90th percentile (hr),50th percentile (hr)
+0,Inspections,1.1294477429346965,2.760231342032736,2.112318924214024,1.8619277698202907,1.0858937041737449
+,Suppressions,No strikes were suppressed

@@ -156,8 +156,6 @@ def inspection_time_plot_over_time(axs: Any, lightning: Sequence[Lightning]) -> 
         if strike.inspected_time is not None
     ]
     axs.set_title("Inspection time of lightning strikes")
-    axs.scatter(
-        spawn_times,
-        inspection_times,
-    )
+    axs.scatter(spawn_times, inspection_times, marker=".")
+    axs.set_ylim(0, 2.75)
     axs.set(xlabel="Strike time (Hours)", ylabel=("Inspection time (Hours)"))

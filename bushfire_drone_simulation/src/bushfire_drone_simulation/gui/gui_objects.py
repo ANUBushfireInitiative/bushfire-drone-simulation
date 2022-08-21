@@ -356,7 +356,7 @@ class GUITarget(GUIPoint, Target):
             target (Target): target
         """
         self.copy_from_target(target)
-        super().__init__(target, colour="purple")
+        super().__init__(target, radius=5, colour="magenta")
         self.tags += ("target",)
 
     def show_given_time(

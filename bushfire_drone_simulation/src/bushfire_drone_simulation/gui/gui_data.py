@@ -95,15 +95,15 @@ class GUIData:
             Dict[str, Sequence[GUIObject]]: GUIObject dictionary
         """
         return {
-            "water_tanks": self.watertanks,
+            # "water_tanks": self.watertanks,
             "uav_bases": self.uav_bases,
-            "wb_bases": self.wb_bases,
+            # "wb_bases": self.wb_bases,
             "uav_lines": self.uav_lines,
-            "wb_lines": self.wb_lines,
+            # "wb_lines": self.wb_lines,
             "lightning": self.lightning,
-            "ignitions": self.ignitions,
+            # "ignitions": self.ignitions,
             "uavs": self.uavs,
-            "water_bombers": self.water_bombers,
+            # "water_bombers": self.water_bombers,
             "targets": self.targets,
             "boundary": self.boundary,
         }
@@ -272,7 +272,7 @@ def extract_simulation_uav_bases(simulation: Simulator) -> List[GUIPoint]:
     """
     to_return: List[GUIPoint] = []
     for uav_base in simulation.uav_bases:
-        to_return.append(GUIPoint(Location(uav_base.lat, uav_base.lon), radius=2, colour="grey"))
+        to_return.append(GUIPoint(Location(uav_base.lat, uav_base.lon), radius=3, colour="white"))
     return to_return
 
 
@@ -408,8 +408,8 @@ def extract_bases_from_parameters(
         to_return.append(
             GUIPoint(
                 Location(getattr(row, "latitude"), getattr(row, "longitude")),
-                radius=2 if aircraft_type == "uav" else 3,
-                colour="grey" if aircraft_type == "uav" else "black",
+                radius=3,
+                colour="white" if aircraft_type == "uav" else "black",
             )
         )
     return to_return

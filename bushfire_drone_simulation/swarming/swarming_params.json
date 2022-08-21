@@ -1,0 +1,59 @@
+{
+    "water_bomber_bases_filename": "input_data/base_locations_test.csv",
+    "uav_bases_filename": "input_data/100_uav_spawn_locs.csv",
+    "water_tanks_filename": "input_data/reservoirs_tanks.csv",
+    "lightning_filename": "input_data/lightning.csv",
+    "output_folder_name": "Swarming",
+    "uav_coordinator": "MinimiseMeanTimeUAVCoordinator",
+    "wb_coordinator": "MinimiseMeanTimeWBCoordinator",
+    "uav_mean_time_power": 1,
+    "wb_mean_time_power": 1,
+    "target_maximum_inspection_time": "inf",
+    "target_maximum_suppression_time": "inf",
+    "ignition_probability": 0,
+    "uavs": {
+        "spawn_loc_file": "input_data/uav_spawn_locations.csv",
+        "flight_speed": 85,
+        "fuel_refill_time": 15,
+        "range": 680,
+        "inspection_time": 1,
+        "pct_fuel_cutoff": 0.7,
+        "prioritisation_function": "time"
+    },
+    "water_bombers": {
+        "firehawk": {
+            "spawn_loc_file": "input_data/helicopter_spawn_locations.csv",
+            "flight_speed": 230,
+            "suppression_time": 1,
+            "water_refill_time": 30,
+            "fuel_refill_time": 15,
+            "water_per_suppression": 2875,
+            "range_empty": 640,
+            "range_under_load": 640,
+            "water_capacity": 3200,
+            "pct_fuel_cutoff": 0.7
+        },
+        "chinook": {
+            "spawn_loc_file": "input_data/helicopter_spawn_locations.csv",
+            "flight_speed": 230,
+            "suppression_time": 1,
+            "water_refill_time": 30,
+            "fuel_refill_time": 30,
+            "water_per_suppression": 2875,
+            "range_empty": 650,
+            "range_under_load": 650,
+            "water_capacity": 11500,
+            "pct_fuel_cutoff": 0.7
+        }
+    },
+    "unassigned_uavs": {
+        "boundary_polygon_filename": "input_data/boundary_polygon.csv",
+        "dt": 120,
+        "uav_repulsion_const": 50000000.0,
+        "uav_repulsion_power": -5,
+        "boundary_repulsion_const": 4000.0,
+        "boundary_repulsion_power": -2,
+        "centre_lat": -36.5,
+        "centre_lon": 148
+    }
+}

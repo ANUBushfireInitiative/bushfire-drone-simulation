@@ -38,8 +38,8 @@ from bushfire_drone_simulation.plots import (
 )
 from bushfire_drone_simulation.simulator import run_simulations
 
-WIDTH = 400
-HEIGHT = 200
+WIDTH = 1280
+HEIGHT = 720
 ZOOM = 7
 LATITUDE = -36.25
 LONGITUDE = 147.9
@@ -484,15 +484,15 @@ class GUI:
         """Create view menu for interacting with GUI."""
         return_dict: Dict[str, tk.BooleanVar] = {}
         name_map = {
-            "water_tanks": "Show Water Tanks",
+            # "water_tanks": "Show Water Tanks",
             "uav_bases": "Show UAV Bases",
-            "wb_bases": "Show Water Bomber Bases",
+            # "wb_bases": "Show Water Bomber Bases",
             "uav_lines": "Show UAV Paths",
-            "wb_lines": "Show WB Paths",
+            # "wb_lines": "Show WB Paths",
             "lightning": "Show Lightning",
-            "ignitions": "Show Ignitions",
+            # "ignitions": "Show Ignitions",
             "uavs": "Show UAVs",
-            "water_bombers": "Show Water Bombers",
+            # "water_bombers": "Show Water Bombers",
             "targets": "Show Targets",
             "boundary": "Show Boundary",
             "simple": "Simple View",
