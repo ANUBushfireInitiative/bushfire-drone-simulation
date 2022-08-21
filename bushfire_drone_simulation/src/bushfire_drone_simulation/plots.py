@@ -137,3 +137,27 @@ def risk_rating_plot_over_time(fig: Any, axs: Any, lightning: Sequence[Lightning
     scatter = axs.scatter(spawn_times, inspection_times, c=risk_ratings, cmap="viridis")
     axs.set(xlabel="Strike time (Hours)", ylabel=("Inspection time (Hours)"))
     fig.colorbar(scatter, ax=axs)
+
+
+def inspection_time_plot_over_time(axs: Any, lightning: Sequence[Lightning]) -> None:
+    """Generate inspection against strike time plot coloured by risk rating.
+
+    Args:
+        lightning (List[Lightning]): lightning
+    """
+    spawn_times = [
+        Time.from_float(strike.spawn_time).get("hr")
+        for strike in lightning
+        if strike.inspected_time is not None
+    ]
+    inspection_times = [
+        Time.from_float(strike.inspected_time - strike.spawn_time).get("hr")
+        for strike in lightning
+        if strike.inspected_time is not None
+    ]
+    axs.set_title("Inspection time of lightning strikes")
+    axs.scatter(
+        spawn_times,
+        inspection_times,
+    )
+    axs.set(xlabel="Strike time (Hours)", ylabel=("Inspection time (Hours)"))
