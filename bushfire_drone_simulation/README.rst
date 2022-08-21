@@ -187,7 +187,7 @@ The JSON parameters file should contain the following information formatted as i
     {
         "unassigned_uavs": {
             "targets_filename": "input_data/targets.csv",
-            "automatic_targets": "an optional dictionary detailed below outlining parameters for automatic targets if desired"
+            "forecasting": "an optional dictionary detailed below outlining parameters for automatic forecasting if desired"
             "boundary_polygon_filename": "input_data/boundary_polygon.csv",
             "dt": "time in seconds between unassigned aircraft updates",
             "uav_repulsion_const": "uav repulsion coefficient (positive for repulsion)",
@@ -201,17 +201,17 @@ The JSON parameters file should contain the following information formatted as i
     }
 
 To simulate strike forecasting, targets can be specified automatically via the targets_filename or
-by including the automatic_targets dictionary (or both of these options). Automatic targets are determined
+by including the forecasting dictionary (or both of these options). Automatic forecasting targets are determined
 using the Mean-Shift Clustering algorithm with circles of a given radius. Once these circles have converged,
 a point is considered a target if it contains more than `min_in_target` strikes. Targets are calculated
 every `target_resolution` minutes taking into conisderation the next `look_ahead` minutes worth of strikes.
 
-The automatic_targets dictionary should be structured as follows:
+The forecasting dictionary should be structured as follows:
 
 .. code-block :: json
 
     {
-        "automatic_targets": {
+        "forecasting": {
             "radius": "radius of circles",
             "min_in_target": "required number of strikes within a circle for it to be considered a target",
             "target_resolution": "how frequently targets are calculated in minutes",
