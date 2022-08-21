@@ -31,6 +31,7 @@ from bushfire_drone_simulation.fire_utils import (
 from bushfire_drone_simulation.lightning import Lightning
 from bushfire_drone_simulation.plots import (
     inspection_time_histogram,
+    inspection_time_plot_over_time,
     risk_rating_plot,
     risk_rating_plot_over_time,
     suppression_time_histogram,
@@ -620,6 +621,12 @@ class JSONParameters:
         risk_rating_plot(axs, lightning)
         fig.savefig(self.output_folder / (prefix + "risk_rating_plot.png"))
         plt.close(fig)
+
+        fig = Figure(figsize=(8, 6), dpi=300, tight_layout=True)
+        axs = fig.add_subplot(111)
+        inspection_time_plot_over_time(axs, lightning)
+        fig.savefig(self.output_folder / (prefix + "inspection_time_plot.png"))
+
         return summary_results
 
     def _write_to_simulation_output_file(
